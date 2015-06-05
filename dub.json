@@ -1,0 +1,15 @@
+{
+	"name": "lethe",
+	"description": "Lethe",
+	"copyright": "Copyright © 2015, Yuxuan Shui",
+	"authors": ["Yuxuan Shui"],
+	"dependencies": {
+		"gfm:opengl" : "*",
+		"gfm:sdl2" : "*",
+		"gfm:math" : "*",
+		"gfm:logger" : "*",
+		"derelict-sdl2" : "*",
+		"derelict-gl3" : "*"
+	},
+	"stringImportPaths" : [ "source"]
+}
