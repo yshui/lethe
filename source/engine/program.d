@@ -236,7 +236,8 @@ final class GLProgram {
 				for (GLint i = 0; i < numActiveUniforms; ++i)
 					uniformIndex[i] = cast(GLuint)i;
 
-				glGetActiveUniformsiv( _program,
+				if (numActiveUniforms > 0)
+					glGetActiveUniformsiv( _program,
 						cast(GLint)uniformIndex.length,
 						uniformIndex.ptr,
 						GL_UNIFORM_BLOCK_INDEX,

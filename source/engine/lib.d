@@ -33,22 +33,28 @@ class BaseSceneData(int n, int m) {
 	Vertex[n] vs;
 	GLuint[m] indices;
 	int vsize, isize;
-	void assign_uniforms(GLProgram prog) { }
+	void assign_uniforms(OpenGL gl, GLProgram prog) { }
 }
 
 class SceneData(int n, int m, Uniforms) : BaseSceneData!(n, m) {
 	Uniforms u;
 	this(Uniforms _u) { u = _u; }
 	this() { }
-	override void assign_uniforms(GLProgram prog) {
+	override void assign_uniforms(OpenGL gl, GLProgram prog) {
+		//Activate all textures
 		static if (is(Uniforms == struct) || is(Uniforms == class)) {
 			alias TT = FieldTypeTuple!Uniforms;
+			int tu = GL_TEXTURE0;
 			foreach (member; __traits(allMembers, Uniforms)) {
 				mixin("alias T = typeof(Uniforms." ~ member ~ ");");
 				static if (staticIndexOf!(T, TT) != -1) {
-					static if (is(T: GLTexture))
-						mixin("prog.uniform(\"" ~ member ~ "\").set(u." ~ member ~ "._handle);");
-					else
+					static if (is(T: GLTexture)) {
+						glActiveTexture(tu);
+						gl.runtimeCheck();
+						mixin("u." ~ member ~ ".bind();");
+						mixin("prog.uniform(\"" ~ member ~ "\").set(tu-GL_TEXTURE0);");
+						tu++;
+					} else
 						mixin("prog.uniform(\"" ~ member ~ "\").set(u." ~ member ~ ");");
 				}
 			}
@@ -141,23 +147,27 @@ class Engine(int n, int m) {
 				dx=-dx;
 			if (gen_scene) {
 				auto d = gen_scene();
-				d.assign_uniforms(prog);
+				d.assign_uniforms(gl, prog);
 
 				GLuint ibuf;
 				glGenBuffers(1, &ibuf);
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf);
 				glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint.sizeof*d.isize,
 					     d.indices.ptr, GL_STREAM_DRAW);
+				gl.runtimeCheck();
 
 				auto va = VertexArray!Vertex(d.vs[0..d.vsize], prog);
 
 				prog.use();
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf);
+				gl.runtimeCheck();
 				va.bind();
 				glDrawElements(GL_TRIANGLES, d.isize, GL_UNSIGNED_INT, cast(const(void *))0);
 				gl.runtimeCheck();
 				glDeleteBuffers(1, &ibuf);
+				gl.runtimeCheck();
 				prog.unuse();
+				gl.runtimeCheck();
 			}
 			win.swapBuffers();
 			uint frame_end = SDL_GetTicks();
@@ -170,7 +180,7 @@ class Engine(int n, int m) {
 		return new GLTexture2D(gl);
 	}
 	GLTexture2D new_texture2d(const(string) file) {
-		auto image = sdl2img.load("ball.png").convert(&fmt);
+		auto image = sdl2img.load("ball.png");//.convert(&fmt);
 		auto texture = new_texture2d();
 		image.lock();
 		texture.setImage(0, GL_RGBA8, image.width, image.height, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels());

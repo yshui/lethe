@@ -196,20 +196,19 @@ class GLTexture {
 	}
 
 	package {
-		GLuint _target;
-		GLuint _handle;
+		void bind() {
+			// Bind on whatever the current texture unit is!
+			glBindTexture(target, _handle);
+			_gl.runtimeCheck();
+		}
 	}
 
 	private {
 		OpenGL _gl;
 		bool _initialized;
 		int _textureUnit;
-
-		void bind() {
-			// Bind on whatever the current texture unit is!
-			glBindTexture(target, _handle);
-			_gl.runtimeCheck();
-		}
+		GLuint _target;
+		GLuint _handle;
 	}
 }
 
@@ -244,6 +243,7 @@ final class GLTexture2D : GLTexture {
 		/// Sets texture content.
 		/// Throws: $(D OpenGLException) on error.
 		void setImage(int level, GLint internalFormat, int width, int height, GLenum format, GLenum type, void* data) {
+			bind();
 			glTexImage2D(_target, level, internalFormat, width, height, 0, format, type, data);
 			_gl.runtimeCheck();
 		}
@@ -265,6 +265,7 @@ final class GLTexture3D : GLTexture {
 		void setImage(int level, GLint internalFormat,
 			      int width, int height, int depth,
 			      GLenum format, GLenum type, void* data) {
+			bind();
 			glTexImage3D(_target, level, internalFormat, width, height, depth, 0, format, type, data);
 			_gl.runtimeCheck();
 		}
@@ -283,6 +284,7 @@ final class GLTexture1DArray : GLTexture {
 		/// Sets texture content.
 		/// Throws: $(D OpenGLException) on error.
 		void setImage(int level, GLint internalFormat, int width, int height, GLenum format, GLenum type, void* data) {
+			bind();
 			glTexImage2D(_target, level, internalFormat, width, height, 0, format, type, null);
 			_gl.runtimeCheck();
 		}
@@ -301,6 +303,7 @@ final class GLTexture2DArray : GLTexture {
 		/// Sets texture content.
 		/// Throws: $(D OpenGLException) on error.
 		void setImage(int level, GLint internalFormat, int width, int height, int depth, GLenum format, GLenum type, void* data) {
+			bind();
 			glTexImage3D(_target, level, internalFormat, width, height, depth, 0, format, type, data);
 			_gl.runtimeCheck();
 		}
@@ -308,6 +311,7 @@ final class GLTexture2DArray : GLTexture {
 		/// Sets partial texture content.
 		/// Throws: $(D OpenGLException) on error.
 		void setSubImage(int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, GLenum format, GLenum type, void* data) {
+			bind();
 			glTexSubImage3D(_target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
 			_gl.runtimeCheck();
 		}
@@ -326,6 +330,7 @@ final class GLTextureRectangle : GLTexture {
 		/// Sets texture content.
 		/// Throws: $(D OpenGLException) on error.
 		void setImage(int level, GLint internalFormat, int width, int height, GLenum format, GLenum type, void* data) {
+			bind();
 			glTexImage2D(_target, level, internalFormat, width, height, 0, format, type, null);
 			_gl.runtimeCheck();
 		}
@@ -344,6 +349,7 @@ final class GLTexture2DMultisample : GLTexture {
 		/// Sets texture content.
 		/// Throws: $(D OpenGLException) on error.
 		void setImage(int level, int samples, GLint internalFormat, int width, int height, bool fixedsamplelocations) {
+			bind();
 			glTexImage2DMultisample(_target, samples, internalFormat, width, height, fixedsamplelocations ? GL_TRUE : GL_FALSE);
 			_gl.runtimeCheck();
 		}
@@ -362,6 +368,7 @@ final class GLTexture2DMultisampleArray : GLTexture {
 		/// Sets texture content.
 		/// Throws: $(D OpenGLException) on error.
 		void setImage(int level, int samples, GLint internalFormat, int width, int height, int depth, bool fixedsamplelocations) {
+			bind();
 			glTexImage3DMultisample(_target, samples, internalFormat, width, height, depth, fixedsamplelocations ? GL_TRUE : GL_FALSE);
 			_gl.runtimeCheck();
 		}

@@ -38,7 +38,7 @@ void main() {
 	scene.isize = 6;
 	copy(quad_index[0..6], scene.indices[0..6]);
 	foreach(i; 0..4) {
-		scene.vs[i].position = vec2f(dx[i], dy[i]);
+		scene.vs[i].position = vec2f(dx[i]/2, dy[i]/2);
 		scene.vs[i].texture_coord = vec2f(dx[i], dy[i]);
 		scene.vs[i].translate = vec2f(0, 0);
 		scene.vs[i].angle = 0;
