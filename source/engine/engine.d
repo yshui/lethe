@@ -211,6 +211,7 @@ class Engine(int n, int m) {
 		image.lock();
 		texture.setImage(0, GL_RGBA8, image.width, image.height, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels());
 		image.unlock();
+		image.close();
 		texture.setBaseLevel(0);
 		texture.generateMipmap();
 		return texture;

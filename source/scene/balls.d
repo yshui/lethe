@@ -27,7 +27,7 @@ class Ball(int n, int m) : Particle!(n, m) {
 
 		GLuint[6] inds;
 		foreach(i; 0..6)
-			inds[i] = tmp+i;
+			inds[i] = tmp+quad_index[i];
 		sd += inds[];
 	}
 	this(vec2f c, vec2f v, float ir) {

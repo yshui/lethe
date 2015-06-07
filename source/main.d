@@ -22,7 +22,7 @@ void main() {
 	foreach(i; 0..100) {
 		auto v = vec2f(uniform(-0.01, 0.01), uniform(-0.01, 0.01));
 		auto c = vec2f(uniform(-1, 1), uniform(-1, 1));
-		scene.ps[i] = new Ball!(np*4, np*6)(v, c, 0.05);
+		scene.ps[i] = new Ball!(np*4, np*6)(c, v, 0.05);
 	}
 	int next_frame() {
 		scene.update();
