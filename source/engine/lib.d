@@ -34,6 +34,33 @@ class BaseSceneData(int n, int m) {
 	GLuint[m] indices;
 	int vsize, isize;
 	void assign_uniforms(OpenGL gl, GLProgram prog) { }
+	@nogc ref SceneData opOpAssign(string op, O)(O other) nothrow
+	if (op == "+") {
+		static if (is(O: BaseSceneData)){
+			this += other.vs[];
+			this += other.indices[];
+			return this;
+		} else static if (isInputRange!O) {
+			static assert(hasLength!O);
+			static if (is(ElementType!O == Vertex)) {
+				foreach(ref v; O) {
+					if (vsize >= n)
+						return this;
+					vs[vsize++] = v;
+				}
+			} else static if (is(ElementType!O == GLuint)) {
+				//We are doing triangles
+				assert(O.length % 3 == 0);
+				foreach(i; O) {
+					if (isize > m) {
+						isize -= isize % 3;
+						return this;
+					}
+					indices[isize++] = i;
+				}
+			}
+		}
+	}
 }
 
 class SceneData(int n, int m, Uniforms) : BaseSceneData!(n, m) {
