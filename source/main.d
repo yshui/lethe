@@ -3,6 +3,8 @@ import gfm.sdl2;
 import gfm.logger;
 import gfm.math;
 import engine;
+import scene.scene,
+       scene.balls;
 import std.algorithm;
 import std.random;
 
@@ -16,7 +18,7 @@ void main() {
 	auto logger = new ConsoleLogger();
 	auto eng = scoped!(Engine!(np*4, np*6))(logger);
 	auto sd = new SceneData!(np*4, np*6, uni)();
-	auto scene = new Scene(np, np*4, np*6)();
+	auto scene = new Scene!(np, np*4, np*6)();
 	foreach(i; 0..100) {
 		auto v = vec2f(uniform(-0.01, 0.01), uniform(-0.01, 0.01));
 		auto c = vec2f(uniform(-1, 1), uniform(-1, 1));
@@ -40,7 +42,8 @@ void main() {
 	}
 
 	typeof(sd) gen_scene() {
-		scene.gen_scene(sd);
+		sd.clear_scene();
+		scene.gen_scene(cast(BaseSceneData!(np*4, np*6))sd);
 		return sd;
 	}
 	eng.next_frame = &next_frame;

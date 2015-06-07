@@ -3,7 +3,8 @@ import engine.vertex;
 import std.typecons,
        std.traits,
        std.typetuple,
-       std.experimental.logger;
+       std.experimental.logger,
+       std.range.primitives;
 import gfm.sdl2;
 import engine.opengl,
        engine.program,
@@ -34,32 +35,35 @@ class BaseSceneData(int n, int m) {
 	GLuint[m] indices;
 	int vsize, isize;
 	void assign_uniforms(OpenGL gl, GLProgram prog) { }
-	@nogc ref SceneData opOpAssign(string op, O)(O other) nothrow
+	@nogc ref void opOpAssign(string op, O)(O other) nothrow
 	if (op == "+") {
 		static if (is(O: BaseSceneData)){
 			this += other.vs[];
 			this += other.indices[];
-			return this;
 		} else static if (isInputRange!O) {
 			static assert(hasLength!O);
 			static if (is(ElementType!O == Vertex)) {
-				foreach(ref v; O) {
+				foreach(ref v; other) {
 					if (vsize >= n)
-						return this;
+						return;
 					vs[vsize++] = v;
 				}
 			} else static if (is(ElementType!O == GLuint)) {
 				//We are doing triangles
-				assert(O.length % 3 == 0);
-				foreach(i; O) {
-					if (isize > m) {
+				assert(other.length % 3 == 0);
+				foreach(i; other) {
+					if (isize >= m) {
 						isize -= isize % 3;
-						return this;
+						return;
 					}
 					indices[isize++] = i;
 				}
 			}
 		}
+	}
+	@nogc void clear_scene() {
+		isize = 0;
+		vsize = 0;
 	}
 }
 
@@ -151,8 +155,6 @@ class Engine(int n, int m) {
 	}
 	void run(uint fps) {
 		win.setTitle("Lethe");
-		float x = 0;
-		float dx = 0.01;
 		while(true) {
 			uint frame_start = SDL_GetTicks();
 			if (handle_event) {
@@ -167,11 +169,8 @@ class Engine(int n, int m) {
 			if (next_frame)
 				next_frame();
 			glViewport(0, 0, _width, _height);
-			glClearColor(1.0,x,1.0-x,1.0);
+			glClearColor(0,0,0,1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
-			x+=dx;
-			if (x > 1.0 || x < 0)
-				dx=-dx;
 			if (gen_scene) {
 				auto d = gen_scene();
 				d.assign_uniforms(gl, prog);

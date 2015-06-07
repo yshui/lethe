@@ -1,5 +1,6 @@
 module scene.balls;
 import scene.scene;
+import engine;
 import gfm.math;
 immutable float[4] dx = [-1, -1, 1, 1];
 immutable float[4] dy = [1, -1, -1, 1];
@@ -9,10 +10,10 @@ class Ball(int n, int m) : Particle!(n, m) {
 		vec2f center, velocity;
 		float r;
 	}
-	@nogc void update() {
+	override @nogc void update() {
 		center += velocity;
 	}
-	@nogc void gen_scene(ref BaseSceneData!(n, m) sd) {
+	override @nogc void gen_scene(BaseSceneData!(n, m) sd) {
 		Vertex[4] vs;
 		foreach(i; 0..4) {
 			vs[i].position = vec2f(dx[i]*r, dy[i]*r);
