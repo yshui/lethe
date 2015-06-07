@@ -49,8 +49,8 @@ void main() {
 
 	scene.u.tex = eng.new_texture2d("ball.png");
 
-	auto prog = "#version 140\n#if VERTEX_SHADER\n" ~ import("shader/vs.glsl") ~
-		    "\n#elif FRAGMENT_SHADER\n" ~ import("shader/frag.glsl") ~ "\n#endif";
+	auto prog = "#version 140\n#if VERTEX_SHADER\n" ~ import("vs.glsl") ~
+		    "\n#elif FRAGMENT_SHADER\n" ~ import("frag.glsl") ~ "\n#endif";
 	eng.load_program(prog);
 	eng.run(60);
 }
