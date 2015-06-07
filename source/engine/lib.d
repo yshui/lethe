@@ -1,12 +1,18 @@
 module engine.engine;
 import engine.vertex;
 import std.typecons,
+       std.traits,
+       std.typetuple,
        std.experimental.logger;
 import gfm.sdl2;
-import gfm.opengl;
+import engine.opengl,
+       engine.program,
+       engine.texture;
 import gfm.logger;
 import gfm.math;
 import derelict.sdl2.types;
+import derelict.opengl3.gl,
+       derelict.opengl3.gl3;
 class SDL2EventRange {
 	SDL2 sdl2;
 	SDL_Event event;
@@ -33,13 +39,18 @@ class BaseSceneData(int n, int m) {
 class SceneData(int n, int m, Uniforms) : BaseSceneData!(n, m) {
 	Uniforms u;
 	this(Uniforms _u) { u = _u; }
+	this() { }
 	override void assign_uniforms(GLProgram prog) {
 		static if (is(Uniforms == struct) || is(Uniforms == class)) {
 			alias TT = FieldTypeTuple!Uniforms;
 			foreach (member; __traits(allMembers, Uniforms)) {
 				mixin("alias T = typeof(Uniforms." ~ member ~ ");");
-				static if (staticIndexOf!(T, TT) != -1)
-					mixin("prog.uniform(\"" ~ member ~ "\").set(u." ~ member ~ ");");
+				static if (staticIndexOf!(T, TT) != -1) {
+					static if (is(T: GLTexture))
+						mixin("prog.uniform(\"" ~ member ~ "\").set(u." ~ member ~ "._handle);");
+					else
+						mixin("prog.uniform(\"" ~ member ~ "\").set(u." ~ member ~ ");");
+				}
 			}
 		}
 	}
@@ -50,6 +61,20 @@ struct Vertex {
 	vec2f translate;
 	vec2f texture_coord;
 	float angle;
+}
+
+private void gen_format(uint type, SDL_PixelFormat *x) {
+	x.format = type;
+	int bpp;
+	SDL_PixelFormatEnumToMasks(type,
+				   &bpp,
+				   &x.Rmask,
+				   &x.Gmask,
+				   &x.Bmask,
+				   &x.Amask);
+	x.BitsPerPixel = cast(ubyte)bpp;
+	x.BytesPerPixel = x.BitsPerPixel/8;
+	x.palette = null;
 }
 
 class Engine(int n, int m) {
@@ -65,6 +90,7 @@ class Engine(int n, int m) {
 	}
 	this(Logger logger) {
 		sdl2 = new SDL2(logger);
+		sdl2img = new SDLImage(sdl2);
 		gl = new OpenGL(logger);
 
 		sdl2.subSystemInit(SDL_INIT_VIDEO);
@@ -81,6 +107,8 @@ class Engine(int n, int m) {
 		_height = 600;
 		gl.reload();
 		gl.redirectDebugOutput();
+
+		gen_format(SDL_PIXELFORMAT_RGBA8888, &fmt);
 	}
 	void load_program(string code) {
 		prog = new GLProgram(gl, code);
@@ -88,11 +116,12 @@ class Engine(int n, int m) {
 	~this() {
 		win.close();
 	}
-	void run() {
+	void run(uint fps) {
 		win.setTitle("Lethe");
 		float x = 0;
 		float dx = 0.01;
 		while(true) {
+			uint frame_start = SDL_GetTicks();
 			if (handle_event) {
 				auto es = scoped!SDL2EventRange(sdl2);
 				foreach(e; es) {
@@ -112,19 +141,18 @@ class Engine(int n, int m) {
 				dx=-dx;
 			if (gen_scene) {
 				auto d = gen_scene();
+				d.assign_uniforms(prog);
+
 				GLuint ibuf;
 				glGenBuffers(1, &ibuf);
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf);
 				glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint.sizeof*d.isize,
 					     d.indices.ptr, GL_STREAM_DRAW);
-				gl.runtimeCheck();
-				d.assign_uniforms(prog);
-				gl.runtimeCheck();
 
 				auto va = VertexArray!Vertex(d.vs[0..d.vsize], prog);
-				gl.runtimeCheck();
 
 				prog.use();
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf);
 				va.bind();
 				glDrawElements(GL_TRIANGLES, d.isize, GL_UNSIGNED_INT, cast(const(void *))0);
 				gl.runtimeCheck();
@@ -132,7 +160,22 @@ class Engine(int n, int m) {
 				prog.unuse();
 			}
 			win.swapBuffers();
+			uint frame_end = SDL_GetTicks();
+			uint frame_time = frame_end-frame_start;
+			if (frame_time*fps < 1000)
+				SDL_Delay(1000/fps-frame_time);
 		}
+	}
+	GLTexture2D new_texture2d() {
+		return new GLTexture2D(gl);
+	}
+	GLTexture2D new_texture2d(const(string) file) {
+		auto image = sdl2img.load("ball.png").convert(&fmt);
+		auto texture = new_texture2d();
+		image.lock();
+		texture.setImage(0, GL_RGBA8, image.width, image.height, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels());
+		image.unlock();
+		return texture;
 	}
 	@property SDL2Keyboard key_state() {
 		return sdl2.keyboard();
@@ -140,9 +183,11 @@ class Engine(int n, int m) {
 	private {
 		SDL2Window win;
 		SDL2 sdl2;
+		SDLImage sdl2img;
 		OpenGL gl;
 		SDL2GLContext glctx;
 		int _width, _height;
 		GLProgram prog;
+		SDL_PixelFormat fmt;
 	}
 }

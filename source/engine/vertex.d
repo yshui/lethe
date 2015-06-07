@@ -1,7 +1,8 @@
 module engine.vertex;
 import derelict.opengl3.gl3;
 import std.typetuple, std.traits;
-import gfm.opengl;
+import engine.opengl,
+       engine.program;
 import gfm.math;
 private {
 	bool isIntegerType(GLenum t) {

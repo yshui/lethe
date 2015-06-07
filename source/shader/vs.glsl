@@ -15,5 +15,5 @@ mat4 rotate2d(float angle) {
 void main() {
 	vec4 pos4 = vec4(position, 0.0, 1.0)*rotate2d(angle);
 	gl_Position = pos4+vec4(translate, 0.0, 0.0);
-//	v_tex = (texture_coord+vec2(1.0, 1.0))/2.0;
+	v_tex = (texture_coord+vec2(1.0, 1.0))/2.0;
 }
