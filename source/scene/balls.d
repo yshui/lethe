@@ -35,6 +35,15 @@ class Ball(int n, int m) : Particle!(n, m) {
 			inds[i] = tmp+quad_index[i];
 		sd += inds[];
 	}
+	override void collide(BaseParticle bp) {
+		Ball b = cast(Ball)bp;
+		auto line = b.center-center;
+		float dist = center.distanceTo(b.center);
+		float vm = line.dot(velocity)/dist, vo = line.dot(b.velocity)/dist;
+		auto rvm = velocity-(vm*line/dist);
+		velocity = rvm+(vo*line/dist);
+		//writefln("Ball at %s,%s collide with %s,%s", center.x, center.y, b.center.x, b.center.y);
+	}
 	this(vec2f c, vec2f v, float ir, float iav = 0, float a = 0) {
 		center = c;
 		velocity = v;

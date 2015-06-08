@@ -1,78 +1,92 @@
+module scene.spatial_hash;
+import scene.scene;
+import gfm.math;
+import std.stdio;
 struct HitboxPair {
 	BaseParticle p;
 	Hitbox hb;
-	(ref HitboxPair)[] next;
+	HitboxPair*[] next;
 	box2i aabb;
 };
-
-class SpatialRange(int nhb, int w, int h) {
+import std.conv;
+class SpatialRange(int w, int h) {
 	private {
-		box2i[nhb] aabb;
-		Hitbox[] hitbox;
+		box2i[] aabb;
+		const(Hitbox)[] hitbox;
 		ulong nowi;
 		vec2i now;
-		ref const(HitboxPair) head;
-		const(SpatialHash!(w, h)) sh;
+		HitboxPair* head;
+		SpatialHash!(w, h) sh;
 		bool[HitboxPair*] _poped;
 	}
-	pure nothrow @nogc empty() {
-		return head != null;
+	bool empty() {
+		return nowi >= aabb.length;
 	}
-	pure nothrow @nogc ref const(HitboxPair)
-	front() {
+	HitboxPair* front() {
+		assert(head !is null, to!string(nowi)~","~to!string(aabb.length));
 		return head;
 	}
-	pure nothrow @nogc void _popFront() {
-		assert(head.aabb.contain(now));
-		vec2i vindex = now-head.aabb.min;
-		size_t index = vindex.x*head.aabb.width+vindex.y;
-		head = head.next[index];
+	pure void _popFront() {
 		if (head == null) {
 			now.y++;
-			if (now.y >= aabb.max.y) {
-				now.y = aabb.min.y;
+			if (now.y >= aabb[nowi].max.y) {
+				now.y = aabb[nowi].min.y;
 				now.x++;
 			}
-			if (aabb.contain(now))
+			if (aabb[nowi].contains(now))
 				head = sh.get(now);
 			else {
-				while (nowi < aabb.length && aabb[nowi].empty())
+				do {
 					nowi++;
+				}while (nowi < aabb.length && aabb[nowi].empty());
 				if (nowi < aabb.length) {
 					now = aabb[nowi].min;
 					head = sh.get(now);
 				}
 			}
+		} else {
+			assert(head.aabb.contains(now));
+			vec2i vindex = now-head.aabb.min;
+			size_t index = vindex.x*head.aabb.height+vindex.y;
+			head = head.next[index];
 		}
 	}
-	pure nothrow void popFront() {
+	pure void popFront() {
 		while(nowi < aabb.length) {
 			_popFront();
 			if (head is null)
 				continue;
-			if ((&head in _poped) !is null)
+			if ((head in _poped) !is null)
 				continue;
-			_poped[&head] = true;
+			_poped[head] = true;
 			if (!head.hb.collide(hitbox[nowi]))
 				continue;
 		}
 	}
-	this(const(SpatialHash!(w, h)) ish, const(Hitbox)[] hb) {
+	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb) {
 		ulong i;
-		foreach(x; hb) {
-			aabb[i] = ish.intersection(normalize_aabb(x.aabb()));
+		aabb.length = hb.length;
+		foreach(ref x; hb) {
+			aabb[i] = ish.whole.intersection(normalize_aabb(x.aabb, ish.stepv));
 			i++;
 		}
 
+		hitbox = hb;
 		sh = ish;
 		nowi = 0;
-		now = aabb[nowi].min;
-		head = sh.get(now);
-		hitbox = hb;
+		while(nowi < aabb.length && aabb[nowi].empty())
+			nowi++;
+		if (nowi < aabb.length) {
+			now = aabb[nowi].min;
+			head = sh.get(now);
+			if (head is null)
+				popFront();
+		} else
+			head = null;
 	}
 }
 
-private box2i normalize_aabb(ref const(box2f) aabb, ref const(vec2f) stepv) {
+private nothrow pure @nogc box2i normalize_aabb(box2f aabb, vec2f stepv) {
 	auto min = aabb.min / stepv;
 	auto max = aabb.max / stepv;
 	return box2i(
@@ -80,18 +94,17 @@ private box2i normalize_aabb(ref const(box2f) aabb, ref const(vec2f) stepv) {
 	    vec2i(cast(int)max.x+1, cast(int)max.y+1)
 	);
 }
-
 class SpatialHash(int w, int h) {
 	private {
 		HitboxPair[] hbp;
 		box2i[] qaabb;
-		ref HitboxPair[w][h] grid;
+		HitboxPair*[w][h] grid;
 		int hbcnt;
 		vec2f stepv;
 	}
-	immutable box2i whole = box2i(vec2i(0, 0), vec2i(w, h));
-	@nogc nothrow pure ref HitboxPair get(vec2i pos) {
-		assert(whole.contains(pos));
+	immutable enum box2i whole = box2i(vec2i(0, 0), vec2i(w, h));
+	pure HitboxPair* get(vec2i pos) {
+		assert(whole.contains(pos), to!string(pos));
 		return grid[pos.x][pos.y];
 	}
 	@nogc nothrow void reinitialize() {
@@ -101,16 +114,16 @@ class SpatialHash(int w, int h) {
 		hbcnt = 0;
 	}
 	this(int W, int H) {
-		step.x = cast(float)W/cast(float)w;
-		step.y = cast(float)H/cast(float)h;
+		stepv.x = cast(float)W/cast(float)w;
+		stepv.y = cast(float)H/cast(float)h;
 		hbcnt = 0;
 		hbp.length = 1;
 	}
-	@nogc nothrow void insert_hitbox(ref const(Hitbox) hb, BaseParticle p) {
+	nothrow void insert_hitbox(ref const(Hitbox) hb, BaseParticle p) {
 		if (hbcnt >= hbp.length)
 			hbp.length *= 2;
 
-		ref HitboxPair x = hbp[hbcnt++];
+		HitboxPair* x = &hbp[hbcnt++];
 		x.p = p;
 		x.hb = hb;
 		auto aabb = hb.aabb();
@@ -127,8 +140,5 @@ class SpatialHash(int w, int h) {
 				x.next[index] = grid[i][j];
 				grid[i][j] = x;
 			}
-	}
-	pure nothrow SpatialRange query(const(Hitbox)[] hb) {
-		return new SpatialRange!(hb.length)(this, qaabb);
 	}
 }

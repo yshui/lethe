@@ -20,7 +20,7 @@ void main() {
 	auto logger = new ConsoleLogger();
 	auto eng = scoped!(Engine!(np*4, np*6))(logger);
 	auto sd = new SceneData!(np*4, np*6, uni)();
-	auto scene = new Scene!(np, np, np*4, np*6)();
+	auto scene = new Scene!(np, np, np*4, np*6)(eng.width, eng.height);
 	foreach(i; 0..100) {
 		auto v = vec2f(uniform(-1.0, 1.0), uniform(-1.0, 1.0));
 		auto c = vec2f(uniform(0.0, cast(float)eng.width),
