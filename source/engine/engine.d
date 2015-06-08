@@ -4,7 +4,7 @@ import std.typecons,
        std.traits,
        std.typetuple,
        std.experimental.logger,
-       std.range.primitives;
+       std.range;
 import gfm.sdl2;
 import engine.opengl,
        engine.program,
@@ -125,8 +125,8 @@ class Engine(int n, int m) {
 	@property int height() const {
 		return _height;
 	}
-	this(Logger logger) {
-		sdl2 = new SDL2(logger);
+	this(Logger logger, int w = 640, int h = 480) {
+		sdl2 = new SDL2(null);
 		sdl2img = new SDLImage(sdl2);
 		gl = new OpenGL(logger);
 
@@ -138,10 +138,10 @@ class Engine(int n, int m) {
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 		win = new SDL2Window(sdl2, SDL_WINDOWPOS_CENTERED,
-				     SDL_WINDOWPOS_CENTERED, 800, 600,
+				     SDL_WINDOWPOS_CENTERED, w, h,
 				     SDL_WINDOW_OPENGL);
-		_width = 800;
-		_height = 600;
+		_width = w;
+		_height = h;
 		gl.reload();
 		gl.redirectDebugOutput();
 
@@ -155,6 +155,11 @@ class Engine(int n, int m) {
 	}
 	void run(uint fps) {
 		win.setTitle("Lethe");
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		gl.runtimeCheck();
+		glBlendEquation(derelict.opengl3.constants.GL_FUNC_ADD);
+		gl.runtimeCheck();
 		while(true) {
 			uint frame_start = SDL_GetTicks();
 			if (handle_event) {
@@ -218,6 +223,12 @@ class Engine(int n, int m) {
 	}
 	@property SDL2Keyboard key_state() {
 		return sdl2.keyboard();
+	}
+	@property int height() {
+		return _height;
+	}
+	@property int width() {
+		return _width;
 	}
 	private {
 		SDL2Window win;

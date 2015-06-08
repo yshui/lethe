@@ -34,6 +34,14 @@ struct LineSeg {
 		return true;
 	}
 }
+private void vec2min(alias cmp)(ref vec2f res, vec2f c) {
+	import std.functional;
+	alias le = binaryFun!cmp;
+	if (le(c.x, res.x))
+		res.x = c.x;
+	if (le(c.y, res.y))
+		res.y = c.y;
+}
 struct Triangle {
 	vec2f[3] point;
 	pure nothrow @nogc bool contain(ref const vec2f p) {
@@ -80,6 +88,16 @@ struct Triangle {
 		} else
 			static assert(0);
 	}
+	pure nothrow @nogc @property box2f aabb() {
+		vec2f min, max;
+		min = point[0];
+		max = point[0];
+		foreach(i; 1..3) {
+			vec2min!"a < b"(min, point[i]);
+			vec2min!"a > b"(max, point[i]);
+		}
+		return box2f(min, max);
+	}
 }
 struct Circle {
 	float r;
@@ -111,6 +129,10 @@ struct Circle {
 	pure nothrow @nogc bool contain(vec2f point) {
 		return center.distanceTo(point) <= r;
 	}
+	pure nothrow @nogc @property box2f aabb() {
+		auto x = vec2f(r, r);
+		return box2f(center-x, center+x);
+	}
 }
 struct Hitbox {
 	private {
@@ -137,33 +159,77 @@ struct Hitbox {
 		_c.t.point[1] = B;
 		_c.t.point[2] = C;
 	}
-	pure nothrow @nogc bool collide(T)(T other) {
-		switch (_t) {
-			case Type.Circle:
-				return _c.c.collide(other);
-			case Type.Triangle:
-				return _c.t.collide(other);
+	pure nothrow @nogc bool collide(T)(ref T other) {
+		static if (is(T == Circle) || is(T == Triangle)) {
+			final switch (_t) {
+				case Type.Circle:
+					return _c.c.collide(other);
+				case Type.Triangle:
+					return _c.t.collide(other);
+			}
+		} else {
+			static assert(is(T == Hitbox));
+			final switch(other._t) {
+				case Type.Circle:
+					return collide(other._c.c);
+				case Type.Triangle:
+					return collide(other._c.t);
+			}
 		}
-		return false;
+	}
+	pure nothrow @nogc @property box2f aabb() {
+		final switch (_t) {
+			case Type.Circle:
+				return _c.c.aabb();
+			case Type.Triangle:
+				return _c.t.aabb();
+		}
+		assert(0);
 	}
 }
-class Particle(int n, int m) {
-	this() {}
-	~this() {}
+class BaseParticle {
 	pure nothrow @nogc @property
-	Hitbox hitbox() { Hitbox x = void; return x; }
-	@nogc void gen_scene(BaseSceneData!(n, m) sd) {}
-	@nogc void update() {}
-	@nogc void collide(Particle other) {}
+	size_t hitbox(Hitbox[] hb) { }
+	@nogc void update() { }
+	@nogc void collide(BaseParticle other) { }
 }
-class Scene(int max_particles, int n, int m) {
-	Particle!(n, m)[max_particles] ps;
+class Particle(int n, int m) : BaseParticle {
+	@nogc void gen_scene(BaseSceneData!(n, m) sd) { }
+}
+class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
+	private {
+		Particle!(n, m)[max_particles] ps;
+		SpatialHash!(20, 20) sh;
+		Hitbox[hitboxes_per_particle] hb;
+		int width, height;
+	}
 	@nogc void update() {
-		foreach(p; ps)
+		sh.reinitialize();
+		foreach(p; ps) {
 			p.update();
+			auto nhb = p.hitbox(hb);
+			foreach(i; 0..nhb)
+				sh.insert_hitbox(hb[i], p);
+		}
+		foreach(p; ps) {
+			auto nhb = p.hitbox(hb);
+			auto q = sh.query(hb[]]);
+			foreach(hbp; q) {
+				if (hbp.p is p)
+					continue;
+				if (!hb[i].collide(hbp.hb))
+					continue;
+				p.collide(par);
+			}
+		}
 	}
 	@nogc void gen_scene(BaseSceneData!(n, m) sd) {
 		foreach(p; ps)
 			p.gen_scene(sd);
+	}
+	this(int W, int H) {
+		sh = new SpatialHash!(20, 20)(W, H);
+		width = W;
+		height = H;
 	}
 }

@@ -77,6 +77,9 @@ private {
 	}
 }
 struct Normalized {}
+private template Tuple (T...) {
+	alias Tuple = T;
+}
 struct VertexArray(Vertex) {
 	GLuint buf;
 	GLuint vao;
@@ -98,7 +101,8 @@ struct VertexArray(Vertex) {
 				GLenum type;
 				toGLTypeAndSize!T(type, n);
 
-				enum UDAs = __traits(getAttributes, member);
+				mixin("alias UDAs = Tuple!(__traits(getAttributes, Vertex." ~ member ~ "));");
+				pragma(msg, UDAs);
 				bool normalize = staticIndexOf!(Normalized, UDAs) == -1 ? GL_FALSE : GL_TRUE;
 				glEnableVertexAttribArray(loc);
 				glVertexAttribPointer(loc, n, type, normalize, Vertex.sizeof, cast(GLvoid *)offset);
