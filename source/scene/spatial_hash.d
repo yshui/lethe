@@ -18,6 +18,7 @@ class SpatialRange(int w, int h) {
 		HitboxPair* head;
 		SpatialHash!(w, h) sh;
 		bool[HitboxPair*] _poped;
+		const(BaseParticle) self;
 	}
 	bool empty() {
 		return nowi >= aabb.length;
@@ -59,11 +60,13 @@ class SpatialRange(int w, int h) {
 			if ((head in _poped) !is null)
 				continue;
 			_poped[head] = true;
+			if (head.p is self)
+				continue;
 			if (!head.hb.collide(hitbox[nowi]))
 				continue;
 		}
 	}
-	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb) {
+	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, const(BaseParticle) iself) {
 		ulong i;
 		aabb.length = hb.length;
 		foreach(ref x; hb) {
@@ -71,6 +74,7 @@ class SpatialRange(int w, int h) {
 			i++;
 		}
 
+		self = iself;
 		hitbox = hb;
 		sh = ish;
 		nowi = 0;

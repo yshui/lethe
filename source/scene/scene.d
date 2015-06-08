@@ -208,14 +208,18 @@ class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
 	void update() {
 		sh.reinitialize();
 		foreach(p; ps) {
+			if (p is null)
+				continue;
 			p.update();
 			auto nhb = p.hitbox(hb);
 			foreach(i; 0..nhb)
 				sh.insert_hitbox(hb[i], p);
 		}
 		foreach(p; ps) {
+			if (p is null)
+				continue;
 			auto nhb = p.hitbox(hb);
-			auto q = new SpatialRange!(20, 20)(sh, hb[0..nhb]);
+			auto q = new SpatialRange!(20, 20)(sh, hb[0..nhb], p);
 			foreach(hbp; q) {
 				if (hbp.p is p)
 					continue;
@@ -224,8 +228,11 @@ class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
 		}
 	}
 	@nogc void gen_scene(BaseSceneData!(n, m) sd) {
-		foreach(p; ps)
+		foreach(p; ps) {
+			if (p is null)
+				continue;
 			p.gen_scene(sd);
+		}
 	}
 	this(int W, int H) {
 		sh = new SpatialHash!(20, 20)(W, H);
