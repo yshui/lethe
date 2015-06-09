@@ -113,7 +113,7 @@ private void gen_format(uint type, SDL_PixelFormat *x) {
 	x.BytesPerPixel = x.BitsPerPixel/8;
 	x.palette = null;
 }
-
+import core.memory;
 class Engine(int n, int m) {
 	int delegate() next_frame = null;
 	int delegate(ref SDL_Event) handle_event = null;
@@ -154,6 +154,8 @@ class Engine(int n, int m) {
 		win.close();
 	}
 	void run(uint fps) {
+		float max_frame_time = 1000.0/fps;
+		//GC.disable();
 		win.setTitle("Lethe");
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -200,11 +202,21 @@ class Engine(int n, int m) {
 				prog.unuse();
 				gl.runtimeCheck();
 			}
+			uint frame_time = SDL_GetTicks()-frame_start;
+			bool run_gc = false;
+			/*
+			if (max_frame_time > frame_time+10) {
+				run_gc = true;
+				GC.collect();
+			}
+			frame_time = SDL_GetTicks()-frame_start;
+			*/
+			import std.stdio;
+			if (frame_time < max_frame_time)
+				SDL_Delay(cast(uint)(max_frame_time-frame_time));
+			else
+				writefln("Warn: frame time %s > %s, %s", frame_time, max_frame_time, run_gc);
 			win.swapBuffers();
-			uint frame_end = SDL_GetTicks();
-			uint frame_time = frame_end-frame_start;
-			if (frame_time*fps < 1000)
-				SDL_Delay(1000/fps-frame_time);
 		}
 	}
 	GLTexture2D new_texture2d() {
