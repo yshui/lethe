@@ -7,6 +7,7 @@ import scene.scene,
        scene.balls;
 import std.algorithm;
 import std.random;
+import std.math;
 import derelict.opengl3.gl3;
 
 struct uni {
@@ -21,8 +22,10 @@ void main() {
 	auto eng = scoped!(Engine!(np*4, np*6))(logger);
 	auto sd = new SceneData!(np*4, np*6, uni)();
 	auto scene = new Scene!(np, np, np*4, np*6)(eng.width, eng.height);
-	foreach(i; 0..10) {
-		auto v = vec2f(uniform(-1.0, 1.0), uniform(-1.0, 1.0));
+	foreach(i; 0..30) {
+		auto dir = uniform(0, 2*3.14159265358);
+		auto absv = uniform(0.5, 1.0);
+		auto v = vec2f(absv*sin(dir), absv*cos(dir));
 		auto c = vec2f(uniform(0.0, cast(float)eng.width),
 			       uniform(0.0, cast(float)eng.height));
 		scene.ps[i] = new Ball!(np*4, np*6)(c, v, 10, 4);
