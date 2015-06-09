@@ -99,7 +99,10 @@ struct Triangle {
 			vec2min!"a < b"(min, point[i]);
 			vec2min!"a > b"(max, point[i]);
 		}
-		return box2f(min, max);
+		auto ret = box2f(min, max);
+		if (ret.empty())
+			return box2f(min, max+vec2f(0.1, 0.1));
+		return ret;
 	}
 }
 struct Circle {

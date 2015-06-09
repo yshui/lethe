@@ -6,12 +6,13 @@ struct HitboxPair {
 	BaseParticle p;
 	Hitbox hb;
 	HitboxPair*[] next;
-	box2i aabb;
+	box2f aabb;
 };
 import std.conv;
 class SpatialRange(int w, int h) {
 	private {
-		box2i[] aabb;
+		box2i aabb;
+		box2f aabbf;
 		const(Hitbox)[] hitbox;
 		ulong nowi;
 		vec2i now;
@@ -21,7 +22,7 @@ class SpatialRange(int w, int h) {
 		const(BaseParticle) self;
 	}
 	pure nothrow @nogc bool empty() {
-		return nowi >= aabb.length;
+		return nowi >= hitbox.length;
 	}
 	pure nothrow @nogc HitboxPair* front() {
 		assert(head !is null);
@@ -30,63 +31,69 @@ class SpatialRange(int w, int h) {
 	pure nothrow @nogc void _popFront() {
 		if (head == null) {
 			now.y++;
-			if (now.y >= aabb[nowi].max.y) {
-				now.y = aabb[nowi].min.y;
+			if (now.y >= aabb.max.y) {
+				now.y = aabb.min.y;
 				now.x++;
 			}
-			if (aabb[nowi].contains(now))
+			if (aabb.contains(now))
 				head = sh.get(now);
 			else {
-				do {
+				nowi++;
+				while (nowi < hitbox.length) {
+					aabbf = sh.whole.intersection(hitbox[nowi].aabb);
+					if (!aabbf.empty())
+						break;
 					nowi++;
-				}while (nowi < aabb.length && aabb[nowi].empty());
-				if (nowi < aabb.length) {
-					now = aabb[nowi].min;
+				}
+				if (nowi < hitbox.length) {
+					aabb = normalize_aabb(aabbf, sh.stepv);
+					now = aabb.min;
 					head = sh.get(now);
 				}
 			}
 		} else {
-			assert(head.aabb.contains(now));
-			vec2i vindex = now-head.aabb.min;
-			size_t index = vindex.x*head.aabb.height+vindex.y;
+			box2i haabbi = normalize_aabb(head.aabb, sh.stepv);
+			assert(haabbi.contains(now));
+			vec2i vindex = now-haabbi.min;
+			size_t index = vindex.x*haabbi.height+vindex.y;
 			head = head.next[index];
 		}
 	}
 	private nothrow pure bool qualify() {
 		if (head is null)
 			return false;
-		if ((head in _poped) !is null)
-			return false;
-		_poped[head] = true;
 		if (head.p is self)
+			return false;
+		if (!head.aabb.intersects(aabbf))
 			return false;
 		if (!head.hb.collide(hitbox[nowi]))
 			return false;
+		if ((head in _poped) !is null)
+			return false;
+		_poped[head] = true;
 		return true;
 	}
 	pure nothrow void popFront() {
-		while(nowi < aabb.length) {
+		while(nowi < hitbox.length) {
 			_popFront();
 			if (qualify())
 				break;
 		}
 	}
 	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, const(BaseParticle) iself) {
-		ulong i;
-		aabb.length = hb.length;
-		foreach(ref x; hb) {
-			aabb[i] = ish.whole.intersection(normalize_aabb(x.aabb, ish.stepv));
-			i++;
-		}
-
 		self = iself;
 		hitbox = hb;
 		sh = ish;
 		nowi = 0;
-		while(nowi < aabb.length && aabb[nowi].empty())
+		while(nowi < hb.length) {
+			aabbf = ish.whole.intersection(hb[nowi].aabb);
+			if (!aabbf.empty())
+				break;
 			nowi++;
-		if (nowi < aabb.length) {
-			now = aabb[nowi].min;
+		}
+		aabb = normalize_aabb(aabbf, ish.stepv);
+		if (nowi < hb.length) {
+			now = aabb.min;
 			head = sh.get(now);
 			if (!qualify())
 				popFront();
@@ -100,20 +107,20 @@ private nothrow pure @nogc box2i normalize_aabb(box2f aabb, vec2f stepv) {
 	auto max = aabb.max / stepv;
 	return box2i(
 	    vec2i(cast(int)min.x, cast(int)min.y),
-	    vec2i(cast(int)max.x+1, cast(int)max.y+1)
+	    vec2i(cast(int)(max.x-1e-6)+1, cast(int)(max.y-1e-6)+1)
 	);
 }
 class SpatialHash(int w, int h) {
 	private {
 		HitboxPair[] hbp;
-		box2i[] qaabb;
+		box2f whole;
 		HitboxPair*[w][h] grid;
 		int hbcnt;
 		vec2f stepv;
 	}
-	immutable enum box2i whole = box2i(vec2i(0, 0), vec2i(w, h));
 	pure nothrow @nogc HitboxPair* get(vec2i pos) {
-		assert(whole.contains(pos));
+		assert(pos.x >= 0 && pos.y >= 0);
+		assert(pos.x < w && pos.y < h);
 		return grid[pos.x][pos.y];
 	}
 	pure @nogc nothrow void reinitialize() {
@@ -123,28 +130,36 @@ class SpatialHash(int w, int h) {
 		hbcnt = 0;
 	}
 	this(int W, int H) {
+		whole = box2f(vec2f(0, 0), vec2f(W, H));
 		stepv.x = cast(float)W/cast(float)w;
 		stepv.y = cast(float)H/cast(float)h;
 		hbcnt = 0;
 		hbp.length = 1;
 	}
-	nothrow pure void insert_hitbox(ref const(Hitbox) hb, BaseParticle p) {
+	void insert_hitbox(ref const(Hitbox) hb, BaseParticle p) {
+		auto aabb = whole.intersection(hb.aabb);
+		if (aabb.empty())
+			return;
+
 		if (hbcnt >= hbp.length)
 			hbp.length *= 2;
 
 		HitboxPair* x = &hbp[hbcnt++];
 		x.p = p;
 		x.hb = hb;
-		auto aabb = hb.aabb();
-		x.aabb = whole.intersection(normalize_aabb(aabb, stepv));
-		vec2i d = x.aabb.max-x.aabb.min;
+		x.aabb = aabb;
+		auto aabbi = normalize_aabb(aabb, stepv);
+		vec2i d = aabbi.max-aabbi.min;
 		size_t s = d.x*d.y;
 		if (s > x.next.length)
 			x.next.length = s;
 
-		int mx = x.aabb.min.x, my = x.aabb.min.y;
-		foreach(i; mx..x.aabb.max.x)
-			foreach(j; my..x.aabb.max.y) {
+		int mx = aabbi.min.x, my = aabbi.min.y;
+		import std.conv;
+		assert(aabbi.max.x <= w, to!string(aabbi.max.x));
+		assert(aabbi.max.y <= h, to!string(aabbi.max.y) ~ "," ~ to!string(aabb.max.y));
+		foreach(i; mx..aabbi.max.x)
+			foreach(j; my..aabbi.max.y) {
 				size_t index = (i-mx)*d.y+j-my;
 				x.next[index] = grid[i][j];
 				grid[i][j] = x;
