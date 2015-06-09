@@ -20,14 +20,14 @@ class SpatialRange(int w, int h) {
 		bool[HitboxPair*] _poped;
 		const(BaseParticle) self;
 	}
-	bool empty() {
+	pure nothrow @nogc bool empty() {
 		return nowi >= aabb.length;
 	}
-	HitboxPair* front() {
-		assert(head !is null, to!string(nowi)~","~to!string(aabb.length));
+	pure nothrow @nogc HitboxPair* front() {
+		assert(head !is null);
 		return head;
 	}
-	pure void _popFront() {
+	pure nothrow @nogc void _popFront() {
 		if (head == null) {
 			now.y++;
 			if (now.y >= aabb[nowi].max.y) {
@@ -52,7 +52,7 @@ class SpatialRange(int w, int h) {
 			head = head.next[index];
 		}
 	}
-	private nothrow bool qualify() {
+	private nothrow pure bool qualify() {
 		if (head is null)
 			return false;
 		if ((head in _poped) !is null)
@@ -64,7 +64,7 @@ class SpatialRange(int w, int h) {
 			return false;
 		return true;
 	}
-	void popFront() {
+	pure nothrow void popFront() {
 		while(nowi < aabb.length) {
 			_popFront();
 			if (qualify())
@@ -112,11 +112,11 @@ class SpatialHash(int w, int h) {
 		vec2f stepv;
 	}
 	immutable enum box2i whole = box2i(vec2i(0, 0), vec2i(w, h));
-	pure HitboxPair* get(vec2i pos) {
-		assert(whole.contains(pos), to!string(pos));
+	pure nothrow @nogc HitboxPair* get(vec2i pos) {
+		assert(whole.contains(pos));
 		return grid[pos.x][pos.y];
 	}
-	@nogc nothrow void reinitialize() {
+	pure @nogc nothrow void reinitialize() {
 		foreach(i; 0..w)
 			foreach(j; 0..h)
 				grid[i][j] = null;
@@ -128,7 +128,7 @@ class SpatialHash(int w, int h) {
 		hbcnt = 0;
 		hbp.length = 1;
 	}
-	nothrow void insert_hitbox(ref const(Hitbox) hb, BaseParticle p) {
+	nothrow pure void insert_hitbox(ref const(Hitbox) hb, BaseParticle p) {
 		if (hbcnt >= hbp.length)
 			hbp.length *= 2;
 

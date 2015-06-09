@@ -36,7 +36,8 @@ struct LineSeg {
 		return true;
 	}
 }
-private void vec2min(alias cmp)(ref vec2f res, vec2f c) {
+private nothrow pure @nogc
+void vec2min(alias cmp)(ref vec2f res, vec2f c) {
 	import std.functional;
 	alias le = binaryFun!cmp;
 	if (le(c.x, res.x))
@@ -163,6 +164,12 @@ struct Hitbox {
 		_c.t.point[1] = B;
 		_c.t.point[2] = C;
 	}
+	pure nothrow @nogc this(vec2f[] p) {
+		_t = Type.Triangle;
+		_c.t.point[0] = p[0];
+		_c.t.point[1] = p[1];
+		_c.t.point[2] = p[2];
+	}
 	pure nothrow @nogc
 	bool collide(T)(in ref T other) {
 		static if (is(T == Circle) || is(T == Triangle)) {
@@ -193,18 +200,20 @@ struct Hitbox {
 	}
 }
 class BaseParticle {
-	pure nothrow @nogc @property
+	pure nothrow @nogc
 	size_t hitbox(Hitbox[] hb) { return 0; }
-	@nogc void update() { }
-	void collide(BaseParticle other) { }
+	pure nothrow @nogc void update() { }
+	pure nothrow @nogc void collide(BaseParticle other) { }
 }
 class Particle(int n, int m) : BaseParticle {
-	@nogc void gen_scene(BaseSceneData!(n, m) sd) { }
+	pure nothrow @nogc void gen_scene(BaseSceneData!(n, m) sd) { }
 }
 class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
 	Particle!(n, m)[max_particles] ps;
 	private {
-		SpatialHash!(20, 20) sh;
+		alias shtype = SpatialHash!(100, 100);
+		alias srtype = SpatialRange!(100, 100);
+		shtype sh;
 		Hitbox[hitboxes_per_particle] hb;
 		int width, height;
 	}
@@ -222,7 +231,7 @@ class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
 			if (p is null)
 				continue;
 			auto nhb = p.hitbox(hb);
-			auto q = new SpatialRange!(20, 20)(sh, hb[0..nhb], p);
+			auto q = new srtype(sh, hb[0..nhb], p);
 			foreach(hbp; q) {
 				if (hbp.p is p)
 					continue;
@@ -238,7 +247,7 @@ class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
 		}
 	}
 	this(int W, int H) {
-		sh = new SpatialHash!(20, 20)(W, H);
+		sh = new shtype(W, H);
 		width = W;
 		height = H;
 	}
