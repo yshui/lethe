@@ -52,18 +52,23 @@ class SpatialRange(int w, int h) {
 			head = head.next[index];
 		}
 	}
-	pure void popFront() {
+	private nothrow bool qualify() {
+		if (head is null)
+			return false;
+		if ((head in _poped) !is null)
+			return false;
+		_poped[head] = true;
+		if (head.p is self)
+			return false;
+		if (!head.hb.collide(hitbox[nowi]))
+			return false;
+		return true;
+	}
+	void popFront() {
 		while(nowi < aabb.length) {
 			_popFront();
-			if (head is null)
-				continue;
-			if ((head in _poped) !is null)
-				continue;
-			_poped[head] = true;
-			if (head.p is self)
-				continue;
-			if (!head.hb.collide(hitbox[nowi]))
-				continue;
+			if (qualify())
+				break;
 		}
 	}
 	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, const(BaseParticle) iself) {
@@ -83,7 +88,7 @@ class SpatialRange(int w, int h) {
 		if (nowi < aabb.length) {
 			now = aabb[nowi].min;
 			head = sh.get(now);
-			if (head is null)
+			if (!qualify())
 				popFront();
 		} else
 			head = null;

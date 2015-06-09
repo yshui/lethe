@@ -104,8 +104,10 @@ struct Triangle {
 struct Circle {
 	float r;
 	vec2f center;
-	pure nothrow @nogc bool collide(T)(in ref T other) const {
+	pure nothrow @nogc
+	bool collide(T)(in ref T other) const {
 		static if (is(T == Circle)) {
+			import std.stdio;
 			float d = center.distanceTo(other.center);
 			return d <= r+other.r;
 		} else static if (is(T == Triangle)) {
@@ -161,7 +163,8 @@ struct Hitbox {
 		_c.t.point[1] = B;
 		_c.t.point[2] = C;
 	}
-	pure nothrow @nogc bool collide(T)(in ref T other) {
+	pure nothrow @nogc
+	bool collide(T)(in ref T other) {
 		static if (is(T == Circle) || is(T == Triangle)) {
 			final switch (_t) {
 				case Type.Circle:
