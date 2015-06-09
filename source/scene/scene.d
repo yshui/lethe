@@ -3,7 +3,7 @@ import gfm.math;
 import std.math;
 import engine;
 import std.typecons;
-import scene.spatial_hash;
+import scene.collision;
 private pure nothrow @nogc
 bool collide_triangle_circle(in ref Circle c, in ref Triangle t) {
 	foreach(i; 0..3) {
@@ -171,7 +171,7 @@ struct Hitbox {
 		_c.t.point[2] = p[2];
 	}
 	pure nothrow @nogc
-	bool collide(T)(in ref T other) {
+	bool collide(T)(in ref T other) const {
 		static if (is(T == Circle) || is(T == Triangle)) {
 			final switch (_t) {
 				case Type.Circle:
@@ -211,32 +211,27 @@ class Particle(int n, int m) : BaseParticle {
 class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
 	Particle!(n, m)[max_particles] ps;
 	private {
-		alias shtype = SpatialHash!(100, 100);
-		alias srtype = SpatialRange!(100, 100);
-		shtype sh;
+		CollisionTarget ct;
 		Hitbox[hitboxes_per_particle] hb;
 		int width, height;
 	}
 	void update() {
-		sh.reinitialize();
+		ct.reinitialize();
 		foreach(p; ps) {
 			if (p is null)
 				continue;
 			p.update();
 			auto nhb = p.hitbox(hb);
 			foreach(i; 0..nhb)
-				sh.insert_hitbox(hb[i], p);
+				ct.insert_hitbox(hb[i], p);
 		}
 		foreach(p; ps) {
 			if (p is null)
 				continue;
 			auto nhb = p.hitbox(hb);
-			auto q = new srtype(sh, hb[0..nhb], p);
-			foreach(hbp; q) {
-				if (hbp.p is p)
-					continue;
-				p.collide(hbp.p);
-			}
+			auto q = ct.query(hb[0..nhb], p);
+			foreach(xp; q)
+				p.collide(xp);
 		}
 	}
 	@nogc void gen_scene(BaseSceneData!(n, m) sd) {
@@ -247,7 +242,7 @@ class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
 		}
 	}
 	this(int W, int H) {
-		sh = new shtype(W, H);
+		ct = new CollisionTarget(W, H);
 		width = W;
 		height = H;
 	}

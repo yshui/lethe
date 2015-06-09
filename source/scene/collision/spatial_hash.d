@@ -1,15 +1,16 @@
-module scene.spatial_hash;
+module scene.collision.spatial_hash;
+import scene.collision;
 import scene.scene;
 import gfm.math;
 import std.stdio;
-struct HitboxPair {
+import std.conv;
+private struct HitboxPair {
 	BaseParticle p;
 	Hitbox hb;
 	HitboxPair*[] next;
 	box2i aabb;
-};
-import std.conv;
-class SpatialRange(int w, int h) {
+}
+class SpatialRange(int w, int h) : CollisionRange{
 	private {
 		box2i[] aabb;
 		const(Hitbox)[] hitbox;
@@ -20,12 +21,12 @@ class SpatialRange(int w, int h) {
 		bool[HitboxPair*] _poped;
 		const(BaseParticle) self;
 	}
-	pure nothrow @nogc bool empty() {
+	override pure nothrow @nogc bool empty() {
 		return nowi >= aabb.length;
 	}
-	pure nothrow @nogc HitboxPair* front() {
+	override pure nothrow @nogc BaseParticle front() {
 		assert(head !is null);
-		return head;
+		return head.p;
 	}
 	pure nothrow @nogc void _popFront() {
 		if (head == null) {
@@ -64,7 +65,7 @@ class SpatialRange(int w, int h) {
 			return false;
 		return true;
 	}
-	pure nothrow void popFront() {
+	override pure nothrow void popFront() {
 		while(nowi < aabb.length) {
 			_popFront();
 			if (qualify())
@@ -95,14 +96,6 @@ class SpatialRange(int w, int h) {
 	}
 }
 
-private nothrow pure @nogc box2i normalize_aabb(box2f aabb, vec2f stepv) {
-	auto min = aabb.min / stepv;
-	auto max = aabb.max / stepv;
-	return box2i(
-	    vec2i(cast(int)min.x, cast(int)min.y),
-	    vec2i(cast(int)max.x+1, cast(int)max.y+1)
-	);
-}
 class SpatialHash(int w, int h) {
 	private {
 		HitboxPair[] hbp;

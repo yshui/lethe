@@ -24,7 +24,7 @@ void main() {
 	auto scene = new Scene!(np, np, np*4, np*6)(eng.width, eng.height);
 	foreach(i; 0..300) {
 		auto dir = uniform(0, 2*3.14159265358);
-		auto absv = uniform(0.5, 1.0);
+		auto absv = uniform(1.5, 3.0);
 		auto v = vec2f(absv*sin(dir), absv*cos(dir));
 		auto c = vec2f(uniform(40.0, cast(float)(eng.width-40)),
 			       uniform(40.0, cast(float)(eng.height-40)));
