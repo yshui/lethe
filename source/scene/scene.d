@@ -214,8 +214,8 @@ class Particle(int n, int m) : BaseParticle {
 class Scene(int max_particles, int hitboxes_per_particle, int n, int m) {
 	Particle!(n, m)[max_particles] ps;
 	private {
-		alias shtype = SpatialHash!(100, 100);
-		alias srtype = SpatialRange!(100, 100);
+		alias shtype = SpatialHash!(50, 50);
+		alias srtype = SpatialRange!(50, 50);
 		shtype sh;
 		Hitbox[hitboxes_per_particle] hb;
 		int width, height;

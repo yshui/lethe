@@ -15,25 +15,25 @@ struct uni {
 	float w, h;
 }
 
-enum np = 400;
+enum np = 4100;
 
 void main() {
 	auto logger = new ConsoleLogger();
 	auto eng = scoped!(Engine!(np*4, np*6))(logger, 800, 600);
 	auto sd = new SceneData!(np*4, np*6, uni)();
 	auto scene = new Scene!(np, np, np*4, np*6)(eng.width, eng.height);
-	foreach(i; 0..300) {
+	foreach(i; 0..4000) {
 		auto dir = uniform(0, 2*3.14159265358);
 		auto absv = uniform(0.5, 1.0);
 		auto v = vec2f(absv*sin(dir), absv*cos(dir));
 		auto c = vec2f(uniform(40.0, cast(float)(eng.width-40)),
 			       uniform(40.0, cast(float)(eng.height-40)));
-		scene.ps[i] = new Ball!(np*4, np*6)(c, v, 10, 4);
+		scene.ps[i] = new Ball!(np*4, np*6)(c, v, uniform(2.0, 5.0), 4);
 	}
 	//Add four walls
 	box2f playground = box2f(vec2f(20, 20), vec2f(eng.width-20, eng.height-20));
 	foreach(i; 0..4)
-		scene.ps[300+i] = new Wall!(np*4, np*6)(i, playground);
+		scene.ps[4000+i] = new Wall!(np*4, np*6)(i, playground);
 	int next_frame() {
 		scene.update();
 		return 0;
