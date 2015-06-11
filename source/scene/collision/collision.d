@@ -6,7 +6,7 @@ import gfm.math;
 enum hb_threshold = 10;
 struct SimpleHBP {
 	Hitbox hb;
-	BaseParticle p;
+	Particle p;
 	box2f aabb;
 }
 class CollisionRangeS : CollisionRange{
@@ -15,10 +15,10 @@ class CollisionRangeS : CollisionRange{
 		ulong index;
 		box2f[] aabb;
 		const(Hitbox)[] hitbox;
-		const(BaseParticle) self;
+		const(Particle) self;
 	}
 
-	pure nothrow this(CollisionTarget xct, const(Hitbox)[] hb, const(BaseParticle) iself) {
+	pure nothrow this(CollisionTarget xct, const(Hitbox)[] hb, const(Particle) iself) {
 		ct = xct;
 		index = 0;
 		self = iself;
@@ -33,7 +33,7 @@ class CollisionRangeS : CollisionRange{
 	override pure nothrow @nogc bool empty() {
 		return index < ct.hbcnt;
 	}
-	override pure nothrow @nogc BaseParticle front() {
+	override pure nothrow @nogc Particle front() {
 		return ct.hb[index].p;
 	}
 	override pure nothrow @nogc void popFront() {
@@ -52,7 +52,7 @@ class CollisionRangeS : CollisionRange{
 }
 class CollisionTarget {
 	private {
-		alias SH = SpatialHash!(30, 30);
+		alias SH = SpatialHash!(50, 50);
 		SH sh;
 		SimpleHBP[hb_threshold] hb;
 		box2f whole;
@@ -69,7 +69,7 @@ class CollisionTarget {
 		w = W;
 		h = H;
 	}
-	nothrow pure void insert_hitbox(in ref Hitbox xhb, BaseParticle p) {
+	nothrow pure void insert_hitbox(in ref Hitbox xhb, Particle p) {
 		if (hbcnt == hb_threshold) {
 			if (sh is null)
 				sh = new SH(w, h);
@@ -86,10 +86,10 @@ class CollisionTarget {
 		}
 		hbcnt++;
 	}
-	nothrow pure CollisionRange query(const(Hitbox)[] hb, const(BaseParticle) iself) {
+	nothrow pure CollisionRange query(const(Hitbox)[] hb, const(Particle) iself) {
 		if (hbcnt <= hb_threshold)
 			return new CollisionRangeS(this, hb, iself);
 		else
-			return new SpatialRange!(30, 30)(sh, hb, iself);
+			return new SpatialRange!(50, 50)(sh, hb, iself);
 	}
 }

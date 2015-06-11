@@ -5,7 +5,7 @@ import gfm.math;
 import std.stdio;
 import std.conv;
 private struct HitboxPair {
-	BaseParticle p;
+	Particle p;
 	Hitbox hb;
 	HitboxPair*[] next;
 	box2f aabb;
@@ -20,12 +20,12 @@ class SpatialRange(int w, int h) : CollisionRange{
 		HitboxPair* head;
 		SpatialHash!(w, h) sh;
 		bool[HitboxPair*] _poped;
-		const(BaseParticle) self;
+		const(Particle) self;
 	}
 	override pure nothrow @nogc bool empty() {
 		return nowi >= hitbox.length;
 	}
-	override pure nothrow @nogc BaseParticle front() {
+	override pure nothrow @nogc Particle front() {
 		assert(head !is null);
 		return head.p;
 	}
@@ -81,7 +81,7 @@ class SpatialRange(int w, int h) : CollisionRange{
 				break;
 		}
 	}
-	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, const(BaseParticle) iself) {
+	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, const(Particle) iself) {
 		self = iself;
 		hitbox = hb;
 		sh = ish;
@@ -137,7 +137,7 @@ class SpatialHash(int w, int h) {
 		hbcnt = 0;
 		hbp.length = 1;
 	}
-	pure nothrow void insert_hitbox(ref const(Hitbox) hb, BaseParticle p) {
+	pure nothrow void insert_hitbox(ref const(Hitbox) hb, Particle p) {
 		auto aabb = whole.intersection(hb.aabb);
 		if (aabb.empty())
 			return;

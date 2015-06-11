@@ -2,7 +2,8 @@ module engine.vertex;
 import derelict.opengl3.gl3;
 import std.typetuple, std.traits;
 import engine.opengl,
-       engine.program;
+       engine.program,
+       engine.buffer;
 import gfm.math;
 private {
 	bool isIntegerType(GLenum t) {
@@ -80,13 +81,15 @@ struct Normalized {}
 private template Tuple (T...) {
 	alias Tuple = T;
 }
-struct VertexArray(Vertex) {
-	GLuint buf;
+class VertexArray(Vertex) {
 	GLuint vao;
-	this(Vertex[] vs, GLProgram prog) {
-		glGenBuffers(1, &buf);
-		glBindBuffer(GL_ARRAY_BUFFER, buf);
-		glBufferData(GL_ARRAY_BUFFER, vs.length*Vertex.sizeof, vs.ptr, GL_STREAM_DRAW);
+	GLBuffer buf;
+	this(OpenGL gl, GLProgram prog, size_t size) {
+		assert(prog !is null);
+		import std.stdio;
+		writefln("VA %s", size);
+		buf = new GLBuffer(gl, GL_ARRAY_BUFFER, size*Vertex.sizeof);
+		buf.bind();
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 		alias TT = FieldTypeTuple!Vertex;
@@ -112,8 +115,13 @@ struct VertexArray(Vertex) {
 	void bind() {
 		glBindVertexArray(vao);
 	}
+	void unbind() {
+		glBindVertexArray(0);
+	}
 	~this() {
 		glDeleteVertexArrays(1, &vao);
-		glDeleteBuffers(1, &buf);
+	}
+	BufferMapping!Vertex map(GLenum access) {
+		return buf.map!Vertex(access);
 	}
 }

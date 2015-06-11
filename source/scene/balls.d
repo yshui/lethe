@@ -1,11 +1,12 @@
 module scene.balls;
 import scene.scene;
+import scene.collision;
 import engine;
 import gfm.math;
 immutable float[4] dx = [-1, -1, 1, 1];
 immutable float[4] dy = [1, -1, -1, 1];
 immutable int[6] quad_index = [0, 1, 2, 0, 2, 3];
-class Wall(int n, int m) : Particle!(n, m) {
+class Wall : Particle {
 	private vec2f[3] point;
 	private int type;
 	override @nogc size_t hitbox(Hitbox[] hb) {
@@ -39,7 +40,7 @@ class Wall(int n, int m) : Particle!(n, m) {
 		type = t;
 	}
 }
-class Ball(int n, int m) : Particle!(n, m) {
+class Ball : Particle {
 	private {
 		vec2f center, velocity, newv;
 		float r, av, angle;
@@ -57,26 +58,25 @@ class Ball(int n, int m) : Particle!(n, m) {
 		hb[0] = Hitbox(center, r);
 		return 1;
 	}
-	override nothrow pure @nogc void gen_scene(BaseSceneData!(n, m) sd) {
-		Vertex[4] vs;
+	override nothrow size_t gen_scene(BufferMapping!Vertex vab, BufferMapping!GLuint ibuf) {
+		auto tmp = vab.n;
 		foreach(i; 0..4) {
-			vs[i].position = vec2f(dx[i]*r, dy[i]*r);
-			vs[i].translate = center;
-			vs[i].texture_coord = vec2f(dx[i], dy[i]);
-			vs[i].angle = angle;
+			vab.last.position = vec2f(dx[i]*r, dy[i]*r);
+			vab.last.translate = center;
+			vab.last.texture_coord = vec2f(dx[i], dy[i]);
+			vab.last.angle = angle;
+			vab.bump();
 		}
 
-		GLuint tmp = sd.vsize;
-		sd += vs[];
-
-		GLuint[6] inds;
-		foreach(i; 0..6)
-			inds[i] = tmp+quad_index[i];
-		sd += inds[];
+		foreach(i; 0..6) {
+			ibuf.last = cast(uint)(tmp+quad_index[i]);
+			ibuf.bump();
+		}
+		return 6;
 	}
-	override @nogc nothrow void collide(BaseParticle bp) {
+	override @nogc nothrow void collide(Particle bp) {
 		auto b = cast(Ball)bp;
-		auto w = cast(Wall!(n, m))bp;
+		auto w = cast(Wall)bp;
 		if (b !is null) {
 			auto line = b.center-center;
 			float dist = center.distanceTo(b.center);

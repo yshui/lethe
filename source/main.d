@@ -5,66 +5,77 @@ import gfm.math;
 import engine;
 import scene.scene,
        scene.balls;
-import std.algorithm;
+//import std.algorithm;
 import std.random;
 import std.math;
 import derelict.opengl3.gl3;
+import std.experimental.logger;
 
 struct uni {
 	GLTexture2D tex;
 	float w, h;
 }
 
-enum np = 400;
 
-void main() {
-	auto logger = new ConsoleLogger();
-	auto eng = scoped!(Engine!(np*4, np*6))(logger, 800, 600);
-	auto sd = new SceneData!(np*4, np*6, uni)();
-	auto scene = new Scene!(np, np, np*4, np*6)(eng.width, eng.height);
-	foreach(i; 0..300) {
-		auto dir = uniform(0, 2*3.14159265358);
-		auto absv = uniform(1.5, 3.0);
-		auto v = vec2f(absv*sin(dir), absv*cos(dir));
-		auto c = vec2f(uniform(40.0, cast(float)(eng.width-40)),
-			       uniform(40.0, cast(float)(eng.height-40)));
-		scene.ps[i] = new Ball!(np*4, np*6)(c, v, 10, 4);
+enum np = 4100;
+
+class EngineM : Engine!(np*4, np*6, uni) {
+	private {
+		alias S = Scene!(np, np);
+		S scene;
+		GLTexture tex;
 	}
-	//Add four walls
-	box2f playground = box2f(vec2f(20, 20), vec2f(eng.width-20, eng.height-20));
-	foreach(i; 0..4)
-		scene.ps[300+i] = new Wall!(np*4, np*6)(i, playground);
-	int next_frame() {
+	this(Logger logger, int w, int h) {
+		super(logger, w, h);
+		scene = new S(w, h);
+		foreach(i; 0..4000) {
+			auto dir = uniform(0, 2*3.14159265358);
+			auto absv = uniform(0.5, 1);
+			auto v = vec2f(absv*sin(dir), absv*cos(dir));
+			auto c = vec2f(uniform(40.0, cast(float)(w-40)),
+					uniform(40.0, cast(float)(h-40)));
+			scene.ps[i] = new Ball(c, v, uniform(2.0, 5.0), 4);
+		}
+		//Add four walls
+		box2f playground = box2f(vec2f(20, 20), vec2f(w-20, h-20));
+		foreach(i; 0..4)
+			scene.ps[4000+i] = new Wall(i, playground);
+		u.tex = new_texture2d("ball.png");
+		u.tex.setMinFilter(GL_LINEAR_MIPMAP_NEAREST);
+		u.tex.setMagFilter(GL_LINEAR);
+		u.w = w;
+		u.h = h;
+	}
+	override int next_frame() {
 		scene.update();
 		return 0;
 	}
-	int handle_event(ref SDL_Event e) {
+	override int handle_event(ref SDL_Event e) {
 		switch (e.type) {
 		case SDL_KEYDOWN:
-			auto ks = eng.key_state();
+			auto ks = key_state();
 			if (ks.isPressed(SDLK_ESCAPE))
-				eng.quitting = true;
+				quitting = true;
 			break;
 		default:
 			break;
 		}
 		return 0;
 	}
-
-	typeof(sd) gen_scene() {
-		sd.clear_scene();
-		scene.gen_scene(cast(BaseSceneData!(np*4, np*6))sd);
-		return sd;
+	override size_t gen_scene(VA va, GLBuffer ibuf) {
+		auto vab = va.map(GL_WRITE_ONLY);
+		auto ib = ibuf.write_map!GLuint();
+		auto s = scene.gen_scene(vab, ib);
+		vab.unmap();
+		ib.unmap();
+		return s;
 	}
-	eng.next_frame = &next_frame;
-	eng.handle_event = &handle_event;
-	eng.gen_scene = &gen_scene;
 
-	sd.u.tex = eng.new_texture2d("ball.png");
-	sd.u.tex.setMinFilter(GL_LINEAR_MIPMAP_NEAREST);
-	sd.u.tex.setMagFilter(GL_LINEAR);
-	sd.u.w = eng.width();
-	sd.u.h = eng.height();
+}
+
+void main() {
+	auto logger = new ConsoleLogger();
+	auto eng = scoped!EngineM(logger, 800, 600);
 
 	auto prog = "#version 140\n#if VERTEX_SHADER\n" ~ import("vs.glsl") ~
 		    "\n#elif FRAGMENT_SHADER\n" ~ import("frag.glsl") ~ "\n#endif";

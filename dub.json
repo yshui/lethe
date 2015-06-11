@@ -3,6 +3,7 @@
 	"description": "Lethe",
 	"copyright": "Copyright © 2015, Yuxuan Shui",
 	"authors": ["Yuxuan Shui"],
+	"dflags-ldc" : [ "-O5" ],
 	"dependencies": {
 		"gfm:sdl2" : "*",
 		"gfm:math" : "*",

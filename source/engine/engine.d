@@ -8,7 +8,8 @@ import std.typecons,
 import gfm.sdl2;
 import engine.opengl,
        engine.program,
-       engine.texture;
+       engine.texture,
+       engine.buffer;
 import gfm.logger;
 import gfm.math;
 import derelict.sdl2.types;
@@ -27,69 +28,6 @@ class SDL2EventRange {
 	}
 	void popFront() {
 		empty = !sdl2.pollEvent(&event);
-	}
-}
-
-class BaseSceneData(int n, int m) {
-	Vertex[n] vs;
-	GLuint[m] indices;
-	int vsize, isize;
-	void assign_uniforms(OpenGL gl, GLProgram prog) { }
-	@nogc ref void opOpAssign(string op, O)(O other) nothrow
-	if (op == "+") {
-		static if (is(O: BaseSceneData)){
-			this += other.vs[];
-			this += other.indices[];
-		} else static if (isInputRange!O) {
-			static assert(hasLength!O);
-			static if (is(ElementType!O == Vertex)) {
-				foreach(ref v; other) {
-					if (vsize >= n)
-						return;
-					vs[vsize++] = v;
-				}
-			} else static if (is(ElementType!O == GLuint)) {
-				//We are doing triangles
-				assert(other.length % 3 == 0);
-				foreach(i; other) {
-					if (isize >= m) {
-						isize -= isize % 3;
-						return;
-					}
-					indices[isize++] = i;
-				}
-			}
-		}
-	}
-	@nogc void clear_scene() {
-		isize = 0;
-		vsize = 0;
-	}
-}
-
-class SceneData(int n, int m, Uniforms) : BaseSceneData!(n, m) {
-	Uniforms u;
-	this(Uniforms _u) { u = _u; }
-	this() { }
-	override void assign_uniforms(OpenGL gl, GLProgram prog) {
-		//Activate all textures
-		static if (is(Uniforms == struct) || is(Uniforms == class)) {
-			alias TT = FieldTypeTuple!Uniforms;
-			int tu = GL_TEXTURE0;
-			foreach (member; __traits(allMembers, Uniforms)) {
-				mixin("alias T = typeof(Uniforms." ~ member ~ ");");
-				static if (staticIndexOf!(T, TT) != -1) {
-					static if (is(T: GLTexture)) {
-						glActiveTexture(tu);
-						gl.runtimeCheck();
-						mixin("u." ~ member ~ ".bind();");
-						mixin("prog.uniform(\"" ~ member ~ "\").set(tu-GL_TEXTURE0);");
-						tu++;
-					} else
-						mixin("prog.uniform(\"" ~ member ~ "\").set(u." ~ member ~ ");");
-				}
-			}
-		}
 	}
 }
 
@@ -114,10 +52,12 @@ private void gen_format(uint type, SDL_PixelFormat *x) {
 	x.palette = null;
 }
 import core.memory;
-class Engine(int n, int m) {
-	int delegate() next_frame = null;
-	int delegate(ref SDL_Event) handle_event = null;
-	BaseSceneData!(n, m) delegate() gen_scene = null;
+alias VA = VertexArray!Vertex;
+class Engine(int n, int m, Uniforms)
+if (is(Uniforms == struct) || is(Uniforms == class)) {
+	int next_frame() { return 0; };
+	int handle_event(ref SDL_Event) { return 0; };
+	size_t gen_scene(VA va, GLBuffer ibuf) { return 0; };
 	bool quitting;
 	@property int width() const {
 		return _width;
@@ -146,31 +86,49 @@ class Engine(int n, int m) {
 		gl.redirectDebugOutput();
 
 		gen_format(SDL_PIXELFORMAT_RGBA8888, &fmt);
+		ibuf = new GLBuffer(gl, GL_ELEMENT_ARRAY_BUFFER, m*GLuint.sizeof);
+		win.setTitle("Lethe");
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glBlendEquation(derelict.opengl3.constants.GL_FUNC_ADD);
+		gl.runtimeCheck();
 	}
 	void load_program(string code) {
 		prog = new GLProgram(gl, code);
+		va = new VertexArray!Vertex(gl, prog, n);
+	}
+	final void assign_uniforms() {
+		static if (is(Uniforms == struct) || is(Uniforms == class)) {
+			alias TT = FieldTypeTuple!Uniforms;
+			int tu = GL_TEXTURE0;
+			foreach (member; __traits(allMembers, Uniforms)) {
+				mixin("alias T = typeof(Uniforms." ~ member ~ ");");
+				static if (staticIndexOf!(T, TT) != -1) {
+					static if (is(T: GLTexture)) {
+						//Assign to texture unit
+						glActiveTexture(tu);
+						gl.runtimeCheck();
+						mixin("u." ~ member ~ ".bind();");
+						mixin("prog.uniform(\"" ~ member ~ "\").set(tu-GL_TEXTURE0);");
+						tu++;
+					} else
+						mixin("prog.uniform(\"" ~ member ~ "\").set(u." ~ member ~ ");");
+				}
+			}
+		}
 	}
 	~this() {
 		win.close();
 	}
 	void run(uint fps) {
+		assert(prog !is null);
 		float max_frame_time = 1000.0/fps;
 		//GC.disable();
-		win.setTitle("Lethe");
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		gl.runtimeCheck();
-		glBlendEquation(derelict.opengl3.constants.GL_FUNC_ADD);
-		gl.runtimeCheck();
 		while(true) {
 			uint frame_start = SDL_GetTicks();
-			if (handle_event) {
-				auto es = scoped!SDL2EventRange(sdl2);
-				foreach(e; es) {
-					handle_event(e);
-				}
-			} else
-				sdl2.processEvents();
+			auto es = scoped!SDL2EventRange(sdl2);
+			foreach(e; es)
+				handle_event(e);
 			if (sdl2.wasQuitRequested() || quitting)
 				break;
 			if (next_frame)
@@ -178,39 +136,17 @@ class Engine(int n, int m) {
 			glViewport(0, 0, _width, _height);
 			glClearColor(0,0,0,1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
-			if (gen_scene) {
-				auto d = gen_scene();
-				d.assign_uniforms(gl, prog);
-
-				GLuint ibuf;
-				glGenBuffers(1, &ibuf);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint.sizeof*d.isize,
-					     d.indices.ptr, GL_STREAM_DRAW);
-				gl.runtimeCheck();
-
-				auto va = VertexArray!Vertex(d.vs[0..d.vsize], prog);
-
-				prog.use();
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf);
-				gl.runtimeCheck();
-				va.bind();
-				glDrawElements(GL_TRIANGLES, d.isize, GL_UNSIGNED_INT, cast(const(void *))0);
-				gl.runtimeCheck();
-				glDeleteBuffers(1, &ibuf);
-				gl.runtimeCheck();
-				prog.unuse();
-				gl.runtimeCheck();
-			}
+			auto scene_size = gen_scene(va, ibuf);
+			assign_uniforms();
+			prog.use();
+			ibuf.bind();
+			va.bind();
+			glDrawElements(GL_TRIANGLES, cast(int)scene_size, GL_UNSIGNED_INT, cast(const(void *))0);
+			va.unbind();
+			ibuf.unbind();
+			prog.unuse();
 			uint frame_time = SDL_GetTicks()-frame_start;
 			bool run_gc = false;
-			/*
-			if (max_frame_time > frame_time+10) {
-				run_gc = true;
-				GC.collect();
-			}
-			frame_time = SDL_GetTicks()-frame_start;
-			*/
 			import std.stdio;
 			if (frame_time < max_frame_time)
 				SDL_Delay(cast(uint)(max_frame_time-frame_time));
@@ -251,5 +187,8 @@ class Engine(int n, int m) {
 		int _width, _height;
 		GLProgram prog;
 		SDL_PixelFormat fmt;
+		VertexArray!Vertex va;
+		GLBuffer ibuf;
 	}
+	protected Uniforms u;
 }
