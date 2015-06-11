@@ -3,6 +3,8 @@ import gfm.math;
 import std.math;
 private pure nothrow @nogc
 bool collide_triangle_circle(in ref Circle c, in ref Triangle t) {
+	if (t.contain(c.center))
+		return true;
 	foreach(i; 0..3) {
 		LineSeg ls = {
 			start: t.point[i],
