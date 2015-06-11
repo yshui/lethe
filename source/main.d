@@ -62,13 +62,8 @@ class EngineM : Engine!(np*4, np*6, uni) {
 		}
 		return 0;
 	}
-	override size_t gen_scene(VA va, GLBuffer ibuf) {
-		auto vab = va.map(GL_WRITE_ONLY);
-		auto ib = ibuf.write_map!GLuint();
-		auto s = scene.gen_scene(vab, ib);
-		vab.unmap();
-		ib.unmap();
-		return s;
+	override size_t gen_scene(VAMap vab, IMap ib) {
+		return scene.gen_scene(vab, ib);
 	}
 
 }

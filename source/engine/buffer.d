@@ -4,6 +4,7 @@ import derelict.opengl3.gl3;
 
 import engine.opengl;
 import core.exception;
+import std.typecons;
 
 class BufferMapping(T) {
 	private {
@@ -102,13 +103,13 @@ final class GLBuffer {
 			return _buffer;
 		}
 		auto map(T)(GLenum access) {
-			return new BufferMapping!T(this, access);
+			return scoped!(BufferMapping!T)(this, access);
 		}
 		auto read_map(T)() {
-			return new BufferMapping!T(this, GL_READ_ONLY);
+			return map!T(GL_READ_ONLY);
 		}
 		auto write_map(T)() {
-			return new BufferMapping!T(this, GL_WRITE_ONLY);
+			return map!T(GL_WRITE_ONLY);
 		}
 	}
 

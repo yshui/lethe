@@ -57,7 +57,7 @@ class Engine(int n, int m, Uniforms)
 if (is(Uniforms == struct) || is(Uniforms == class)) {
 	int next_frame() { return 0; };
 	int handle_event(ref SDL_Event) { return 0; };
-	size_t gen_scene(VA va, GLBuffer ibuf) { return 0; };
+	size_t gen_scene(VAMap va, IMap ibuf) { return 0; };
 	bool quitting;
 	@property int width() const {
 		return _width;
@@ -135,7 +135,12 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 			glViewport(0, 0, _width, _height);
 			glClearColor(0,0,0,1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
-			auto scene_size = gen_scene(va, ibuf);
+			size_t scene_size;
+			{
+				auto vab = va.map(GL_WRITE_ONLY);
+				auto ib = ibuf.write_map!GLuint();
+				scene_size = gen_scene(vab, ib);
+			}
 			assign_uniforms();
 			prog.use();
 			ibuf.bind();
@@ -190,4 +195,6 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		GLBuffer ibuf;
 	}
 	protected Uniforms u;
+	alias VAMap = BufferMapping!Vertex;
+	alias IMap = BufferMapping!GLuint;
 }

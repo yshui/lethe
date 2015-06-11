@@ -121,7 +121,7 @@ class VertexArray(Vertex) {
 	~this() {
 		glDeleteVertexArrays(1, &vao);
 	}
-	BufferMapping!Vertex map(GLenum access) {
+	auto map(GLenum access) {
 		return buf.map!Vertex(access);
 	}
 }
