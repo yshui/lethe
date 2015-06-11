@@ -131,8 +131,7 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 				handle_event(e);
 			if (sdl2.wasQuitRequested() || quitting)
 				break;
-			if (next_frame)
-				next_frame();
+			next_frame();
 			glViewport(0, 0, _width, _height);
 			glClearColor(0,0,0,1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
