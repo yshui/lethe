@@ -15,20 +15,20 @@ import gfm.math;
 import derelict.sdl2.types;
 import derelict.opengl3.gl,
        derelict.opengl3.gl3;
-class SDL2EventRange {
-	SDL2 sdl2;
-	SDL_Event event;
-	bool empty;
-	this(SDL2 x) {
-		sdl2 = x;
-		empty = !sdl2.pollEvent(&event);
+auto event_range(SDL2 sdl2) {
+	struct SDL2EventRange {
+		SDL_Event event;
+		bool empty;
+		@property ref SDL_Event front() {
+			return event;
+		}
+		void popFront() {
+			empty = !sdl2.pollEvent(&event);
+		}
 	}
-	@property ref SDL_Event front() {
-		return event;
-	}
-	void popFront() {
-		empty = !sdl2.pollEvent(&event);
-	}
+	SDL2EventRange er;
+	er.popFront();
+	return er;
 }
 
 struct Vertex {
@@ -126,7 +126,7 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		//GC.disable();
 		while(true) {
 			uint frame_start = SDL_GetTicks();
-			auto es = scoped!SDL2EventRange(sdl2);
+			auto es = sdl2.event_range(); //scoped!SDL2EventRange(sdl2);
 			foreach(e; es)
 				handle_event(e);
 			if (sdl2.wasQuitRequested() || quitting)
