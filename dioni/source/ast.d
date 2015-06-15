@@ -104,13 +104,17 @@ class UnOP : Expr {
 	mixin GetTy;
 }
 
-/*class Var : Expr {
+class Var : Expr {
 	string name;
 	this(string xname) { name = xname; }
-	@property pure nothrow string str() {
-		return name;
+	override pure TypeBase gen_type() {
+		return new Type!(int, 1);
 	}
-}*/
+	override @property pure nothrow string str() {
+		return "Var(" ~ name ~ ")";
+	}
+	mixin GetTy;
+}
 
 class Num : Expr {
 	uint _type;

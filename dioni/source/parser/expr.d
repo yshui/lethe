@@ -13,7 +13,7 @@ auto parse_paren(Stream i) {
 
 ParseResult!Expr parse_expr(Stream i) {
 	return chain!(
-		choice!(parse_term, parse_paren),
+		parse_term,
 		build_expr_tree,
 		choice!(token_ws!"+", token_ws!"-")
 	)(i);
@@ -21,10 +21,29 @@ ParseResult!Expr parse_expr(Stream i) {
 
 auto parse_term(Stream i){
 	return chain!(
-		choice!(parse_number, parse_paren),
+		parse_primary,
 		build_expr_tree,
 		choice!(token_ws!"*", token_ws!"/")
 	)(i);
+}
+
+ParseResult!Expr parse_primary(Stream i) {
+	return choice!(
+		parse_number,
+		parse_unop,
+		parse_paren,
+		parse_var,
+	)(i);
+}
+
+auto parse_unop(Stream i) {
+	auto r = seq!(
+		choice!(token!"+", token!"-"),
+		parse_primary,
+	)(i);
+	if(!r.ok)
+		return ParseResult!Expr(State.Err, 0, null);
+	return ParseResult!Expr(State.OK, r.consumed, new UnOP(r.result!0, r.result!1));
 }
 
 Expr build_expr_tree(Expr a, string op, Expr b) {

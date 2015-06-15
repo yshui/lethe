@@ -1,21 +1,60 @@
 module parser.atom;
 import sdpc;
 import ast;
+import std.conv,
+       std.stdio;
 
 auto parse_number_nows(Stream i) {
-	auto r =  number(i);
-	if (r.s != State.OK)
+	auto parse_exp_str(Stream i) {
+		auto r = seq!(
+			token!"e",
+			optional!(choice!(token!"+", token!"-")),
+			word!digits,
+		)(i);
+		if (r.s == State.Err)
+			return ParseResult!string(State.OK, 0, "");
+		string exp = r.result!2;
+		if (r.result!1 !is null)
+			exp = r.result!1 ~ exp;
+		return ParseResult!string(State.OK, r.consumed, "e" ~ exp);
+	}
+	auto parse_fraction_str(Stream i) {
+		auto r = seq!(
+			token!".",
+			optional!(word!digits)
+		)(i);
+
+		if (r.s == State.Err)
+			return ParseResult!string(State.OK, 0, "");
+
+		string k = "";
+		if (r.result!1 !is null)
+			k = r.result!1;
+		return ParseResult!string(State.OK, r.consumed, k);
+	}
+	auto r = seq!(
+		word!digits,
+		parse_fraction_str,
+		parse_exp_str,
+	)(i);
+	if (r.s == State.Err)
 		return ParseResult!Expr(State.Err, 0, null);
-	auto e = new Num(r);
-	return ParseResult!Expr(State.OK, r.consumed, e);
+
+	if (r.result!1 == "" && r.result!2 == "")
+		//This is a int
+		return ParseResult!Expr(State.OK, r.consumed, new Num(to!int(r.result!0)));
+
+	string float_string = r.result!0 ~ "." ~ r.result!1 ~ r.result!2;
+	return ParseResult!Expr(State.OK, r.consumed, new Num(to!float(float_string)));
 }
 
-auto parse_float_nows(Stream i) {
+auto parse_var_nows(Stream i) {
+	auto r = identifier(i);
+	if (!r.ok)
+		return ParseResult!Expr(State.Err, 0, null);
 
+	return ParseResult!Expr(State.OK, r.consumed, new Var(r.result));
 }
 
 alias parse_number = between!(skip_whitespace, parse_number_nows, skip_whitespace);
-
-auto parse_variable(Stream i) {
-
-}
+alias parse_var = between!(skip_whitespace, parse_var_nows, skip_whitespace);
