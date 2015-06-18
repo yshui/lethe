@@ -1,6 +1,6 @@
 module parser.atom;
 import sdpc;
-import ast;
+import ast.expr;
 import std.conv,
        std.stdio;
 
@@ -51,10 +51,11 @@ auto parse_number_nows(Stream i) {
 auto parse_var_nows(Stream i) {
 	auto r = identifier(i);
 	if (!r.ok)
-		return ParseResult!Expr(State.Err, 0, null);
+		return err_result!LValue();
 
-	return ParseResult!Expr(State.OK, r.consumed, new Var(r.result));
+	return ok_result!LValue(new Var(r.result), r.consumed);
 }
 
 alias parse_number = between!(skip_whitespace, parse_number_nows, skip_whitespace);
 alias parse_var = between!(skip_whitespace, parse_var_nows, skip_whitespace);
+alias parse_var_expr = cast_result!(Expr, parse_var);

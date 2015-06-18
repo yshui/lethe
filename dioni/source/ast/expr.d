@@ -1,8 +1,9 @@
-module ast;
+module ast.expr;
 import std.conv,
        std.range,
        std.typecons,
        std.traits;
+import dioni.utils;
 interface Expr {
 	@property pure nothrow string str();
 	pure TypeBase gen_type();
@@ -10,6 +11,12 @@ interface Expr {
 		return str;
 	}
 	@property pure const(TypeBase) ty();
+}
+
+interface LValue : Expr {
+	@property final bool is_lvalue() {
+		return true;
+	}
 }
 
 string type_matching(T...)(string[] name) {
@@ -50,26 +57,29 @@ class TypeBase {
 	@property nothrow pure @nogc int dimension() const {
 		return 0;
 	}
+	@property nothrow pure @nogc TypeBase element_type() const {
+		return null;
+	}
 }
 class Type(T, int dim) : TypeBase {
 	override int dimension() const {
 		return dim;
 	}
 }
+class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
+	override int dimension() const {
+		static if (is(ElemType == Type!(T, dim), T, int dim))
+			return dim;
+		else
+			static assert(0);
+	}
+	override @property nothrow pure @nogc TypeBase element_type() const {
+		return new ElemType();
+	}
+}
 
 ///Define a type match pattern: if input types match T..., then the output type is Result
 class TypePattern(Result, T...) { }
-private template TupleHelper(T...) {
-	alias TupleHelper = T;
-}
-template StaticRange(int S, int T) {
-	static if (S >= T)
-		alias StaticRange = TupleHelper!();
-	else {
-		enum N = S+1;
-		alias StaticRange = TupleHelper!(S, StaticRange!(N, T));
-	}
-}
 class BinOP : Expr {
 	Expr lhs, rhs;
 	string op;
@@ -150,7 +160,7 @@ class UnOP : Expr {
 	mixin GetTy;
 }
 
-class Var : Expr {
+class Var : LValue {
 	string name;
 	this(string xname) { name = xname; }
 	override pure TypeBase gen_type() {
@@ -158,6 +168,24 @@ class Var : Expr {
 	}
 	override @property pure nothrow string str() {
 		return "Var(" ~ name ~ ")";
+	}
+	mixin GetTy;
+}
+
+class Index : LValue {
+	LValue base;
+	Expr index;
+	this(LValue xbase, Expr xindex) {
+		base = xbase;
+		index = xindex;
+	}
+	override pure TypeBase gen_type() {
+		auto x = base.ty.element_type;
+		assert(x !is null);
+		return x;
+	}
+	override @property pure nothrow string str() {
+		return base.str ~ "[" ~ index.str ~ "]";
 	}
 	mixin GetTy;
 }
@@ -200,19 +228,19 @@ class Vec(int dim) : Expr if (dim >= 2) {
 	const(string) _header;
 	this(Expr[] xelem) {
 		_header = "Vec"~to!string(dim)~"(";
-		assert(xelem.length > dim);
+		assert(xelem.length >= dim);
 		foreach(i; StaticRange!(0, dim))
 			elem[i] = xelem[i];
 	}
-	@property pure nothrow string str() {
-		auto res = _header;
+	override @property pure nothrow string str() {
+		auto res = _header.dup;
 		foreach(i; StaticRange!(0, dim-1))
 			res ~= elem[i].str ~ ", ";
 		res ~= elem[dim-1].str ~ ")";
 		return res;
 	}
 	override pure nothrow TypeBase gen_type() {
-		return Type!(float, dim);
+		return new Type!(float, dim);
 	}
 	mixin GetTy;
 }
