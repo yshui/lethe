@@ -1,6 +1,8 @@
 module ast;
 import std.conv,
-       std.range;
+       std.range,
+       std.typecons,
+       std.traits;
 interface Expr {
 	@property pure nothrow string str();
 	pure TypeBase gen_type();
@@ -44,12 +46,30 @@ template GetTy() {
 	}
 }
 
-class TypeBase { }
-class Type(T, int dim) : TypeBase { }
+class TypeBase {
+	@property nothrow pure @nogc int dimension() const {
+		return 0;
+	}
+}
+class Type(T, int dim) : TypeBase {
+	override int dimension() const {
+		return dim;
+	}
+}
 
 ///Define a type match pattern: if input types match T..., then the output type is Result
 class TypePattern(Result, T...) { }
-
+private template TupleHelper(T...) {
+	alias TupleHelper = T;
+}
+template StaticRange(int S, int T) {
+	static if (S >= T)
+		alias StaticRange = TupleHelper!();
+	else {
+		enum N = S+1;
+		alias StaticRange = TupleHelper!(S, StaticRange!(N, T));
+	}
+}
 class BinOP : Expr {
 	Expr lhs, rhs;
 	string op;
@@ -62,6 +82,35 @@ class BinOP : Expr {
 		return "<" ~ lhs.str ~ op ~ rhs.str ~ ">";
 	}
 	override pure TypeBase gen_type() {
+		auto ld = lhs.ty.dimension, rd = rhs.ty.dimension;
+		if (ld > 1 || rd > 1) {
+			int resd;
+			switch(op) {
+			case "+":
+			case "-":
+				assert(ld == rd);
+				resd = ld;
+				break;
+			case "*":
+				assert(ld == rd || ld == 1 || rd == 1);
+				resd = (ld == 1) ? rd : ld;
+				break;
+			case "/":
+				assert(ld == rd || rd == 1);
+				resd = ld;
+				break;
+			default:
+				assert(0);
+			}
+			switch(resd) {
+				foreach(i; StaticRange!(2, 5)) {
+					case i:
+					return new Type!(float, i); //Vector must be float
+				}
+				default:
+					assert(0);
+			}
+		}
 		if (op == "+" || op == "-" || op == "*") {
 			mixin(type_matching!(
 				TypePattern!(Type!(int, 1), Type!(int, 1), Type!(int, 1)),
@@ -93,10 +142,7 @@ class UnOP : Expr {
 		return op ~ to!string(opr);
 	}
 	override pure TypeBase gen_type() {
-		mixin(type_matching!(
-			TypePattern!(Type!(float, 1), Type!(float, 1)),
-			TypePattern!(Type!(int, 1), Type!(int, 1)),
-		)(["opr"]));
+		return opr.gen_type();
 	}
 	override @property pure nothrow string str() {
 		return op ~ opr.str;
@@ -149,7 +195,27 @@ class Num : Expr {
 	mixin GetTy;
 }
 
-//class Vec
+class Vec(int dim) : Expr if (dim >= 2) {
+	Expr[dim] elem;
+	const(string) _header;
+	this(Expr[] xelem) {
+		_header = "Vec"~to!string(dim)~"(";
+		assert(xelem.length > dim);
+		foreach(i; StaticRange!(0, dim))
+			elem[i] = xelem[i];
+	}
+	@property pure nothrow string str() {
+		auto res = _header;
+		foreach(i; StaticRange!(0, dim-1))
+			res ~= elem[i].str ~ ", ";
+		res ~= elem[dim-1].str ~ ")";
+		return res;
+	}
+	override pure nothrow TypeBase gen_type() {
+		return Type!(float, dim);
+	}
+	mixin GetTy;
+}
 unittest {
 	import std.stdio;
 	writeln("Run ast.d unittest");
