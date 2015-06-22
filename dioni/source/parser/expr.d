@@ -36,23 +36,10 @@ ParseResult!Expr parse_primary(Stream i) {
 		parse_paren,
 		parse_vec,
 		parse_var_expr,
-		parse_index_expr,
 	)(i);
 }
 
-ParseResult!LValue parse_lvalue_no_index(Stream i) {
-	auto r = parse_var(i);
-	if (!r.ok)
-		return err_result!LValue();
-	return ok_result!LValue(cast(LValue)r.result, r.consumed);
-}
-
-ParseResult!LValue parse_lvalue(Stream i) {
-	return choice!(
-		parse_var,
-		parse_index
-	)(i);
-}
+alias parse_lvalue = parse_var;
 
 auto parse_unop(Stream i) {
 	auto r = seq!(
@@ -91,21 +78,6 @@ Ld:     switch(d) {
 	import std.stdio: writeln;
 	return ok_result!Expr(a, r.consumed);
 }
-
-auto parse_index(Stream i) {
-	auto r = seq!(
-		parse_lvalue_no_index,
-		token_ws!"[",
-		parse_expr,
-		token_ws!"]",
-	)(i);
-	if (!r.ok)
-		return err_result!LValue();
-
-	return ok_result!LValue(new Index(r.result!0, r.result!2), r.consumed);
-}
-
-alias parse_index_expr = cast_result!(Expr, parse_index);
 
 Expr build_expr_tree(Expr a, string op, Expr b) {
 	return new BinOP(a, op, b);
