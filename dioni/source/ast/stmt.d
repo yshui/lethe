@@ -66,7 +66,7 @@ class Loop : Stmt {
 		bdy = xbdy;
 	}
 	string str() {
-		auto res = "Loop(" ~ var.str ~ " from " ~ s.str ~ " to " ~ t.str ~ ") {\n";
+		auto res = "Loop(" ~ (var is null ? "_" : var.str) ~ " from " ~ s.str ~ " to " ~ t.str ~ ") {\n";
 		res ~= str_stmt_block(bdy);
 		res ~= "}\n";
 		return res;

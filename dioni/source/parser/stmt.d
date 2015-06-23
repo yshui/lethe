@@ -77,7 +77,7 @@ auto parse_loop_var(Stream i) {
 	)(i);
 	if (!r.ok)
 		return ok_result!Var(null, 0);
-	return ok_result!Var(new Var(r.result!1), r.consumed);
+	return ok_result!Var(cast(Var)r.result!0, r.consumed);
 }
 auto parse_loop(Stream i) {
 	auto r = seq!(
