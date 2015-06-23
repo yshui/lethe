@@ -1,9 +1,12 @@
 {
-	"name": "Dioni",
+	"name": "dioni",
 	"description": "LetheC",
 	"copyright": "Copyright © 2015, Yuxuan Shui",
 	"authors": ["Yuxuan Shui"],
 	"dependencies": {
-		"sdpc" : "~master"
-	}
+		"dioni:sdpc" : "*"
+	},
+	"subPackages" : [
+		"./sdpc"
+	]
 }

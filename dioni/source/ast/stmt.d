@@ -1,4 +1,5 @@
 module ast.stmt;
+import ast.expr;
 interface Stmt {
 	@property pure nothrow string str();
 	final string toString() {
@@ -13,7 +14,7 @@ class Assign : Stmt {
 		rhs = xrhs;
 	}
 	string str() {
-		return lhs ~ " = " ~ rhs ~ "\n";
+		return lhs.str ~ " = " ~ rhs.str ~ "\n";
 	}
 }
 private nothrow pure string str_stmt_block(Stmt[] ss) {
@@ -36,6 +37,7 @@ class If : Stmt {
 		res ~= "} Else {\n";
 		res ~= str_stmt_block(_else);
 		res ~= "}\n";
+		return res;
 	}
 }
 class Foreach : Stmt {
@@ -47,9 +49,10 @@ class Foreach : Stmt {
 		bdy = b;
 	}
 	string str() {
-		auto res = "Foreach(" ~ var ~ " in " ~ agg.str ~ ") {\n";
+		auto res = "Foreach(" ~ var.str ~ " in " ~ agg.str ~ ") {\n";
 		res ~= str_stmt_block(bdy);
 		res ~= "}\n";
+		return res;
 	}
 }
 class Loop : Stmt {
@@ -61,5 +64,11 @@ class Loop : Stmt {
 		t = xt;
 		var = xvar;
 		bdy = xbdy;
+	}
+	string str() {
+		auto res = "Loop(" ~ var.str ~ " from " ~ s.str ~ " to " ~ t.str ~ ") {\n";
+		res ~= str_stmt_block(bdy);
+		res ~= "}\n";
+		return res;
 	}
 }

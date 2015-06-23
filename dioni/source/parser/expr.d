@@ -1,24 +1,24 @@
 module parser.expr;
 import sdpc;
 import ast.expr;
-import parser.atom;
+import parser.atom, parser.utils;
 import dioni.utils;
 import std.conv: to;
-
-template token_ws(string t) {
-	alias token_ws = between!(skip_whitespace, token!t, skip_whitespace);
-}
+import std.stdio;
 
 auto parse_paren(Stream i) {
 	return between!(token_ws!"(", parse_expr, token_ws!")")(i);
 }
 
 ParseResult!Expr parse_expr(Stream i) {
-	return chain!(
+	auto r = chain!(
 		parse_term,
 		build_expr_tree,
 		choice!(token_ws!"+", token_ws!"-")
 	)(i);
+	if (r.ok)
+		writeln("Matched expr");
+	return r;
 }
 
 auto parse_term(Stream i){
@@ -30,13 +30,17 @@ auto parse_term(Stream i){
 }
 
 ParseResult!Expr parse_primary(Stream i) {
-	return choice!(
+	writeln("primary");
+	auto r = choice!(
 		parse_number,
 		parse_unop,
 		parse_paren,
 		parse_vec,
 		parse_var_expr,
 	)(i);
+	if (r.ok)
+		writeln("Matched primary");
+	return r;
 }
 
 alias parse_lvalue = parse_var;
