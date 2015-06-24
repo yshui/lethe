@@ -9,12 +9,29 @@ interface Stmt {
 class Assign : Stmt {
 	LValue lhs;
 	Expr rhs;
-	this(LValue xlhs, Expr xrhs) {
+	static enum {
+		Delayed,
+		Aggregate,
+		Assign
+	};
+	int type;
+	this(LValue xlhs, Expr xrhs, int xtype = Assign) {
 		lhs = xlhs;
 		rhs = xrhs;
+		type = xtype;
 	}
 	string str() {
-		return lhs.str ~ " = " ~ rhs.str ~ "\n";
+		final switch(type) {
+		case Delayed:
+			if (rhs !is null)
+				return lhs.str ~ " <- " ~ rhs.str ~ "\n";
+			else
+				return "Clear " ~ lhs.str ~ "\n";
+		case Aggregate:
+			return lhs.str ~ " << " ~ rhs.str ~ "\n";
+		case Assign:
+			return lhs.str ~ " = " ~ rhs.str ~ "\n";
+		}
 	}
 }
 private nothrow pure string str_stmt_block(Stmt[] ss) {

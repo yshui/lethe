@@ -100,11 +100,43 @@ auto parse_loop(Stream i) {
 		r.consumed
 	);
 }
+auto parse_clear(Stream i) {
+	auto r = seq!(
+		parse_var,
+		token_ws!"~",
+		token_ws!";"
+	)(i);
+	if (!r.ok)
+		return err_result!Stmt();
+	return ok_result!Stmt(
+		new Assign(r.result!0, null, Assign.Delayed),
+		r.consumed
+	);
+}
+auto parse_delayed_or_aggregate(Stream i) {
+	auto r = seq!(
+		parse_var,
+		choice!(token_ws!"<-", token_ws!"<<"),
+		parse_expr,
+		token_ws!";"
+	)(i);
+	if (!r.ok)
+		return err_result!Stmt();
+	return ok_result!Stmt(
+		new Assign(r.result!0, r.result!2,
+			r.result!1 == "<-" ?
+			    Assign.Delayed : Assign.Aggregate
+		),
+		r.consumed
+	);
+}
 ParseResult!Stmt parse_stmt(Stream i) {
 	return choice!(
 		parse_if,
 		parse_assign,
 		parse_foreach,
-		parse_loop
+		parse_loop,
+		parse_clear,
+		parse_delayed_or_aggregate
 	)(i);
 }
