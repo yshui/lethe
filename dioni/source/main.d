@@ -9,7 +9,7 @@ void main(string[] argv) {
 
 	char[] file_content = cast(char[])read(argv[1]);
 	auto i = new BufStream(cast(immutable(char)[])file_content);
-	auto r = many!parse_stmt(i);
+	auto r = many!parse_state_definition(i);
 
 	writefln("%s, %s", r.consumed, i.head.length);
 	assert(i.eof());

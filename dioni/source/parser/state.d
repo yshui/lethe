@@ -13,6 +13,7 @@
   CollideWith(=CollisionGroup, ~object)
 ---
 */
+module parser.state;
 import ast.state,
        ast.expr;
 import parser.stmt,
@@ -44,14 +45,16 @@ auto parse_event_parameter(Stream i) {
 auto parse_event(Stream i) {
 	auto r = seq!(
 		identifier,
-		token_ws!"(",
-		many!parse_event_parameter,
-		token_ws!")"
+		optional!(seq!(
+			discard!(token_ws!"("),
+			many!(parse_event_parameter, true),
+			discard!(token_ws!")")
+		))
 	)(i);
 	if (!r.ok)
 		return err_result!Event();
 
-	auto e = new Event(r.result!0, r.result!2);
+	auto e = new Event(r.result!0, r.result!1);
 	return ok_result(e, r.consumed);
 }
 auto parse_state_transition_arr(Stream i) {

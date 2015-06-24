@@ -147,14 +147,20 @@ auto seq(T...)(Stream i) {
 			if (ret.s != Result.OK) {
 				writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
 				i.rewind(consumed);
-				return RetTy(Result.Err, 0, ElemTys.init);
+				static if (ElemTys.length == 1)
+					return err_result!(ElemTys[0])();
+				else
+					return RetTy(Result.Err, 0, ElemTys.init);
 			}
 			static if (!is(typeof(ret) == ParseResult!void))
 				res[id] = ret.result;
 		} else
 			static assert(false, p);
 	}
-	return RetTy(Result.OK, consumed, res);
+	static if (ElemTys.length == 1)
+		return ok_result!(ElemTys[0])(res[0], consumed);
+	else
+		return RetTy(Result.OK, consumed, res);
 }
 
 auto seq2(alias op, T...)(Stream i) {

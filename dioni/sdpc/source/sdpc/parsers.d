@@ -20,16 +20,18 @@ auto ch(alias accept, alias func)(Stream i) {
 	return RetTy(Result.OK, 1, func(digi, n[0]));
 }
 
-template digit(alias digits = "0123456789") {
+template digit(alias _digits = digits) {
 	private int conv(long id, char ch) { return cast(int)id; }
-	alias digit = ch!(digits, conv);
+	alias digit = ch!(_digits, conv);
 }
 
 int digit_concat(int base = 10)(int a, int b) {
 	return a*base+b;
 }
 
-immutable string alphabet = "qwertyuiopasdfghjklzxcvbnm";
+immutable string lower = "qwertyuiopasdfghjklzxcvbnm";
+immutable string upper = "QWERTYUIOPASDFGHJKLZXCVBNM";
+immutable string alphabet = lower ~ upper;
 immutable string digits = "0123456789";
 
 template number(alias accept = digits, int base = 10)

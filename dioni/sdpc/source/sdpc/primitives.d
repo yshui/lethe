@@ -3,7 +3,7 @@ import std.algorithm,
        std.stdio,
        std.typetuple,
        std.traits;
-enum Result {
+package enum Result {
 	OK,
 	Err
 }
@@ -90,6 +90,10 @@ T err_result(T: ParseResult!U, U)() {
 		return T(Result.Err, 0);
 	else
 		return T(Result.Err, 0, U.init);
+}
+
+ParseResult!T err_result(T)(T def) if (!is(T == ParseResult!U, U)) {
+	return ParseResult!T(Result.Err, 0, def);
 }
 
 ParseResult!T err_result(T)() if (!is(T == ParseResult!U, U)) {

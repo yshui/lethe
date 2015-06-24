@@ -1,4 +1,5 @@
 module parser;
 
-public import parser.expr;
-public import parser.stmt;
+public import parser.expr,
+	      parser.stmt,
+	      parser.state;
