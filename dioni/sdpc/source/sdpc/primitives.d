@@ -3,7 +3,7 @@ import std.algorithm,
        std.stdio,
        std.typetuple,
        std.traits;
-enum State {
+enum Result {
 	OK,
 	Err
 }
@@ -43,7 +43,7 @@ template ElemTypesNoVoid(T...) {
 }
 
 struct ParseResult(T...) {
-	State s;
+	Result s;
 	size_t consumed;
 
 	static if (T.length == 0 || allSatisfy!(isVoid, T))
@@ -56,47 +56,47 @@ struct ParseResult(T...) {
 		T2 t;
 		static if (T.length == 1) {
 			@property T2 result() {
-				assert(s == State.OK);
+				assert(s == Result.OK);
 				return t;
 			}
 			alias result this;
 		} else {
 			auto result(int id)() {
-				assert(s == State.OK);
+				assert(s == Result.OK);
 				return t[id];
 			}
 		}
 	}
 
 	@property nothrow pure @nogc ok() {
-		return s == State.OK;
+		return s == Result.OK;
 	}
 
 	invariant {
-		assert(s == State.OK || consumed == 0);
+		assert(s == Result.OK || consumed == 0);
 	}
 }
 
 T ok_result(T: ParseResult!U, U)(U r, size_t consumed) {
-	return T(State.OK, consumed, r);
+	return T(Result.OK, consumed, r);
 }
 
 ParseResult!T ok_result(T)(T r, size_t consumed) {
-	return ParseResult!T(State.OK, consumed, r);
+	return ParseResult!T(Result.OK, consumed, r);
 }
 
 T err_result(T: ParseResult!U, U)() {
 	static if (is(U == void))
-		return T(State.Err, 0);
+		return T(Result.Err, 0);
 	else
-		return T(State.Err, 0, U.init);
+		return T(Result.Err, 0, U.init);
 }
 
 ParseResult!T err_result(T)() if (!is(T == ParseResult!U, U)) {
 	static if (is(T == void))
-		return ParseResult!T(State.Err, 0);
+		return ParseResult!T(Result.Err, 0);
 	else
-		return ParseResult!T(State.Err, 0, T.init);
+		return ParseResult!T(Result.Err, 0, T.init);
 }
 
 ParseResult!T cast_result(T, alias func)(Stream i) if (is(ElemType!(ReturnType!func): T)) {

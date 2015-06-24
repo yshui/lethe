@@ -36,14 +36,15 @@ ParseResult!Expr parse_primary(Stream i) {
 		parse_unop,
 		parse_paren,
 		parse_vec,
-		parse_var_expr,
+		parse_field_expr,
+		parse_var_expr
 	)(i);
 	if (r.ok)
 		writeln("Matched primary");
 	return r;
 }
 
-alias parse_lvalue = parse_var;
+alias parse_lvalue = choice!(parse_field, parse_var);
 
 auto parse_unop(Stream i) {
 	auto r = seq!(
@@ -51,8 +52,8 @@ auto parse_unop(Stream i) {
 		parse_primary,
 	)(i);
 	if (!r.ok)
-		return ParseResult!Expr(State.Err, 0, null);
-	return ParseResult!Expr(State.OK, r.consumed, new UnOP(r.result!0, r.result!1));
+		return err_result!Expr();
+	return ok_result!Expr(new UnOP(r.result!0, r.result!1), r.consumed);
 }
 
 auto parse_vec(Stream i) {
@@ -82,6 +83,19 @@ Ld:     switch(d) {
 	import std.stdio: writeln;
 	return ok_result!Expr(a, r.consumed);
 }
+
+auto parse_field(Stream i) {
+	auto r = seq!(
+		identifier,
+		token_ws!".",
+		identifier
+	)(i);
+	if (!r.ok)
+		return err_result!LValue();
+	return ok_result!LValue(new Field(r.result!0, r.result!2), r.consumed);
+}
+
+alias parse_field_expr = cast_result!(Expr, parse_field);
 
 Expr build_expr_tree(Expr a, string op, Expr b) {
 	return new BinOP(a, op, b);

@@ -12,16 +12,16 @@ auto between(alias begin, alias func, alias end)(Stream input) {
 	static assert(is(RetTy == ParseResult!U, U));
 	auto begin_ret = begin(input);
 	size_t consumed = begin_ret.consumed;
-	if (begin_ret.s != State.OK)
+	if (begin_ret.s != Result.OK)
 		return err_result!ElemTy();
 	auto ret = func(input);
-	if (ret.s != State.OK) {
+	if (ret.s != Result.OK) {
 		input.rewind(consumed);
 		return ret;
 	}
 	consumed += ret.consumed;
 	auto end_ret = end(input);
-	if (end_ret.s != State.OK) {
+	if (end_ret.s != Result.OK) {
 		input.rewind(consumed);
 		return err_result!ElemTy();
 	}
@@ -36,7 +36,7 @@ auto choice(T...)(Stream input) {
 	foreach(p; T) {
 		writeln("Trying " ~ __traits(identifier, p));
 		auto ret = p(input);
-		if (ret.s == State.OK)
+		if (ret.s == Result.OK)
 			return ret;
 	}
 	return err_result!ElemTy();
@@ -49,20 +49,20 @@ auto choice(T...)(Stream input) {
 */
 auto chain(alias p, alias op, alias delim)(Stream input) {
 	auto ret = p(input);
-	alias ElemTy = ReturnType!op;
-	if (ret.s != State.OK)
+//	alias ElemTy = ReturnType!op;
+	if (ret.s != Result.OK)
 		return ret;
-	ElemType!(typeof(ret)) res = ret;
+	auto res = ret.result;
 	auto consumed = ret.consumed;
 
 	while(true) {
 		auto dret = delim(input);
-		if (dret.s != State.OK)
+		if (dret.s != Result.OK)
 			break;
 		auto pret = p(input);
-		if (pret.s != State.OK) {
+		if (pret.s != Result.OK) {
 			input.rewind(dret.consumed);
-			return ok_result!ElemTy(res, consumed);
+			return ok_result(res, consumed);
 		}
 		static if (is(ReturnType!delim == ParseResult!void))
 			res = op(res, pret.result);
@@ -71,7 +71,7 @@ auto chain(alias p, alias op, alias delim)(Stream input) {
 		ret = pret;
 		consumed += dret.consumed+pret.consumed;
 	}
-	return ok_result!ElemTy(res, consumed);
+	return ok_result(res, consumed);
 }
 
 /**
@@ -91,13 +91,13 @@ auto many(alias func, bool allow_none = false)(Stream i) {
 	size_t consumed = 0;
 	while(true) {
 		auto ret = func(i);
-		if (ret.s != State.OK) {
+		if (ret.s != Result.OK) {
 			static if (is(ElemTy == void))
 				return ARetTy((count || allow_none) ?
-				               State.OK : State.Err, consumed);
+				               Result.OK : Result.Err, consumed);
 			else
 				return ARetTy((res.length || allow_none) ?
-				              State.OK : State.Err, consumed, res);
+				              Result.OK : Result.Err, consumed, res);
 		}
 		consumed += ret.consumed;
 		static if (!is(ElemTy == void))
@@ -109,7 +109,7 @@ auto many(alias func, bool allow_none = false)(Stream i) {
 
 ///Consumes nothing, always return OK
 auto nop(Stream i) {
-	return ParseResult!void(State.OK, 0);
+	return ParseResult!void(Result.OK, 0);
 }
 
 private class ParserID(alias func, int id) { }
@@ -144,17 +144,17 @@ auto seq(T...)(Stream i) {
 		static if (is(pid == ParserID!(p, id), alias p, int id)) {
 			auto ret = p(i);
 			consumed += ret.consumed;
-			if (ret.s != State.OK) {
+			if (ret.s != Result.OK) {
 				writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
 				i.rewind(consumed);
-				return RetTy(State.Err, 0, ElemTys.init);
+				return RetTy(Result.Err, 0, ElemTys.init);
 			}
 			static if (!is(typeof(ret) == ParseResult!void))
 				res[id] = ret.result;
 		} else
 			static assert(false, p);
 	}
-	return RetTy(State.OK, consumed, res);
+	return RetTy(Result.OK, consumed, res);
 }
 
 auto seq2(alias op, T...)(Stream i) {
@@ -171,7 +171,7 @@ auto seq2(alias op, T...)(Stream i) {
 ///optionally matches p.
 auto optional(alias p)(Stream i) {
 	auto r = p(i);
-	r.s = State.OK;
+	r.s = Result.OK;
 	return r;
 }
 
@@ -229,7 +229,15 @@ ParseResult!string token(string t)(Stream input) {
 ///Skip `p` zero or more times
 ParseResult!void skip(alias p)(Stream i) {
 	auto r = many!(p, true)(i);
-	return ParseResult!void(State.OK, r.consumed);
+	return ParseResult!void(Result.OK, r.consumed);
+}
+
+///Match 'p' but discard the result
+ParseResult!void discard(alias p)(Stream i) {
+	auto r = p(i);
+	if (!r.ok)
+		return err_result!void();
+	return ParseResult!void(Result.OK, r.consumed);
 }
 
 ///
@@ -239,23 +247,23 @@ unittest {
 	import std.conv;
 	BufStream i = new BufStream("(asdf)");
 	auto r = between!(token!"(", token!"asdf", token!")")(i);
-	assert(r.s == State.OK);
+	assert(r.ok);
 	assert(i.eof());
 
 	i = new BufStream("abcdaaddcc");
 	alias abcdparser = many!(choice!(token!"a", token!"b", token!"c", token!"d"));
 	auto r2 = abcdparser(i);
-	assert(r2.s == State.OK);
+	assert(r2.ok);
 	assert(i.eof());
 
 	i = new BufStream("abcde");
 	auto r3 = abcdparser(i);
-	assert(r3.s == State.OK); //Parse is OK because 4 char are consumed
+	assert(r3.ok); //Parse is OK because 4 char are consumed
 	assert(!i.eof()); //But the end-of-buffer is not reached
 
 	i.rewind(4);
 	auto r4 = seq!(token!"a", token!"b", token!"c", token!"d", token!"e")(i);
-	assert(r4.s == State.OK);
+	assert(r4.ok);
 	assert(r4.result!0 == "a");
 	assert(r4.result!1 == "b");
 	assert(r4.result!2 == "c");
@@ -264,7 +272,7 @@ unittest {
 
 	i.rewind(1);
 	auto r5 = seq!(token!"e")(i); //test seq with single argument.
-	assert(r5.s == State.OK, to!string(r5.s));
+	assert(r5.ok, to!string(r5.s));
 	assert(r5.result == "e");
 
 	i.rewind(2);
@@ -275,6 +283,6 @@ unittest {
 
 	i.rewind(1);
 	auto r6 = optional!(token!"a")(i);
-	assert(r6.s == State.OK);
+	assert(r6.ok);
 	assert(r6.t is null);
 }

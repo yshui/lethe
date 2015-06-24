@@ -172,6 +172,7 @@ class Var : LValue {
 	mixin GetTy;
 }
 
+/*
 class Index : LValue {
 	LValue base;
 	Expr index;
@@ -186,6 +187,21 @@ class Index : LValue {
 	}
 	override @property pure nothrow string str() {
 		return base.str ~ "[" ~ index.str ~ "]";
+	}
+	mixin GetTy;
+}*/
+
+class Field : LValue {
+	string lhs, rhs;
+	this(string xlhs, string xrhs) {
+		lhs = xlhs;
+		rhs = xrhs;
+	}
+	override pure TypeBase gen_type() {
+		return null;
+	}
+	override @property pure nothrow string str() {
+		return "<" ~ lhs ~ "." ~ rhs ~ ">";
 	}
 	mixin GetTy;
 }

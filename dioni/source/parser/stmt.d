@@ -59,7 +59,7 @@ auto parse_foreach(Stream i) {
 		token_ws!"(",
 		parse_var,
 		token_ws!"~",
-		parse_var,
+		parse_lvalue,
 		token_ws!")",
 		parse_stmt_block
 	)(i);
@@ -102,7 +102,7 @@ auto parse_loop(Stream i) {
 }
 auto parse_clear(Stream i) {
 	auto r = seq!(
-		parse_var,
+		parse_lvalue,
 		token_ws!"~",
 		token_ws!";"
 	)(i);
@@ -115,7 +115,7 @@ auto parse_clear(Stream i) {
 }
 auto parse_delayed_or_aggregate(Stream i) {
 	auto r = seq!(
-		parse_var,
+		parse_lvalue,
 		choice!(token_ws!"<-", token_ws!"<<"),
 		parse_expr,
 		token_ws!";"

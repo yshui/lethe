@@ -11,12 +11,12 @@ auto parse_number_nows(Stream i) {
 			optional!(choice!(token!"+", token!"-")),
 			word!digits,
 		)(i);
-		if (r.s == State.Err)
-			return ParseResult!string(State.OK, 0, "");
+		if (!r.ok)
+			return ok_result!string("", 0);
 		string exp = r.result!2;
 		if (r.result!1 !is null)
 			exp = r.result!1 ~ exp;
-		return ParseResult!string(State.OK, r.consumed, "e" ~ exp);
+		return ok_result!string("e"~exp, r.consumed);
 	}
 	auto parse_fraction_str(Stream i) {
 		auto r = seq!(
@@ -24,31 +24,31 @@ auto parse_number_nows(Stream i) {
 			optional!(word!digits)
 		)(i);
 
-		if (r.s == State.Err)
-			return ParseResult!string(State.OK, 0, "");
+		if (!r.ok)
+			return ok_result!string("", 0);
 
 		string k = "";
 		if (r.result!1 !is null)
 			k = r.result!1;
-		return ParseResult!string(State.OK, r.consumed, k);
+		return ok_result!string(k, r.consumed);
 	}
 	auto r = seq!(
 		word!digits,
 		parse_fraction_str,
 		parse_exp_str,
 	)(i);
-	if (r.s == State.Err)
-		return ParseResult!Expr(State.Err, 0, null);
+	if (!r.ok)
+		return err_result!Expr();
 
 	if (r.result!1 == "" && r.result!2 == "") {
 		//This is a int
 		writeln("Matched int" ~ r.result!0);
-		return ParseResult!Expr(State.OK, r.consumed, new Num(to!int(r.result!0)));
+		return ok_result!Expr(new Num(to!int(r.result!0)), r.consumed);
 	}
 
 	string float_string = r.result!0 ~ "." ~ r.result!1 ~ r.result!2;
 	writeln("Matched float" ~ float_string);
-	return ParseResult!Expr(State.OK, r.consumed, new Num(to!float(float_string)));
+	return ok_result!Expr(new Num(to!float(float_string)), r.consumed);
 }
 
 auto parse_var_nows(Stream i) {
