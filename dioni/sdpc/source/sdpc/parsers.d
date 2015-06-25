@@ -11,13 +11,12 @@ auto ch(alias accept, alias func)(Stream i) {
 	alias RetTy = ParseResult!ElemTy;
 	if (i.eof())
 		return RetTy(Result.Err, 0, ElemTy.init);
-	const(char)[] n = i.advance(1);
-	auto digi = accept.indexOf(n[0]);
-	if (digi < 0) {
-		i.rewind(1);
+	char n = i.head[0];
+	auto digi = accept.indexOf(n);
+	if (digi < 0)
 		return RetTy(Result.Err, 0, ElemTy.init);
-	}
-	return RetTy(Result.OK, 1, func(digi, n[0]));
+	i.advance(1);
+	return RetTy(Result.OK, 1, func(digi, n));
 }
 
 template digit(alias _digits = digits) {

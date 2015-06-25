@@ -6,23 +6,24 @@ import std.traits,
        std.typetuple;
 
 ///Match pattern `begin func end`, return the result of func.
-auto between(alias begin, alias func, alias end)(Stream input) {
+auto between(alias begin, alias func, alias end)(Stream i) {
 	alias RetTy = ReturnType!func;
 	alias ElemTy = ElemType!RetTy;
 	static assert(is(RetTy == ParseResult!U, U));
-	auto begin_ret = begin(input);
+	i.push();
+	auto begin_ret = begin(i);
 	size_t consumed = begin_ret.consumed;
 	if (begin_ret.s != Result.OK)
 		return err_result!ElemTy();
-	auto ret = func(input);
+	auto ret = func(i);
 	if (ret.s != Result.OK) {
-		input.rewind(consumed);
+		i.pop();
 		return ret;
 	}
 	consumed += ret.consumed;
-	auto end_ret = end(input);
+	auto end_ret = end(i);
 	if (end_ret.s != Result.OK) {
-		input.rewind(consumed);
+		i.pop();
 		return err_result!ElemTy();
 	}
 	ret.consumed = end_ret.consumed+consumed;
@@ -31,11 +32,11 @@ auto between(alias begin, alias func, alias end)(Stream input) {
 
 ///Match any of the given pattern, stop when first match is found. All parsers
 ///must return the same type.
-auto choice(T...)(Stream input) {
+auto choice(T...)(Stream i) {
 	alias ElemTy = ElemType!(ReturnType!(T[0]));
 	foreach(p; T) {
 		writeln("Trying " ~ __traits(identifier, p));
-		auto ret = p(input);
+		auto ret = p(i);
 		if (ret.s == Result.OK)
 			return ret;
 	}
@@ -47,8 +48,8 @@ auto choice(T...)(Stream input) {
 
   Return the result of left-associative applying `op` on the result of `p`
 */
-auto chain(alias p, alias op, alias delim)(Stream input) {
-	auto ret = p(input);
+auto chain(alias p, alias op, alias delim)(Stream i) {
+	auto ret = p(i);
 //	alias ElemTy = ReturnType!op;
 	if (ret.s != Result.OK)
 		return ret;
@@ -56,12 +57,13 @@ auto chain(alias p, alias op, alias delim)(Stream input) {
 	auto consumed = ret.consumed;
 
 	while(true) {
-		auto dret = delim(input);
+		i.push();
+		auto dret = delim(i);
 		if (dret.s != Result.OK)
 			break;
-		auto pret = p(input);
+		auto pret = p(i);
 		if (pret.s != Result.OK) {
-			input.rewind(dret.consumed);
+			i.pop();
 			return ok_result(res, consumed);
 		}
 		static if (is(ReturnType!delim == ParseResult!void))
@@ -70,6 +72,7 @@ auto chain(alias p, alias op, alias delim)(Stream input) {
 			res = op(res, dret.result, pret.result);
 		ret = pret;
 		consumed += dret.consumed+pret.consumed;
+		i.drop();
 	}
 	return ok_result(res, consumed);
 }
@@ -140,13 +143,14 @@ auto seq(T...)(Stream i) {
 	alias PID = genParserID!(0, T);
 	ElemTys res = void;
 	size_t consumed = 0;
+	i.push();
 	foreach(pid; PID) {
 		static if (is(pid == ParserID!(p, id), alias p, int id)) {
 			auto ret = p(i);
 			consumed += ret.consumed;
 			if (ret.s != Result.OK) {
 				writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
-				i.rewind(consumed);
+				i.pop();
 				static if (ElemTys.length == 1)
 					return err_result!(ElemTys[0])();
 				else
@@ -183,14 +187,17 @@ auto optional(alias p)(Stream i) {
 
 ///lookahead
 auto lookahead(alias p, alias u, bool negative = false)(Stream i) {
+	i.push();
+
 	auto r = p(i);
 	alias RetTy = typeof(r);
 	alias ElemTy = ElemType!RetTy;
 	if (!r.ok)
 		return r;
 
+	i.push();
 	auto r2 = u(i);
-	i.rewind(r2.consumed);
+	i.pop();
 
 	bool pass = r2.ok;
 
@@ -198,7 +205,7 @@ auto lookahead(alias p, alias u, bool negative = false)(Stream i) {
 		pass = !pass;
 
 	if (!pass) {
-		i.rewind(r.consumed);
+		i.pop();
 		return err_result!ElemTy();
 	}
 	return r;
@@ -209,8 +216,9 @@ auto lookahead(alias p, alias u, bool negative = false)(Stream i) {
 auto when(alias u, alias p, bool negative = false)(Stream i) {
 	alias RetTy = ReturnType!p;
 	alias ElemTy = ElemType!RetTy;
+	i.push();
 	auto r = u(i);
-	i.rewind(r.consumed);
+	i.pop();
 
 	static if (negative) {
 		if (r.ok)
@@ -225,10 +233,10 @@ auto when(alias u, alias p, bool negative = false)(Stream i) {
 }
 
 ///Match a string, return the matched string
-ParseResult!string token(string t)(Stream input) {
-	if (!input.starts_with(t))
+ParseResult!string token(string t)(Stream i) {
+	if (!i.starts_with(t))
 		return err_result!string();
-	string ret = input.advance(t.length);
+	string ret = i.advance(t.length);
 	return ok_result!string(ret, t.length);
 }
 
@@ -263,11 +271,12 @@ unittest {
 	assert(i.eof());
 
 	i = new BufStream("abcde");
+	i.push();
 	auto r3 = abcdparser(i);
 	assert(r3.ok); //Parse is OK because 4 char are consumed
 	assert(!i.eof()); //But the end-of-buffer is not reached
 
-	i.rewind(4);
+	i.revert();
 	auto r4 = seq!(token!"a", token!"b", token!"c", token!"d", token!"e")(i);
 	assert(r4.ok);
 	assert(r4.result!0 == "a");
@@ -276,19 +285,19 @@ unittest {
 	assert(r4.result!3 == "d");
 	assert(r4.result!4 == "e");
 
-	i.rewind(1);
-	auto r5 = seq!(token!"e")(i); //test seq with single argument.
+	i.revert();
+	auto r5 = seq!(token!"a")(i); //test seq with single argument.
 	assert(r5.ok, to!string(r5.s));
-	assert(r5.result == "e");
+	assert(r5.result == "a");
 
-	i.rewind(2);
+	i.revert();
 	auto r7 = seq2!(function (string a, string b = "") { return a ~ b; },
-			token!"d", token!"e")(i); //test seq with single argument.
+			token!"a", token!"b")(i); //test seq with single argument.
 	assert(r7.ok);
-	assert(r7.result == "de");
+	assert(r7.result == "ab");
 
-	i.rewind(1);
-	auto r6 = optional!(token!"a")(i);
+	i.revert();
+	auto r6 = optional!(token!"x")(i);
 	assert(r6.ok);
 	assert(r6.t is null);
 }

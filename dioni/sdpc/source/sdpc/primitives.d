@@ -113,48 +113,71 @@ ParseResult!T cast_result(T, alias func)(Stream i) if (is(ElemType!(ReturnType!f
 interface Stream {
 	bool starts_with(const char[] prefix);
 	string advance(size_t bytes);
-	void rewind(size_t bytes, string caller=__FUNCTION__);
+	void push();
+	void pop();
+	void drop();
+	void revert();
+	void get_pos(out int line, out int col);
 	@property bool eof();
+	@property pure nothrow @nogc string head();
 }
 
 class BufStream: Stream {
 	import std.stdio;
+	struct Pos {
+		string pos;
+		int line, col;
+	}
 	private {
-		immutable(char)[] buf;
-		immutable(char)[] slice;
-		size_t offset;
+		Pos now;
+		Pos[] stack;
 	}
 	@property pure nothrow @nogc string head() {
-		return slice;
+		return now.pos;
 	}
 	override bool starts_with(const char[] prefix) {
 		import std.stdio;
-		if (prefix.length > slice.length)
+		if (prefix.length > now.pos.length)
 			return false;
-		return slice.startsWith(prefix);
+		return now.pos.startsWith(prefix);
 	}
 	override string advance(size_t bytes) {
-		assert(bytes <= slice.length);
-		auto ret = slice[0..bytes];
+		assert(bytes <= now.pos.length);
+		auto ret = now.pos[0..bytes];
+		foreach(c; ret) {
+			now.col++;
+			if (c == '\n') {
+				now.col = 1;
+				now.line++;
+			}
+		}
 		writefln("Eat " ~ ret);
-		slice = slice[bytes..$];
-		offset += bytes;
+		now.pos = now.pos[bytes..$];
 		return ret;
 	}
-	override void rewind(size_t bytes, string caller=__FUNCTION__) {
-		writefln("Rewind %s, by %s", bytes, caller);
-		import std.conv;
-		assert(bytes <= offset, to!string(bytes) ~ "," ~ to!string(offset));
-		offset -= bytes;
-		slice = buf[offset..$];
+	override void push() {
+		stack ~= [now];
+	}
+	override void pop() {
+		now = stack[$-1];
+		stack.length--;
+	}
+	override void drop() {
+		stack.length--;
+	}
+	override void revert() {
+		now = stack[$-1];
+	}
+	override void get_pos(out int line, out int col) {
+		line = now.line;
+		col = now.col;
 	}
 	@property override bool eof() {
-		return slice.length == 0;
+		return now.pos.length == 0;
 	}
 	this(string str) {
-		buf = str;
-		slice = buf[];
-		offset = 0;
+		now.pos = str;
+		now.line = now.col = 1;
 	}
 
 }
