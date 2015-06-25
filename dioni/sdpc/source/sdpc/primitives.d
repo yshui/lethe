@@ -192,21 +192,20 @@ class BufStream: Stream {
 				now.line++;
 			}
 		}
-		writefln("Eat " ~ ret);
 		now.pos = now.pos[bytes..$];
 		return ret;
 	}
 	override void push(string f=__FUNCTION__) {
-		writefln("Push %s, %s", f, stack.length);
+		//writefln("Push %s, %s", f, stack.length);
 		stack ~= [now];
 	}
 	override void pop(string f=__FUNCTION__) {
-		writefln("Pop %s, %s", f, stack.length);
+		//writefln("Pop %s, %s", f, stack.length);
 		now = stack[$-1];
 		stack.length--;
 	}
 	override void drop(string f=__FUNCTION__) {
-		writefln("Drop %s, %s", f, stack.length);
+		//writefln("Drop %s, %s", f, stack.length);
 		stack.length--;
 	}
 	override void revert() {

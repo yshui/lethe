@@ -48,12 +48,12 @@ auto parse_number_nows(Stream i) {
 
 	if (r.result!1 == "" && r.result!2 == "") {
 		//This is a int
-		writeln("Matched int" ~ r.result!0);
+		//writeln("Matched int" ~ r.result!0);
 		return ok_result!Expr(new Num(to!int(r.result!0)), r.consumed, re);
 	}
 
 	string float_string = r.result!0 ~ "." ~ r.result!1 ~ r.result!2;
-	writeln("Matched float" ~ float_string);
+	//writeln("Matched float" ~ float_string);
 	return ok_result!Expr(new Num(to!float(float_string)), r.consumed, re);
 }
 
@@ -62,7 +62,7 @@ auto parse_var_nows(Stream i) {
 	r.r.name = "variable";
 	if (!r.ok)
 		return err_result!LValue(r.r);
-	writeln("Matched var " ~ r.result);
+	//writeln("Matched var " ~ r.result);
 
 	return ok_result!LValue(new Var(r.result), r.consumed, r.r);
 }

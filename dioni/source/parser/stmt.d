@@ -24,7 +24,7 @@ auto parse_stmt_block(Stream i) {
 	)(i);
 	r.r.name = "block";
 	if (r.ok) {
-		writeln("Matched stmt block");
+		//writeln("Matched stmt block");
 		return ok_result(r.result!1, r.consumed, r.r);
 	}
 	auto r2 = parse_stmt(i);
@@ -57,7 +57,7 @@ auto parse_if(Stream i) {
 	r.r.name = "if";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
-	writeln("Matched if");
+	//writeln("Matched if");
 	auto ret = new If(r.result!2, r.result!4, r.result!5);
 	return ok_result!Stmt(ret, r.consumed, r.r);
 }
@@ -74,7 +74,7 @@ auto parse_foreach(Stream i) {
 	r.r.name = "foreach";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
-	writeln("Matched foreach");
+	//writeln("Matched foreach");
 	auto ret = new Foreach(cast(Var)r.result!2,
 			       cast(Var)r.result!4, r.result!6);
 	return ok_result!Stmt(ret, r.consumed, r.r);
@@ -103,7 +103,7 @@ auto parse_loop(Stream i) {
 	r.r.name = "loop";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
-	writeln("Matched loop");
+	//writeln("Matched loop");
 	return ok_result!Stmt(
 		new Loop(cast(Var)r.result!2,
 			 r.result!3,

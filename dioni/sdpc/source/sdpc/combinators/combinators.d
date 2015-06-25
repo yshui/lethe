@@ -43,7 +43,6 @@ auto choice(T...)(Stream i) {
 	alias ElemTy = ElemType!(ReturnType!(T[0]));
 	auto re = Reason(i, "choice");
 	foreach(p; T) {
-		writeln("Trying " ~ __traits(identifier, p));
 		auto ret = p(i);
 		if (ret.s == Result.OK)
 			return ret;
@@ -169,7 +168,7 @@ auto seq(T...)(Stream i) {
 			auto ret = p(i);
 			consumed += ret.consumed;
 			if (ret.s != Result.OK) {
-				writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
+				//writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
 				i.pop();
 				re.dep ~= ret.r;
 				static if (ElemTys.length == 1)
