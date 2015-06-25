@@ -10,23 +10,30 @@ auto between(alias begin, alias func, alias end)(Stream i) {
 	alias RetTy = ReturnType!func;
 	alias ElemTy = ElemType!RetTy;
 	static assert(is(RetTy == ParseResult!U, U));
+	auto re = Reason(i, "between");
 	i.push();
 	auto begin_ret = begin(i);
 	size_t consumed = begin_ret.consumed;
-	if (begin_ret.s != Result.OK)
-		return err_result!ElemTy();
+	if (begin_ret.s != Result.OK) {
+		i.pop();
+		re.dep ~= begin_ret.r;
+		return err_result!ElemTy(re);
+	}
 	auto ret = func(i);
 	if (ret.s != Result.OK) {
 		i.pop();
-		return ret;
+		re.dep ~= ret.r;
+		return err_result!ElemTy(re);
 	}
 	consumed += ret.consumed;
 	auto end_ret = end(i);
 	if (end_ret.s != Result.OK) {
 		i.pop();
-		return err_result!ElemTy();
+		re.dep ~= ret.r;
+		return err_result!ElemTy(re);
 	}
 	ret.consumed = end_ret.consumed+consumed;
+	i.drop();
 	return ret;
 }
 
@@ -34,13 +41,15 @@ auto between(alias begin, alias func, alias end)(Stream i) {
 ///must return the same type.
 auto choice(T...)(Stream i) {
 	alias ElemTy = ElemType!(ReturnType!(T[0]));
+	auto re = Reason(i, "choice");
 	foreach(p; T) {
 		writeln("Trying " ~ __traits(identifier, p));
 		auto ret = p(i);
 		if (ret.s == Result.OK)
 			return ret;
+		re.dep ~= ret.r;
 	}
-	return err_result!ElemTy();
+	return err_result!ElemTy(re);
 }
 
 /**
@@ -55,16 +64,22 @@ auto chain(alias p, alias op, alias delim)(Stream i) {
 		return ret;
 	auto res = ret.result;
 	auto consumed = ret.consumed;
+	auto re = Reason(i, "chain");
+	re.state = "stopped";
 
 	while(true) {
 		i.push();
 		auto dret = delim(i);
-		if (dret.s != Result.OK)
+		if (dret.s != Result.OK) {
+			i.pop();
+			re.dep ~= dret.r;
 			break;
+		}
 		auto pret = p(i);
 		if (pret.s != Result.OK) {
 			i.pop();
-			return ok_result(res, consumed);
+			re.dep ~= pret.r;
+			break;
 		}
 		static if (is(ReturnType!delim == ParseResult!void))
 			res = op(res, pret.result);
@@ -74,7 +89,7 @@ auto chain(alias p, alias op, alias delim)(Stream i) {
 		consumed += dret.consumed+pret.consumed;
 		i.drop();
 	}
-	return ok_result(res, consumed);
+	return ok_result(res, consumed, re);
 }
 
 /**
@@ -91,16 +106,19 @@ auto many(alias func, bool allow_none = false)(Stream i) {
 		alias ARetTy = ParseResult!(ElemTy[]);
 		ElemTy[] res;
 	}
+	auto re = Reason(i, "many");
+	re.state = "stopped";
 	size_t consumed = 0;
 	while(true) {
 		auto ret = func(i);
 		if (ret.s != Result.OK) {
+			re.dep ~= ret.r;
 			static if (is(ElemTy == void))
 				return ARetTy((count || allow_none) ?
-				               Result.OK : Result.Err, consumed);
+				               Result.OK : Result.Err, consumed, re);
 			else
 				return ARetTy((res.length || allow_none) ?
-				              Result.OK : Result.Err, consumed, res);
+				              Result.OK : Result.Err, consumed, re, res);
 		}
 		consumed += ret.consumed;
 		static if (!is(ElemTy == void))
@@ -112,7 +130,8 @@ auto many(alias func, bool allow_none = false)(Stream i) {
 
 ///Consumes nothing, always return OK
 auto nop(Stream i) {
-	return ParseResult!void(Result.OK, 0);
+	auto re = Reason(i, "nop");
+	return ParseResult!void(Result.OK, 0, re);
 }
 
 private class ParserID(alias func, int id) { }
@@ -141,6 +160,7 @@ auto seq(T...)(Stream i) {
 	alias ElemTys = ElemTypesNoVoid!(staticMap!(ReturnType, T));
 	alias RetTy = ParseResult!ElemTys;
 	alias PID = genParserID!(0, T);
+	auto re = Reason(i, "seq");
 	ElemTys res = void;
 	size_t consumed = 0;
 	i.push();
@@ -151,31 +171,33 @@ auto seq(T...)(Stream i) {
 			if (ret.s != Result.OK) {
 				writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
 				i.pop();
+				re.dep ~= ret.r;
 				static if (ElemTys.length == 1)
-					return err_result!(ElemTys[0])();
+					return err_result!(ElemTys[0])(re);
 				else
-					return RetTy(Result.Err, 0, ElemTys.init);
+					return RetTy(Result.Err, 0, re, ElemTys.init);
 			}
 			static if (!is(typeof(ret) == ParseResult!void))
 				res[id] = ret.result;
 		} else
 			static assert(false, p);
 	}
+	i.drop();
 	static if (ElemTys.length == 1)
-		return ok_result!(ElemTys[0])(res[0], consumed);
+		return ok_result!(ElemTys[0])(res[0], consumed, re);
 	else
-		return RetTy(Result.OK, consumed, res);
+		return RetTy(Result.OK, consumed, re, res);
 }
 
 auto seq2(alias op, T...)(Stream i) {
 	auto r = seq!T(i);
 	if (!r.ok)
-		return err_result!(ReturnType!op)();
+		return err_result!(ReturnType!op)(r.r);
 	alias ElemTy = ElemType!(typeof(r));
 	auto ret = op(r.result!0);
 	foreach(id, e; ElemTy[1..$])
 		ret = op(ret, r.result!(id+1));
-	return ok_result(ret, r.consumed);
+	return ok_result(ret, r.consumed, r.r);
 }
 
 ///optionally matches p.
@@ -190,10 +212,13 @@ auto lookahead(alias p, alias u, bool negative = false)(Stream i) {
 	i.push();
 
 	auto r = p(i);
+	auto re = Reason(i, "lookahead");
 	alias RetTy = typeof(r);
 	alias ElemTy = ElemType!RetTy;
-	if (!r.ok)
-		return r;
+	if (!r.ok) {
+		re.dep ~= r.r;
+		return err_result!ElemTy(re);
+	}
 
 	i.push();
 	auto r2 = u(i);
@@ -206,8 +231,16 @@ auto lookahead(alias p, alias u, bool negative = false)(Stream i) {
 
 	if (!pass) {
 		i.pop();
-		return err_result!ElemTy();
+		if (r2.ok) {
+			auto re2 = r2.r;
+			re2.state = "succeeded";
+			re2.msg = "which is not expected";
+			re.dep ~= re2;
+		} else
+			re.dep ~= r2.r;
+		return err_result!ElemTy(re);
 	}
+	i.drop();
 	return r;
 }
 
@@ -216,16 +249,24 @@ auto lookahead(alias p, alias u, bool negative = false)(Stream i) {
 auto when(alias u, alias p, bool negative = false)(Stream i) {
 	alias RetTy = ReturnType!p;
 	alias ElemTy = ElemType!RetTy;
+	auto re = Reason(i, "when");
 	i.push();
 	auto r = u(i);
 	i.pop();
 
 	static if (negative) {
-		if (r.ok)
-			return err_result!ElemTy();
+		if (r.ok) {
+			auto re2 = r.r;
+			re2.state = "succeeded";
+			re2.msg = "which is not expected";
+			re.dep ~= re2;
+			return err_result!ElemTy(re);
+		}
 	} else {
-		if (!r.ok)
-			return err_result!ElemTy();
+		if (!r.ok) {
+			re.dep ~= r.r;
+			return err_result!ElemTy(re);
+		}
 	}
 
 	auto r2 = p(i);
@@ -234,24 +275,33 @@ auto when(alias u, alias p, bool negative = false)(Stream i) {
 
 ///Match a string, return the matched string
 ParseResult!string token(string t)(Stream i) {
-	if (!i.starts_with(t))
-		return err_result!string();
+	auto re = Reason(i, "token");
+	if (!i.starts_with(t)) {
+		string found;
+		if (i.head.length < t.length)
+			found = i.head;
+		else
+			found = i.head[0..t.length];
+		re.msg = "expected \"" ~ t ~ "\", but found \"" ~ found ~ "\"";
+		return err_result!string(re);
+	}
 	string ret = i.advance(t.length);
-	return ok_result!string(ret, t.length);
+	return ok_result!string(ret, t.length, re);
 }
 
 ///Skip `p` zero or more times
 ParseResult!void skip(alias p)(Stream i) {
+	auto re = Reason(i, "skip");
 	auto r = many!(p, true)(i);
-	return ParseResult!void(Result.OK, r.consumed);
+	return ParseResult!void(Result.OK, r.consumed, re);
 }
 
 ///Match 'p' but discard the result
 ParseResult!void discard(alias p)(Stream i) {
 	auto r = p(i);
 	if (!r.ok)
-		return err_result!void();
-	return ParseResult!void(Result.OK, r.consumed);
+		return err_result!void(r.r);
+	return ParseResult!void(Result.OK, r.consumed, r.r);
 }
 
 ///

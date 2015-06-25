@@ -12,6 +12,8 @@ void main(string[] argv) {
 	auto r = many!parse_state_definition(i);
 
 	writefln("%s, %s", r.consumed, i.head.length);
-	assert(i.eof());
-	writeln(r.result);
+	if (!i.eof)
+		writeln(r.r.explain());
+	else
+		writeln(r.result);
 }

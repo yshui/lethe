@@ -9,14 +9,19 @@ import std.traits,
 auto ch(alias accept, alias func)(Stream i) {
 	alias ElemTy = ReturnType!func;
 	alias RetTy = ParseResult!ElemTy;
-	if (i.eof())
-		return RetTy(Result.Err, 0, ElemTy.init);
+	auto re = Reason(i, "char");
+	if (i.eof()) {
+		re.msg = "EOF";
+		return RetTy(Result.Err, 0, re, ElemTy.init);
+	}
 	char n = i.head[0];
 	auto digi = accept.indexOf(n);
-	if (digi < 0)
-		return RetTy(Result.Err, 0, ElemTy.init);
+	if (digi < 0) {
+		re.msg = "Unexpected " ~ n;
+		return RetTy(Result.Err, 0, re, ElemTy.init);
+	}
 	i.advance(1);
-	return RetTy(Result.OK, 1, func(digi, n));
+	return RetTy(Result.OK, 1, re, func(digi, n));
 }
 
 template digit(alias _digits = digits) {
@@ -54,13 +59,15 @@ template word(alias accept = alphabet){
 auto identifier(Stream i) {
 	alias RetTy = ParseResult!string;
 	auto ret = letter!(alphabet~"_")(i);
+	auto re = ret.r;
+	re.name = "identifier";
 	if (ret.s != Result.OK)
-		return RetTy(Result.Err, 0, null);
+		return RetTy(Result.Err, 0, re, null);
 	string str = to!string(ret.result);
 	auto ret2 = word!(alphabet~"_"~digits)(i);
 	if (ret2.s == Result.OK)
 		str ~= ret2;
-	return RetTy(Result.OK, ret.consumed+ret2.consumed, str);
+	return RetTy(Result.OK, ret.consumed+ret2.consumed, re, str);
 }
 
 alias skip_whitespace = skip!(choice!(token!" ", token!"\n", token!"\t"));

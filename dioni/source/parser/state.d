@@ -21,11 +21,13 @@ import parser.stmt,
        parser.atom;
 import sdpc;
 auto parse_event_parameter(Stream i) {
+	auto re = Reason(i, "event parameter");
 	if (i.starts_with("_")) {
 		i.advance(1);
 		return ok_result!EventParameter(
 			new EventParameter(null, EventParameter.Ignore),
-			1
+			1,
+			re
 		);
 	}
 
@@ -33,13 +35,16 @@ auto parse_event_parameter(Stream i) {
 		choice!(token_ws!"~", token_ws!"="),
 		parse_var
 	)(i);
+	re = r.r;
+	re.name = "event parameter";
 	if (!r.ok)
-		return err_result!EventParameter();
+		return err_result!EventParameter(re);
 
 	int type = r.result!0 == "~" ? EventParameter.Assign : EventParameter.Match;
 	return ok_result!EventParameter(
 		new EventParameter(cast(Var)r.result!1, type),
-		r.consumed
+		r.consumed,
+		re
 	);
 }
 auto parse_event(Stream i) {
@@ -51,11 +56,13 @@ auto parse_event(Stream i) {
 			discard!(token_ws!")")
 		))
 	)(i);
+	auto re = r.r;
+	re.name = "event";
 	if (!r.ok)
-		return err_result!Event();
+		return err_result!Event(re);
 
 	auto e = new Event(r.result!0, r.result!1);
-	return ok_result(e, r.consumed);
+	return ok_result(e, r.consumed, re);
 }
 auto parse_state_transition_arr(Stream i) {
 	auto r = seq!(
@@ -65,10 +72,12 @@ auto parse_state_transition_arr(Stream i) {
 		token_ws!"=>",
 		identifier
 	)(i);
+	auto re = r.r;
+	re.name = "transition table";
 	if (!r.ok)
-		return err_result!(StateTransition[])();
+		return err_result!(StateTransition[])(re);
 	auto st = new StateTransition(r.result!1, r.result!2, r.result!4);
-	return ok_result([st], r.consumed);
+	return ok_result([st], r.consumed, re);
 }
 auto parse_state_definition(Stream i) {
 	auto r = seq!(
@@ -77,8 +86,10 @@ auto parse_state_definition(Stream i) {
 		chain!(parse_state_transition_arr, arr_append, discard!(token_ws!",")),
 		token_ws!"."
 	)(i);
+	auto re = r.r;
+	re.name = "state";
 	if (!r.ok)
-		return err_result!State();
+		return err_result!State(re);
 
-	return ok_result(new State(r.result!1, r.result!2), r.consumed);
+	return ok_result(new State(r.result!1, r.result!2), r.consumed, re);
 }

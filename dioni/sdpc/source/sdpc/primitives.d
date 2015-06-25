@@ -42,9 +42,50 @@ template ElemTypesNoVoid(T...) {
 	alias ElemTypesNoVoid = stripVoid!(ElemTypes!T);
 }
 
+struct Reason {
+	Reason[] dep;
+	string msg;
+	string name;
+	int line, col;
+	string state;
+	@disable this();
+	this(Stream i, string xname) {
+		i.get_pos(line, col);
+		state = "failed";
+		name = xname;
+		msg = null;
+	}
+	private string str(ulong depth) {
+		import std.format : format;
+		import std.array : replicate;
+		string pos = format("(%s, %s):", line, col);
+		if (depth == 0)
+			depth = pos.length;
+		string prefix = replicate(" ", depth-pos.length);
+		string res;
+		if(dep.length != 0) {
+			res = format("%s%sParsing of %s %s, because:\n", pos, prefix, name, state);
+			foreach(ref d; dep)
+				res ~= d.str(depth+1);
+		} else {
+			assert(msg !is null);
+			res = format("%s%sParsing of %s %s, %s\n", pos, prefix, name, state, msg);
+		}
+		return res;
+	}
+	void promote() {
+		if (dep.length == 1)
+			this = dep[0];
+	}
+	string explain() {
+		return str(0);
+	}
+}
+
 struct ParseResult(T...) {
 	Result s;
 	size_t consumed;
+	Reason r;
 
 	static if (T.length == 0 || allSatisfy!(isVoid, T))
 		alias T2 = void;
@@ -77,45 +118,45 @@ struct ParseResult(T...) {
 	}
 }
 
-T ok_result(T: ParseResult!U, U)(U r, size_t consumed) {
-	return T(Result.OK, consumed, r);
+T ok_result(T: ParseResult!U, U)(U r, size_t consumed, ref Reason re) {
+	return T(Result.OK, consumed, re, r);
 }
 
-ParseResult!T ok_result(T)(T r, size_t consumed) {
-	return ParseResult!T(Result.OK, consumed, r);
+ParseResult!T ok_result(T)(T r, size_t consumed, ref Reason re) {
+	return ParseResult!T(Result.OK, consumed, re, r);
 }
 
-T err_result(T: ParseResult!U, U)() {
+T err_result(T: ParseResult!U, U)(ref Reason r) {
 	static if (is(U == void))
-		return T(Result.Err, 0);
+		return T(Result.Err, 0, r);
 	else
-		return T(Result.Err, 0, U.init);
+		return T(Result.Err, 0, r, U.init);
 }
 
-ParseResult!T err_result(T)(T def) if (!is(T == ParseResult!U, U)) {
-	return ParseResult!T(Result.Err, 0, def);
+ParseResult!T err_result(T)(T def, ref Reason r) if (!is(T == ParseResult!U, U)) {
+	return ParseResult!T(Result.Err, 0, r, def);
 }
 
-ParseResult!T err_result(T)() if (!is(T == ParseResult!U, U)) {
+ParseResult!T err_result(T)(ref Reason r) if (!is(T == ParseResult!U, U)) {
 	static if (is(T == void))
-		return ParseResult!T(Result.Err, 0);
+		return ParseResult!T(Result.Err, 0, r);
 	else
-		return ParseResult!T(Result.Err, 0, T.init);
+		return ParseResult!T(Result.Err, 0, r, T.init);
 }
 
 ParseResult!T cast_result(T, alias func)(Stream i) if (is(ElemType!(ReturnType!func): T)) {
 	auto r = func(i);
 	if (!r.ok)
-		return err_result!T();
-	return ok_result(cast(T)r.result, r.consumed);
+		return err_result!T(r.r);
+	return ok_result(cast(T)r.result, r.consumed, r.r);
 }
 
 interface Stream {
 	bool starts_with(const char[] prefix);
 	string advance(size_t bytes);
-	void push();
-	void pop();
-	void drop();
+	void push(string f=__FUNCTION__);
+	void pop(string f=__FUNCTION__);
+	void drop(string f=__FUNCTION__);
 	void revert();
 	void get_pos(out int line, out int col);
 	@property bool eof();
@@ -155,14 +196,17 @@ class BufStream: Stream {
 		now.pos = now.pos[bytes..$];
 		return ret;
 	}
-	override void push() {
+	override void push(string f=__FUNCTION__) {
+		writefln("Push %s, %s", f, stack.length);
 		stack ~= [now];
 	}
-	override void pop() {
+	override void pop(string f=__FUNCTION__) {
+		writefln("Pop %s, %s", f, stack.length);
 		now = stack[$-1];
 		stack.length--;
 	}
-	override void drop() {
+	override void drop(string f=__FUNCTION__) {
+		writefln("Drop %s, %s", f, stack.length);
 		stack.length--;
 	}
 	override void revert() {
