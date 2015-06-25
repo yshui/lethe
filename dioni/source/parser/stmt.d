@@ -10,6 +10,7 @@ auto parse_assign(Stream i) {
 		parse_expr,
 		token_ws!";",
 	)(i);
+	r.r.promote();
 	r.r.name = "assign";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
@@ -22,6 +23,7 @@ auto parse_stmt_block(Stream i) {
 		many!(parse_stmt, true),
 		token_ws!"}"
 	)(i);
+	r.r.promote();
 	r.r.name = "block";
 	if (r.ok) {
 		//writeln("Matched stmt block");
@@ -40,6 +42,7 @@ auto parse_else_block(Stream i) {
 		token_ws!"else",
 		parse_stmt_block
 	)(i);
+	r.r.promote();
 	r.r.name = "else block";
 	if (!r.ok)
 		return ok_result!(Stmt[])([], 0, r.r);
@@ -54,6 +57,7 @@ auto parse_if(Stream i) {
 		parse_stmt_block,
 		parse_else_block,
 	)(i);
+	r.r.promote();
 	r.r.name = "if";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
@@ -71,6 +75,7 @@ auto parse_foreach(Stream i) {
 		token_ws!")",
 		parse_stmt_block
 	)(i);
+	r.r.promote();
 	r.r.name = "foreach";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
@@ -84,6 +89,7 @@ auto parse_loop_var(Stream i) {
 		parse_var,
 		token_ws!"~"
 	)(i);
+	r.r.promote();
 	r.r.name = "loop variable";
 	if (!r.ok)
 		return ok_result!Var(null, 0, r.r);
@@ -100,6 +106,7 @@ auto parse_loop(Stream i) {
 		token_ws!")",
 		parse_stmt_block
 	)(i);
+	r.r.promote();
 	r.r.name = "loop";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
@@ -118,6 +125,7 @@ auto parse_clear(Stream i) {
 		token_ws!"~",
 		token_ws!";"
 	)(i);
+	r.r.promote();
 	r.r.name = "clear";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
@@ -134,6 +142,7 @@ auto parse_delayed_or_aggregate(Stream i) {
 		parse_expr,
 		token_ws!";"
 	)(i);
+	r.r.promote();
 	r.r.name = "delayed assign or aggregate";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
