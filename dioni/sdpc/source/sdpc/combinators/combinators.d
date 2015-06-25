@@ -6,6 +6,7 @@ import std.traits,
        std.typetuple;
 
 ///Match pattern `begin func end`, return the result of func.
+@ParserMetadata("between")
 auto between(alias begin, alias func, alias end)(Stream input) {
 	alias RetTy = ReturnType!func;
 	alias ElemTy = ElemType!RetTy;
@@ -31,6 +32,7 @@ auto between(alias begin, alias func, alias end)(Stream input) {
 
 ///Match any of the given pattern, stop when first match is found. All parsers
 ///must return the same type.
+@ParserMetadata("multiple choices")
 auto choice(T...)(Stream input) {
 	alias ElemTy = ElemType!(ReturnType!(T[0]));
 	foreach(p; T) {
@@ -47,31 +49,38 @@ auto choice(T...)(Stream input) {
 
   Return the result of left-associative applying `op` on the result of `p`
 */
-auto chain(alias p, alias op, alias delim)(Stream input) {
-	auto ret = p(input);
-//	alias ElemTy = ReturnType!op;
-	if (ret.s != Result.OK)
-		return ret;
-	auto res = ret.result;
-	auto consumed = ret.consumed;
-
-	while(true) {
-		auto dret = delim(input);
-		if (dret.s != Result.OK)
-			break;
-		auto pret = p(input);
-		if (pret.s != Result.OK) {
-			input.rewind(dret.consumed);
-			return ok_result(res, consumed);
-		}
-		static if (is(ReturnType!delim == ParseResult!void))
-			res = op(res, pret.result);
-		else
-			res = op(res, dret.result, pret.result);
-		ret = pret;
-		consumed += dret.consumed+pret.consumed;
+template chain(alias p, alias op, alias delim){
+	private {
+		enum pm = getParserName!p;
+		enum dm = getParserName!delim;
 	}
-	return ok_result(res, consumed);
+	@ParserMetadata("chain!(" ~ pm ~ "," ~ dm ~ ")")
+	auto chain(Stream input) {
+		auto ret = p(input);
+//	alias ElemTy = ReturnType!op;
+		if (ret.s != Result.OK)
+			return ret;
+		auto res = ret.result;
+		auto consumed = ret.consumed;
+
+		while(true) {
+			auto dret = delim(input);
+			if (dret.s != Result.OK)
+				break;
+			auto pret = p(input);
+			if (pret.s != Result.OK) {
+				input.rewind(dret.consumed);
+				return ok_result(res, consumed);
+			}
+			static if (is(ReturnType!delim == ParseResult!void))
+				res = op(res, pret.result);
+			else
+				res = op(res, dret.result, pret.result);
+			ret = pret;
+			consumed += dret.consumed+pret.consumed;
+		}
+		return ok_result(res, consumed);
+	}
 }
 
 /**
@@ -79,31 +88,35 @@ auto chain(alias p, alias op, alias delim)(Stream input) {
 
   Return array of func's result
 */
-auto many(alias func, bool allow_none = false)(Stream i) {
-	alias ElemTy = ElemType!(ReturnType!func);
-	static if (is(ElemTy == void)) {
-		alias ARetTy = ParseResult!void;
-		size_t count = 0;
-	} else {
-		alias ARetTy = ParseResult!(ElemTy[]);
-		ElemTy[] res;
-	}
-	size_t consumed = 0;
-	while(true) {
-		auto ret = func(i);
-		if (ret.s != Result.OK) {
-			static if (is(ElemTy == void))
-				return ARetTy((count || allow_none) ?
-				               Result.OK : Result.Err, consumed);
-			else
-				return ARetTy((res.length || allow_none) ?
-				              Result.OK : Result.Err, consumed, res);
+template many(alias func, bool allow_none = false) {
+	private enum fm = getParserName!func;
+	@ParserMetadata(fm ~ (allow_none ? "*" : "+"))
+	auto many(Stream i) {
+		alias ElemTy = ElemType!(ReturnType!func);
+		static if (is(ElemTy == void)) {
+			alias ARetTy = ParseResult!void;
+			size_t count = 0;
+		} else {
+			alias ARetTy = ParseResult!(ElemTy[]);
+			ElemTy[] res;
 		}
-		consumed += ret.consumed;
-		static if (!is(ElemTy == void))
-			res ~= [ret];
-		else
-			count++;
+		size_t consumed = 0;
+		while(true) {
+			auto ret = func(i);
+			if (ret.s != Result.OK) {
+				static if (is(ElemTy == void))
+					return ARetTy((count || allow_none) ?
+							Result.OK : Result.Err, consumed);
+				else
+					return ARetTy((res.length || allow_none) ?
+							Result.OK : Result.Err, consumed, res);
+			}
+			consumed += ret.consumed;
+			static if (!is(ElemTy == void))
+				res ~= [ret];
+			else
+				count++;
+		}
 	}
 }
 
@@ -134,33 +147,36 @@ private template genParserID(int start, T...) {
   Also none of the parsers used in seq can return a tuple of results. Otherwise
   it won't compile.
 */
-auto seq(T...)(Stream i) {
-	alias ElemTys = ElemTypesNoVoid!(staticMap!(ReturnType, T));
-	alias RetTy = ParseResult!ElemTys;
-	alias PID = genParserID!(0, T);
-	ElemTys res = void;
-	size_t consumed = 0;
-	foreach(pid; PID) {
-		static if (is(pid == ParserID!(p, id), alias p, int id)) {
-			auto ret = p(i);
-			consumed += ret.consumed;
-			if (ret.s != Result.OK) {
-				writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
-				i.rewind(consumed);
-				static if (ElemTys.length == 1)
-					return err_result!(ElemTys[0])();
-				else
-					return RetTy(Result.Err, 0, ElemTys.init);
-			}
-			static if (!is(typeof(ret) == ParseResult!void))
-				res[id] = ret.result;
-		} else
-			static assert(false, p);
+template seq(T...){
+	@ParserMetadata(concatParserName!(", ", T))
+	auto seq(Stream i) {
+		alias ElemTys = ElemTypesNoVoid!(staticMap!(ReturnType, T));
+		alias RetTy = ParseResult!ElemTys;
+		alias PID = genParserID!(0, T);
+		ElemTys res = void;
+		size_t consumed = 0;
+		foreach(pid; PID) {
+			static if (is(pid == ParserID!(p, id), alias p, int id)) {
+				auto ret = p(i);
+				consumed += ret.consumed;
+				if (ret.s != Result.OK) {
+					writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
+					i.rewind(consumed);
+					static if (ElemTys.length == 1)
+						return err_result!(ElemTys[0])();
+					else
+						return RetTy(Result.Err, 0, ElemTys.init);
+				}
+				static if (!is(typeof(ret) == ParseResult!void))
+					res[id] = ret.result;
+			} else
+				static assert(false, p);
+		}
+		static if (ElemTys.length == 1)
+			return ok_result!(ElemTys[0])(res[0], consumed);
+		else
+			return RetTy(Result.OK, consumed, res);
 	}
-	static if (ElemTys.length == 1)
-		return ok_result!(ElemTys[0])(res[0], consumed);
-	else
-		return RetTy(Result.OK, consumed, res);
 }
 
 auto seq2(alias op, T...)(Stream i) {

@@ -8,6 +8,52 @@ package enum Result {
 	Err
 }
 
+struct ParserMetadata {
+	string name;
+}
+
+template UDAIndex(alias symbol, alias attribute) {
+	import std.typetuple : staticIndexOf;
+	import std.traits : staticMap;
+
+	static if (is(attribute == struct) || is(attribute == class)) {
+		template GetTypeOrExp(alias S) {
+			static if (is(typeof(S)))
+				alias GetTypeOrExp = typeof(S);
+			else
+				alias GetTypeOrExp = S;
+		}
+		enum int UDAIndex = staticIndexOf!(attribute, staticMap!(GetTypeOrExp,
+					__traits(getAttributes, symbol)));
+	}
+	else
+		enum int UDAIndex = staticIndexOf!(attribute, __traits(getAttributes, symbol));
+}
+
+template getUDA(alias symbol, alias attribute)
+    if (UDAIndex!(symbol, attribute) != -1) {
+	enum UDAs = __traits(getAttributes, symbol);
+	enum getUDA = UDAs[UDAIndex!(symbol, attribute)];
+}
+
+template getParserName(alias symbol) {
+	static if (UDAIndex!(symbol, ParserMetadata) != -1) {
+		enum pm = getUDA!(symbol, ParserMetadata);
+		enum getParserName = pm.name;
+	} else
+		enum getParserName = __traits(identifier, symbol);
+}
+
+template concatParserName(string delim, T...) {
+	enum meta = getParserName!(T[0]);
+	static if (T.length <= 0)
+		enum concatParserName = "";
+	else static if (T.length == 1)
+		enum concatParserName = meta;
+	else
+		enum concatParserName = meta ~ delim ~ concatParserName!(delim, T[1..$]);
+}
+
 private template isVoid(T) {
 	static if (is(T == void))
 		enum bool isVoid = true;
@@ -138,7 +184,7 @@ class BufStream: Stream {
 		auto ret = slice[0..bytes];
 		writefln("Eat " ~ ret);
 		slice = slice[bytes..$];
-		offset += bytes;
+		offset= bytes;
 		return ret;
 	}
 	override void rewind(size_t bytes, string caller=__FUNCTION__) {
@@ -172,10 +218,10 @@ class Stream {
 	}
 	void refill(size_t bytes) {
 		size_t pos = buf.len;
-		buf.len += bytes;
+		buf.len= bytes;
 		auto tmp = f.rawRead(buf[pos..$]);
 		if (tmp.len != bytes)
-			buf.len = pos+tmp.len;
+			buf.len = postmp.len;
 	}
 	void advance(size_t bytes) {
 		assert(bytes <= buf.len);
