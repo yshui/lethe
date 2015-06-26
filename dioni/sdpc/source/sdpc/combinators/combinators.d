@@ -10,27 +10,23 @@ auto between(alias begin, alias func, alias end)(Stream i) {
 	alias RetTy = ReturnType!func;
 	alias ElemTy = ElemType!RetTy;
 	static assert(is(RetTy == ParseResult!U, U));
-	auto re = Reason(i, "between");
 	i.push();
 	auto begin_ret = begin(i);
 	size_t consumed = begin_ret.consumed;
 	if (begin_ret.s != Result.OK) {
 		i.pop();
-		re.dep ~= begin_ret.r;
-		return err_result!ElemTy(re);
+		return err_result!ElemTy(begin_ret.r);
 	}
 	auto ret = func(i);
 	if (ret.s != Result.OK) {
 		i.pop();
-		re.dep ~= ret.r;
-		return err_result!ElemTy(re);
+		return err_result!ElemTy(ret.r);
 	}
 	consumed += ret.consumed;
 	auto end_ret = end(i);
 	if (end_ret.s != Result.OK) {
 		i.pop();
-		re.dep ~= ret.r;
-		return err_result!ElemTy(re);
+		return err_result!ElemTy(end_ret.r);
 	}
 	ret.consumed = end_ret.consumed+consumed;
 	i.drop();
@@ -42,12 +38,17 @@ auto between(alias begin, alias func, alias end)(Stream i) {
 auto choice(T...)(Stream i) {
 	alias ElemTy = ElemType!(ReturnType!(T[0]));
 	auto re = Reason(i, "choice");
+	Reason last = Reason(i, "tmp");
 	foreach(p; T) {
 		auto ret = p(i);
 		if (ret.s == Result.OK)
 			return ret;
 		re.dep ~= ret.r;
+		if (ret.r > last)
+			last = ret.r;
 	}
+	re.line = last.line;
+	re.col = last.col;
 	return err_result!ElemTy(re);
 }
 
@@ -111,7 +112,7 @@ auto many(alias func, bool allow_none = false)(Stream i) {
 	while(true) {
 		auto ret = func(i);
 		if (ret.s != Result.OK) {
-			re.dep ~= ret.r;
+			re = ret.r;
 			static if (is(ElemTy == void))
 				return ARetTy((count || allow_none) ?
 				               Result.OK : Result.Err, consumed, re);
@@ -167,10 +168,13 @@ auto seq(T...)(Stream i) {
 		static if (is(pid == ParserID!(p, id), alias p, int id)) {
 			auto ret = p(i);
 			consumed += ret.consumed;
+			if (ret.r.dep.length != 0 || ret.r.msg)
+				if (ret.r > re)
+					re = ret.r;
 			if (ret.s != Result.OK) {
 				//writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
 				i.pop();
-				re.dep ~= ret.r;
+				//writefln("XXX%s %s, %s", ret.r.line, ret.r.col, ret.r.explain());
 				static if (ElemTys.length == 1)
 					return err_result!(ElemTys[0])(re);
 				else

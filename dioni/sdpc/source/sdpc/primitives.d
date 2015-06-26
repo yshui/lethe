@@ -73,6 +73,15 @@ struct Reason {
 		}
 		return res;
 	}
+	int opCmp(ref const Reason o) const {
+		if (line < o.line)
+			return -1;
+		if (line > o.line)
+			return 1;
+		if (col < o.col)
+			return -1;
+		return 1;
+	}
 	void promote() {
 		if (dep.length == 1)
 			this = dep[0];

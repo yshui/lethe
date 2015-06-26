@@ -7,7 +7,9 @@ import std.conv: to;
 import std.stdio;
 
 auto parse_paren(Stream i) {
-	return between!(token_ws!"(", parse_expr, token_ws!")")(i);
+	auto r = between!(token_ws!"(", parse_expr, token_ws!")")(i);
+	r.r.name = "parentheses";
+	return r;
 }
 
 ParseResult!Expr parse_expr(Stream i) {
