@@ -131,7 +131,7 @@ T ok_result(T: ParseResult!U, U)(U r, size_t consumed, ref Reason re) {
 	return T(Result.OK, consumed, re, r);
 }
 
-ParseResult!T ok_result(T)(T r, size_t consumed, ref Reason re) {
+ParseResult!T ok_result(T...)(T r, size_t consumed, ref Reason re) {
 	return ParseResult!T(Result.OK, consumed, re, r);
 }
 
@@ -146,8 +146,8 @@ ParseResult!T err_result(T)(T def, ref Reason r) if (!is(T == ParseResult!U, U))
 	return ParseResult!T(Result.Err, 0, r, def);
 }
 
-ParseResult!T err_result(T)(ref Reason r) if (!is(T == ParseResult!U, U)) {
-	static if (is(T == void))
+ParseResult!T err_result(T...)(ref Reason r) if (!is(T == ParseResult!U, U)) {
+	static if (is(T[0] == void))
 		return ParseResult!T(Result.Err, 0, r);
 	else
 		return ParseResult!T(Result.Err, 0, r, T.init);

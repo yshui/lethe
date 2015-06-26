@@ -18,34 +18,36 @@ import ast.decl,
        ast.expr;
 import parser.stmt,
        parser.utils,
-       parser.atom;
+       parser.atom,
+       parser.expr;
 import sdpc;
 auto parse_event_parameter(Stream i) {
 	auto re = Reason(i, "event parameter");
 	if (i.starts_with("_")) {
 		i.advance(1);
-		return ok_result!EventParameter(
-			new EventParameter(null, EventParameter.Ignore),
-			1,
-			re
-		);
+		return ok_result!EventParameter(new EventParameter(), 1, re);
 	}
 
-	auto r = seq!(
-		choice!(token_ws!"~", token_ws!"="),
-		parse_var
+	auto r = choice!(
+		seq!(
+			token_ws!"~",
+			parse_var_expr
+		),
+		seq!(
+			token_ws!"=",
+			parse_primary
+		),
 	)(i);
-	re = r.r;
-	re.name = "event parameter";
+	r.r.name = "event parameter";
 	if (!r.ok)
-		return err_result!EventParameter(re);
+		return err_result!EventParameter(r.r);
 
-	int type = r.result!0 == "~" ? EventParameter.Assign : EventParameter.Match;
-	return ok_result!EventParameter(
-		new EventParameter(cast(Var)r.result!1, type),
-		r.consumed,
-		re
-	);
+	EventParameter ep;
+	if (r.result!0 == "~")
+		ep = new EventParameter(cast(Var)r.result!1);
+	else
+		ep = new EventParameter(r.result!1);
+	return ok_result!EventParameter(ep, r.consumed, r.r);
 }
 auto parse_event(Stream i) {
 	auto r = seq!(

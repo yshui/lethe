@@ -72,13 +72,13 @@ auto chain(alias p, alias op, alias delim)(Stream i) {
 		auto dret = delim(i);
 		if (dret.s != Result.OK) {
 			i.pop();
-			re.dep ~= dret.r;
+			re = dret.r;
 			break;
 		}
 		auto pret = p(i);
 		if (pret.s != Result.OK) {
 			i.pop();
-			re.dep ~= pret.r;
+			re = pret.r;
 			break;
 		}
 		static if (is(ReturnType!delim == ParseResult!void))
@@ -178,7 +178,7 @@ auto seq(T...)(Stream i) {
 				static if (ElemTys.length == 1)
 					return err_result!(ElemTys[0])(re);
 				else
-					return RetTy(Result.Err, 0, re, ElemTys.init);
+					return err_result!ElemTys(re);
 			}
 			static if (!is(typeof(ret) == ParseResult!void))
 				res[id] = ret.result;
@@ -189,7 +189,7 @@ auto seq(T...)(Stream i) {
 	static if (ElemTys.length == 1)
 		return ok_result!(ElemTys[0])(res[0], consumed, re);
 	else
-		return RetTy(Result.OK, consumed, re, res);
+		return ok_result(res, consumed, re);
 }
 
 auto seq2(alias op, T...)(Stream i) {

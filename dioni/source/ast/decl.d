@@ -4,7 +4,7 @@ import ast.expr,
 
 interface Decl {
 	@property nothrow pure string symbol();
-	@property pure string str();
+	@property nothrow pure string str();
 	final string toString() {
 		return str;
 	}
@@ -12,16 +12,25 @@ interface Decl {
 
 class EventParameter {
 	Var var;
+	Expr expr;
 	static enum {
 		Match,
 		Assign,
 		Ignore
 	}
 	int type;
-	this(Var v, int t) {
-		assert(v !is null || t == Ignore);
-		type = t;
+	this(Var v) {
+		assert(v !is null);
+		type = Assign;
 		var = v;
+	}
+	this(Expr e) {
+		assert(e !is null);
+		type = Match;
+		expr = e;
+	}
+	this() {
+		type = Ignore;
 	}
 }
 
@@ -30,7 +39,7 @@ package pure nothrow string str_event_parameters(EventParameter[] ep) {
 	foreach(i, e; ep) {
 		final switch(e.type) {
 		case EventParameter.Match:
-			res ~= "=" ~ e.var.str;
+			res ~= "=" ~ e.expr.str;
 			break;
 		case EventParameter.Assign:
 			res ~= "~" ~ e.var.str;
