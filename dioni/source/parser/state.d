@@ -14,7 +14,7 @@
 ---
 */
 module parser.state;
-import ast.state,
+import ast.decl,
        ast.expr;
 import parser.stmt,
        parser.utils,
@@ -79,17 +79,17 @@ auto parse_state_transition_arr(Stream i) {
 	auto st = new StateTransition(r.result!1, r.result!2, r.result!4);
 	return ok_result([st], r.consumed, re);
 }
-auto parse_state_definition(Stream i) {
+auto parse_state_decl(Stream i) {
 	auto r = seq!(
 		token_ws!"state",
 		identifier,
 		chain!(parse_state_transition_arr, arr_append, discard!(token_ws!",")),
-		token_ws!"."
+		token_ws!";"
 	)(i);
 	auto re = r.r;
 	re.name = "state";
 	if (!r.ok)
-		return err_result!State(re);
+		return err_result!Decl(re);
 
-	return ok_result(new State(r.result!1, r.result!2), r.consumed, re);
+	return ok_result!Decl(new State(r.result!1, r.result!2), r.consumed, re);
 }

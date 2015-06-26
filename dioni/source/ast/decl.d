@@ -1,10 +1,13 @@
-module ast.state;
+module ast.decl;
 import ast.expr,
        ast.stmt;
 
-interface Declaration {
+interface Decl {
 	@property nothrow pure string symbol();
-	@property nothrow pure string str();
+	@property pure string str();
+	final string toString() {
+		return str;
+	}
 }
 
 class EventParameter {
@@ -71,7 +74,7 @@ class StateTransition {
 	}
 }
 
-class State : Declaration {
+class State : Decl {
 	StateTransition[] st;
 	string name;
 	this(string xname, StateTransition[] xst) {
@@ -87,5 +90,19 @@ class State : Declaration {
 			res ~= ste.str;
 		return res;
 	}
-	alias toString = str;
+}
+
+class VarDecl : Decl {
+	TypeBase ty;
+	string name;
+	this(TypeBase xty, string xname) {
+		name = xname;
+		ty = xty;
+	}
+	override string str() {
+		return name ~ ":" ~ ty.str ~ "\n";
+	}
+	override string symbol() {
+		return name;
+	}
 }

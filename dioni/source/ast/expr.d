@@ -16,29 +16,23 @@ interface LValue : Expr {
 	}
 }
 
-string type_matching(T...)(string[] name) {
-	string res = "";
-	foreach(tp; T) {
+TypeBase type_matching(T...)(const(TypeBase)[] ity) {
+	pattern_loop: foreach(tp; T) {
 		static if (is(tp: TypePattern!M, M...)) {
-			assert(name.length+1 == M.length);
+			assert(ity.length+1 == M.length);
 			//Generate a "if"
 			foreach(i, ty; M[1..$])
-				//Check if "name"'s type can be casted to expected type
-				res ~= "if(cast(" ~ ty.stringof ~ ")(" ~ name[i] ~ ".ty) !is null) {\n";
-			res ~= "return new " ~ M[0].stringof ~ ";\n";
-			foreach(i; 0..name.length)
-				res ~= "}\n";
+				if (cast(ty)ity[i] is null)
+					continue pattern_loop;
+			alias res = M[0];
+			return new res;
 		} else
 			static assert(false, tp.stringof);
 	}
-	res ~= "throw new Exception(\"No type match found";
-
-	foreach(n; name)
-		res ~= ", " ~ n ~ ":\" ~ to!string(typeid(" ~ n ~ ".ty)) ~ \"";
-	
-	res ~= "\");";
-
-	return res;
+	string exc = "No type match found";
+	foreach(n; ity)
+		exc ~= ", " ~ n.str;
+	throw new Exception(exc);
 }
 
 template GetTy() {
@@ -54,13 +48,24 @@ class TypeBase {
 	@property nothrow pure @nogc int dimension() const {
 		return 0;
 	}
-	@property nothrow pure @nogc TypeBase element_type() const {
+	@property nothrow pure TypeBase element_type() const {
 		return null;
 	}
+	@property nothrow pure string str() const { return "void"; }
 }
 class Type(T, int dim) : TypeBase {
 	override int dimension() const {
 		return dim;
+	}
+	override string str() const {
+		import std.format : format;
+		string res;
+		try {
+			res = format("%s*%s", T.stringof, dim);
+		} catch (Exception) {
+			res = "Invalid";
+		}
+		return res;
 	}
 }
 class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
@@ -70,8 +75,16 @@ class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
 		else
 			static assert(0);
 	}
-	override @property nothrow pure @nogc TypeBase element_type() const {
+	override @property nothrow pure TypeBase element_type() const {
 		return new ElemType();
+	}
+	override string str() const {
+		import std.format : format;
+		try {
+			return format("ArrayOf %s", element_type.str);
+		}catch(Exception) {
+			return "Invalid";
+		}
 	}
 }
 
@@ -119,19 +132,19 @@ class BinOP : Expr {
 			}
 		}
 		if (op == "+" || op == "-" || op == "*") {
-			mixin(type_matching!(
+			return type_matching!(
 				TypePattern!(Type!(int, 1), Type!(int, 1), Type!(int, 1)),
 				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
 				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(float, 1)),
 				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
-			)(["lhs", "rhs"]));
+			)([lhs.ty, rhs.ty]);
 		} else if (op == "/") {
-			mixin(type_matching!(
+			return type_matching!(
 				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(int, 1)),
 				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
 				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(float, 1)),
 				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
-			)(["lhs", "rhs"]));
+			)([lhs.ty, rhs.ty]);
 		}
 		assert(false);
 	}
@@ -270,10 +283,4 @@ unittest {
 
 	bop = new BinOP(lhs, "/", lhs);
 	assert(typeid(bop.ty) == typeid(Type!(float, 1)));
-	writeln(type_matching!(
-		TypePattern!(Type!(int, 1), Type!(int, 1), Type!(int, 1)),
-		TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
-		TypePattern!(Type!(float, 1), Type!(int, 1), Type!(float, 1)),
-		TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
-	)(["lhs", "rhs"]));
 }
