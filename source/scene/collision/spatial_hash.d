@@ -9,6 +9,7 @@ private struct HitboxPair {
 	Hitbox hb;
 	HitboxPair*[] next;
 	box2f aabb;
+	//int generational_number;
 }
 class SpatialRange(int w, int h) : CollisionRange{
 	private {
@@ -19,8 +20,9 @@ class SpatialRange(int w, int h) : CollisionRange{
 		vec2i now;
 		HitboxPair* head;
 		SpatialHash!(w, h) sh;
-		bool[HitboxPair*] _poped;
+		bool[HitboxPair*] _checked;
 		const(Particle) self;
+		//int generation; //Incremented every new query
 	}
 	override pure nothrow @nogc bool empty() {
 		return nowi >= hitbox.length;
@@ -69,9 +71,11 @@ class SpatialRange(int w, int h) : CollisionRange{
 			return false;
 		if (!head.hb.collide(hitbox[nowi]))
 			return false;
-		if ((head in _poped) !is null)
+		//if (head.generational_number < generation)
+		if ((head in _checked) !is null) //hash is slow
 			return false;
-		_poped[head] = true;
+		_checked[head] = true;
+		//head.generation_number = generation
 		return true;
 	}
 	override pure nothrow void popFront() {
