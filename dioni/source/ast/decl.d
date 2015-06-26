@@ -85,16 +85,19 @@ class StateTransition {
 
 class State : Decl {
 	StateTransition[] st;
+	Stmt[] entry;
 	string name;
-	this(string xname, StateTransition[] xst) {
+	this(string xname, Stmt[] e, StateTransition[] xst) {
 		name = xname;
 		st = xst;
+		entry = e;
 	}
 	override string symbol() {
 		return name;
 	}
 	@property override string str() {
 		auto res = "state(" ~ name ~ "):\n";
+		res ~= "entry: " ~ str_stmt_block(entry);
 		foreach(ste; st)
 			res ~= ste.str;
 		return res;
@@ -113,5 +116,18 @@ class VarDecl : Decl {
 	}
 	override string symbol() {
 		return name;
+	}
+}
+
+class Ctor : Decl {
+	Stmt[] stmt;
+	this(Stmt[] x) {
+		stmt = x;
+	}
+	override string str() {
+		return "Ctor: " ~ str_stmt_block(stmt);
+	}
+	override string symbol() {
+		return "this";
 	}
 }

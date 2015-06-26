@@ -52,6 +52,8 @@ class TypeBase {
 		return null;
 	}
 	@property nothrow pure string str() const { return "void"; }
+	@property nothrow pure TypeBase arr_of() const { assert(false); }
+	@property nothrow pure string c_type() const { return "void"; }
 }
 class Type(T, int dim) : TypeBase {
 	override int dimension() const {
@@ -66,6 +68,22 @@ class Type(T, int dim) : TypeBase {
 			res = "Invalid";
 		}
 		return res;
+	}
+	override TypeBase arr_of() const {
+		return new ArrayType!(Type!(T, dim));
+	}
+	override string c_type() const {
+		static if (dim == 1)
+			return T.stringof;
+		else {
+			import std.format;
+			static assert(is(T == float));
+			try {
+				return format("struct vec%sf", dim);
+			} catch(Exception) {
+				assert(false);
+			}
+		}
 	}
 }
 class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
@@ -86,6 +104,10 @@ class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
 			return "Invalid";
 		}
 	}
+	override string c_type() const {
+		return "struct list_head";
+	}
+	//array of array not supported
 }
 
 ///Define a type match pattern: if input types match T..., then the output type is Result

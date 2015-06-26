@@ -1,8 +1,9 @@
 module parser.decl;
 import ast.decl,
-       ast.expr;
+       ast.expr,
+       ast.stmt;
 import sdpc;
-import parser.utils;
+import parser.utils, parser.stmt;
 public import parser.state;
 auto parse_type(Stream i) {
 	auto r = choice!(
@@ -40,21 +41,13 @@ auto parse_type(Stream i) {
 auto parse_arr_type(Stream i) {
 	auto r = seq!(
 		parse_type,
-		token_ws!"[",
-		token_ws!"]"
+		token_ws!"+"
 	)(i);
 	r.r.name = "array type";
 	if (!r.ok)
 		return err_result!TypeBase(r.r);
 
-	TypeBase ret = type_matching!(
-		TypePattern!(ArrayType!(Type!(int, 1)), Type!(int, 1)),
-		TypePattern!(ArrayType!(Type!(float, 1)), Type!(float, 1)),
-		TypePattern!(ArrayType!(Type!(float, 2)), Type!(float, 2)),
-		TypePattern!(ArrayType!(Type!(float, 3)), Type!(float, 3)),
-		TypePattern!(ArrayType!(Type!(float, 4)), Type!(float, 4)),
-	)([r.result!0]);
-
+	TypeBase ret = r.result!0.arr_of;
 	return ok_result(ret, r.consumed, r.r);
 }
 auto parse_var_decl(Stream i) {
@@ -73,10 +66,20 @@ auto parse_var_decl(Stream i) {
 	return ok_result!Decl(ret, r.consumed, r.r);
 }
 
+auto parse_ctor(Stream i) {
+	auto r = parse_stmt_block(i);
+	r.r.name = "ctor";
+	if (!r.ok)
+		return err_result!Decl(r.r);
+	auto c = new Ctor(r.result);
+	return ok_result!Decl(c, r.consumed, r.r);
+}
+
 auto parse_decl(Stream i) {
 	auto r = choice!(
 		parse_var_decl,
-		parse_state_decl
+		parse_state_decl,
+		parse_ctor
 	)(i);
 	r.r.name = "declaration";
 	if (!r.ok)

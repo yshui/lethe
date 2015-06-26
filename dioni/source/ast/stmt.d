@@ -35,6 +35,8 @@ package nothrow pure string str_stmt_block(Stmt[] ss) {
 	string res = "";
 	foreach(s; ss)
 		res ~= s.str;
+	if (res == "")
+		res ~= "\n";
 	return res;
 }
 class If : Stmt {

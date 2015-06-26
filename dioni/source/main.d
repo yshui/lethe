@@ -1,5 +1,6 @@
 import std.stdio, std.file;
 import parser;
+import ast.symbols;
 import sdpc;
 void main(string[] argv) {
 	if (argv.length < 2) {
@@ -16,4 +17,12 @@ void main(string[] argv) {
 		writeln(r.r.explain());
 	else
 		writeln(r.result);
+	
+	Symbols global = new Symbols(null);
+	foreach(p; r.result)
+		global.insert(p);
+	foreach(p; r.result)
+		p.populate_symbols(global);
+	foreach(p; r.result)
+		writeln(p.c_struct);
 }
