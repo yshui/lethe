@@ -5,12 +5,9 @@ import std.conv,
        std.traits;
 import dioni.utils;
 interface Expr {
-	@property pure nothrow string str();
 	pure TypeBase gen_type();
-	final string toString() {
-		return str;
-	}
 	@property pure const(TypeBase) ty();
+	@property pure nothrow string str();
 }
 
 interface LValue : Expr {

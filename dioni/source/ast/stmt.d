@@ -1,10 +1,7 @@
 module ast.stmt;
 import ast.expr;
 interface Stmt {
-	@property pure nothrow string str();
-	final string toString() {
-		return str;
-	}
+	@property nothrow pure string str();
 }
 class Assign : Stmt {
 	LValue lhs;
@@ -34,7 +31,7 @@ class Assign : Stmt {
 		}
 	}
 }
-private nothrow pure string str_stmt_block(Stmt[] ss) {
+package nothrow pure string str_stmt_block(Stmt[] ss) {
 	string res = "";
 	foreach(s; ss)
 		res ~= s.str;
