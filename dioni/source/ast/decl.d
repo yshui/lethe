@@ -102,6 +102,13 @@ class State : Decl {
 			res ~= ste.str;
 		return res;
 	}
+	string c_code(string particle, Symbols p) {
+		auto res = "void " ~ particle ~ "_state_" ~ name ~ "_entry(";
+		res ~= "struct particle *_particle) {\n";
+		res ~= c_code_stmt_block(entry);
+		res ~= "}";
+		return res;
+	}
 }
 
 class VarDecl : Decl {

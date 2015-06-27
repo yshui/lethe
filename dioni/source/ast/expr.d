@@ -292,6 +292,15 @@ class Vec(int dim) : Expr if (dim >= 2) {
 	}
 	mixin GetTy;
 }
+
+immutable bool[string] reserved_names;
+
+static this() {
+	string[] ns = ["_particle"];
+	foreach(n; ns)
+		reserved_names[n] = true;
+}
+
 unittest {
 	import std.stdio;
 	writeln("Run ast.d unittest");

@@ -8,4 +8,7 @@ struct particle {
 	//Two versions of the particle data,
 	//each points to a "struct <particle_name>"
 	void *data[2];
+
+	//Current version of this partcile
+	int current;
 };

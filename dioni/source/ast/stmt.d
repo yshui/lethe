@@ -39,6 +39,9 @@ package nothrow pure string str_stmt_block(Stmt[] ss) {
 		res ~= "\n";
 	return res;
 }
+
+package nothrow pure string c_code_stmt_block(Stmt[] ss, Symbols s) {
+}
 class If : Stmt {
 	Expr cond;
 	Stmt[] _then, _else;
