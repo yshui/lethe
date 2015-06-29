@@ -26,8 +26,19 @@ void main(string[] argv) {
 			continue;
 		p.gen_symbols(global);
 	}
+
+	auto mainf = File("statefn.c", "w");
+	auto defsf = File("defs.h", "w");
+	defsf.writeln("#include \"stdlib/vec.h\"\n");
+	foreach(id, p; r.result)
+		defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, id);
+
 	foreach(p; r.result)
-		writeln(p.c_structs);
+		defsf.writeln(p.c_structs);
+
+	mainf.writeln("#include \"defs.h\"");
 	foreach(p; r.result)
-		writeln(p.c_code);
+		mainf.writeln(p.c_code);
+
+
 }
