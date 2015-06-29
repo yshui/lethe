@@ -1,0 +1,5 @@
+# Must
+* Generate state transition functions
+
+# Maybe
+* Aggregator implementation, enforce every aggregator is cleared before write
