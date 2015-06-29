@@ -52,6 +52,7 @@ auto parse_arr_type(Stream i) {
 }
 auto parse_var_decl(Stream i) {
 	auto r = seq!(
+		optional!(token_ws!"shared"),
 		choice!(
 			parse_arr_type,
 			parse_type
@@ -62,7 +63,10 @@ auto parse_var_decl(Stream i) {
 	r.r.name = "variable declaration";
 	if (!r.ok)
 		return err_result!Decl(r.r);
-	auto ret = new VarDecl(r.result!0, r.result!1, true);
+	StorageClass sc = StorageClass.Particle;
+	if (r.result!0 !is null && r.result!0 == "shared")
+		sc = StorageClass.Shared;
+	auto ret = new VarDecl(r.result!1, r.result!2, sc);
 	return ok_result!Decl(ret, r.consumed, r.r);
 }
 

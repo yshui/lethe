@@ -50,14 +50,17 @@ class Assign : Stmt {
 				assert(typeid(ty) == typeid(vd.ty), "Type miss match");
 			}
 			if (type == Delayed) {
-				assert(vd.member, "Delayed assign can't be used with non-member");
-				return format("__next->%s = %s;\n", v.name, rhs.c_code(s));
+				assert(vd.sc != StorageClass.Local, "Delayed assign can't be used with local variable");
+				if (vd.sc == StorageClass.Particle)
+					return format("__next->%s = %s;\n", v.name, rhs.c_code(s));
+				else if (vd.sc == StorageClass.Shared)
+					return format("__shared_next->%s = %s;\n", v.name, rhs.c_code(s));
 			} else {
-				assert(!vd.member, "Member variable must use delayed assign");
+				assert(vd.sc == StorageClass.Local, "Direct assign can only be used with local variable");
 				return format("%s = %s;\n", v.name, rhs.c_code(s));
 			}
-		} else
-			assert (false, "Not implemented assign to field");
+		}
+		assert (false, "Not implemented assign to field");
 	}
 }
 package nothrow pure string str(Stmt[] ss) {
@@ -74,7 +77,7 @@ package string c_code(Stmt[] ss, Symbols p) {
 	Symbols c = new Symbols(p);
 	foreach(s; ss)
 		res ~= s.c_code(c);
-	return c.c_defs~res;
+	return c.c_defs(StorageClass.Local)~res;
 }
 class If : Stmt {
 	Expr cond;

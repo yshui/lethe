@@ -27,7 +27,7 @@ void main(string[] argv) {
 		p.gen_symbols(global);
 	}
 	foreach(p; r.result)
-		writeln(p.c_struct);
+		writeln(p.c_structs);
 	foreach(p; r.result)
 		writeln(p.c_code);
 }

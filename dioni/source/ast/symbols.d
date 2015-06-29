@@ -21,11 +21,13 @@ class Symbols {
 	this(Symbols p) {
 		parent = p;
 	}
-	@property pure string c_defs() const {
+	pure string c_defs(StorageClass sc) const {
 		string res = "";
 		foreach(d; table) {
 			auto vd = cast(VarDecl)d;
 			if (vd is null)
+				continue;
+			if (vd.sc != sc)
 				continue;
 			res ~= vd.ty.c_type~" "~vd.symbol~";\n";
 		}

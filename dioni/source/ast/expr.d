@@ -265,10 +265,14 @@ class Var : LValue {
 		assert(d !is null, "Undefined symbol "~name);
 		auto vd = cast(VarDecl)d;
 		assert(vd !is null, name~" is not a variable");
-		if (vd.member)
+		final switch(vd.sc) {
+		case StorageClass.Particle:
 			return format("(__current->%s)", name);
-		else
+		case StorageClass.Shared:
+			return format("(__shared_current->%s)", name);
+		case StorageClass.Local:
 			return format("(%s)", name);
+		}
 	}
 	mixin GetTy;
 }

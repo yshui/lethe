@@ -14,7 +14,10 @@ class Particle : Decl {
 		name = xn;
 		parent = xp;
 	}
-	override void set_prefix(string x) {
+	override void prefix(string x) {
+		assert(false);
+	}
+	override void particle(string x) {
 		assert(false);
 	}
 	override string c_code(Symbols xs) {
@@ -25,10 +28,11 @@ class Particle : Decl {
 		foreach(d; decl) {
 			if (d.symbol == "this") {
 				import std.conv : to;
-				d.set_prefix(name~to!string(this_count));
+				d.prefix = name~to!string(this_count);
 				this_count++;
 			} else
-				d.set_prefix(name);
+				d.prefix = name;
+			d.particle = name;
 		}
 		auto res = "";
 		foreach(d; decl)
@@ -67,15 +71,17 @@ class Particle : Decl {
 		res ~= "}";
 		return res;
 	}
-	@property pure string bare_c_struct() {
+	pure string bare_c_struct(StorageClass sc) {
 		auto res = "";
 		if (p !is null)
-			res = p.bare_c_struct;
-		res ~= s.c_defs;
+			res = p.bare_c_struct(sc);
+		res ~= s.c_defs(sc);
 		return res;
 	}
-	@property pure string c_struct() {
-		return "struct " ~ name ~ " {\n" ~ bare_c_struct ~ "};";
+	@property pure string c_structs() {
+		auto res = "struct "~name~" {\n"~bare_c_struct(StorageClass.Particle)~"};\n";
+		res ~= "struct "~name~"_shared {\n"~bare_c_struct(StorageClass.Shared)~"};";
+		return res;
 	}
 	override string symbol() {
 		return name;

@@ -10,7 +10,8 @@ interface Decl {
 		return str;
 	}
 	string c_code(Symbols s);
-	void set_prefix(string p);
+	@property void prefix(string p);
+	@property void particle(string p);
 }
 
 class EventParameter {
@@ -86,11 +87,25 @@ class StateTransition {
 	}
 }
 
+pure nothrow string param_list(string particle) {
+	string res;
+	immutable string[] names = ["__current", "__next"];
+	immutable string[] shared_names = ["__shared_current", "__shared_next"];
+	foreach(i, n; names) {
+		if (i != 0)
+			res ~= ", ";
+		res ~= "struct "~particle~"* "~n;
+	}
+	foreach(n; shared_names)
+		res ~= ", struct "~particle~"_shared* "~n;
+	return res;
+}
+
 class State : Decl {
 	StateTransition[] st;
 	Stmt[] entry;
 	string name;
-	string prefix;
+	private string _prefix, _particle;
 	this(string xname, Stmt[] e, StateTransition[] xst) {
 		name = xname;
 		st = xst;
@@ -100,31 +115,38 @@ class State : Decl {
 		return name;
 	}
 	@property override string str() {
-		auto res = "state(" ~ name ~ "):\n";
-		res ~= "entry: " ~ entry.str;
+		auto res = "state("~name~"):\n";
+		res ~= "entry: "~entry.str;
 		foreach(ste; st)
 			res ~= ste.str;
 		return res;
 	}
-	override void set_prefix(string p) {
-		prefix = p;
+	override @property void prefix(string p) {
+		_prefix = p;
+	}
+	override @property void particle(string p) {
+		_particle = p;
 	}
 	override string c_code(Symbols p) {
 		import std.format : format;
-		auto res = format("static inline void %s_state_%s_entry(struct %s *__next) {\n", prefix, name, prefix);
+		auto res = format("static inline void %s_state_%s_entry(%s) {\n", _prefix, name, _particle.param_list);
 		res ~= entry.c_code(p);
 		res ~= "}";
 		return res;
 	}
 }
-
+enum StorageClass {
+	Local,
+	Particle,
+	Shared
+}
 class VarDecl : Decl {
 	const(TypeBase) ty;
 	string name;
-	bool member;
-	pure this(const(TypeBase) xty, string xname, bool xmember=false) {
+	StorageClass sc;
+	pure this(const(TypeBase) xty, string xname, StorageClass xsc=StorageClass.Local) {
 		name = xname;
-		member = xmember;
+		sc = xsc;
 		ty = xty;
 	}
 	override string str() {
@@ -136,12 +158,13 @@ class VarDecl : Decl {
 	override string c_code(Symbols s) {
 		return "";
 	}
-	override void set_prefix(string p) { }
+	override @property void prefix(string p) { }
+	override @property void particle(string p) { }
 }
 
 class Ctor : Decl {
 	Stmt[] stmt;
-	string prefix;
+	private string _prefix, _particle;
 	this(Stmt[] x) {
 		stmt = x;
 	}
@@ -152,11 +175,14 @@ class Ctor : Decl {
 		return "this";
 	}
 	override string c_code(Symbols s) {
-		auto res = "void "~prefix~"_ctor() {\n";
+		auto res = "static inline void "~_prefix~"_ctor("~_particle.param_list~") {\n";
 		res ~= stmt.c_code(s)~"}";
 		return res;
 	}
-	override void set_prefix(string p) {
-		prefix = p;
+	override @property void prefix(string p) {
+		_prefix = p;
+	}
+	override @property void particle(string p) {
+		_particle = p;
 	}
 }
