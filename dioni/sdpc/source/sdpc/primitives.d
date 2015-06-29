@@ -182,7 +182,7 @@ class BufStream: Stream {
 		Pos now;
 		Pos[] stack;
 	}
-	@property pure nothrow @nogc string head() {
+	override @property pure nothrow @nogc string head() {
 		return now.pos;
 	}
 	override bool starts_with(const char[] prefix) {

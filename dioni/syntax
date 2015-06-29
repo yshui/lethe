@@ -1,8 +1,8 @@
-Array:
+Volatile Array:
 //No general array support
 //Array must be global/nonlocal
 Var << Item : push item into array
-Var~ : Clear array
-foreach(v; var) : iterate through array
+foreach(v ~ var) : iterate through array
 
+Array is wiped once per cycle
 

@@ -3,24 +3,60 @@ import ast.decl, ast.symbols;
 class Particle : Decl {
 	Decl[] decl;
 	string name, parent;
-	Symbols s;
+	private Particle p;
+	private Symbols s;
+	private bool _visited;
+	@property nothrow pure bool visited() const {
+		return _visited;
+	}
 	this(string xn, string xp, Decl[] d) {
 		decl = d;
 		name = xn;
 		parent = xp;
 	}
-	void populate_symbols(Symbols p) {
-		s = new Symbols(p);
+	override void set_prefix(string x) {
+		assert(false);
+	}
+	override string c_code(Symbols xs) {
+		return c_code;
+	}
+	string c_code() {
+		int this_count = 0;
+		foreach(d; decl) {
+			if (d.symbol == "this") {
+				import std.conv : to;
+				d.set_prefix(name~to!string(this_count));
+				this_count++;
+			} else
+				d.set_prefix(name);
+		}
+		auto res = "";
+		foreach(d; decl)
+			res ~= d.c_code(s);
+		return res;
+	}
+	void gen_symbols(Symbols glob) {
+		assert(!_visited, "Possible inheritance circle");
+		_visited = true;
+		if (parent !is null) {
+			auto d = glob.lookup(parent);
+			assert(d !is null, "Base particle "~parent~" not found");
+			auto p = cast(Particle)d;
+			assert(d !is null, parent~" is not a particle");
+			p.gen_symbols(glob);
+			s = new Symbols(p.s);
+		} else
+			s = new Symbols(null);
 		foreach(d; decl) {
 			if (d.symbol == "this") {
 				auto c = cast(Ctor)d;
 				assert(c !is null, "Can't have variable/state named 'this'");
 				continue;
 			}
-			s.insert(d);
+			s.insert(d, true);
 		}
 	}
-	@property nothrow pure string str() {
+	override @property nothrow pure string str() {
 		auto res = "particle " ~ name;
 		if (parent !is null)
 			res ~= ":" ~ parent ~ "{\n";
@@ -31,26 +67,17 @@ class Particle : Decl {
 		res ~= "}";
 		return res;
 	}
-	@property nothrow pure string bare_c_struct() {
+	@property pure string bare_c_struct() {
 		auto res = "";
-		auto pd = s.lookup(parent);
-		Particle p;
-		if (pd !is null)
-			p = cast(Particle)pd;
 		if (p !is null)
 			res = p.bare_c_struct;
-		foreach(d; decl) {
-			auto v = cast(VarDecl)d;
-			if (v is null)
-				continue;
-			res ~= v.ty.c_type ~ " " ~ v.name ~ ";\n";
-		}
+		res ~= s.c_defs;
 		return res;
 	}
-	@property nothrow pure string c_struct() {
+	@property pure string c_struct() {
 		return "struct " ~ name ~ " {\n" ~ bare_c_struct ~ "};";
 	}
-	string symbol() {
+	override string symbol() {
 		return name;
 	}
 

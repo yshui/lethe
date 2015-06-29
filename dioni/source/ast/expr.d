@@ -1,13 +1,16 @@
 module ast.expr;
+import ast.symbols, ast.decl;
 import std.conv,
        std.range,
        std.typecons,
-       std.traits;
+       std.traits,
+       std.format;
 import dioni.utils;
 interface Expr {
-	pure TypeBase gen_type();
-	@property pure const(TypeBase) ty();
+	pure TypeBase gen_type(Symbols s);
+	@property @nogc pure nothrow const(TypeBase) ty();
 	@property pure nothrow string str();
+	string c_code(Symbols s);
 }
 
 interface LValue : Expr {
@@ -37,9 +40,14 @@ TypeBase type_matching(T...)(const(TypeBase)[] ity) {
 
 template GetTy() {
 	private TypeBase _ty;
-	override @property pure const(TypeBase) ty() {
-		if (_ty is null)
-			_ty = gen_type();
+	override pure TypeBase gen_type(Symbols s) {
+		if (_ty !is null)
+			return _ty.dup;
+		_ty = _gen_type(s);
+		return _ty.dup;
+	}
+	override @property nothrow pure const(TypeBase) ty() {
+		assert(_ty !is null);
 		return _ty;
 	}
 }
@@ -54,6 +62,7 @@ class TypeBase {
 	@property nothrow pure string str() const { return "void"; }
 	@property nothrow pure TypeBase arr_of() const { assert(false); }
 	@property nothrow pure string c_type() const { return "void"; }
+	@property nothrow pure TypeBase dup() const { return new TypeBase; }
 }
 class Type(T, int dim) : TypeBase {
 	override int dimension() const {
@@ -79,11 +88,14 @@ class Type(T, int dim) : TypeBase {
 			import std.format;
 			static assert(is(T == float));
 			try {
-				return format("struct vec%sf", dim);
+				return format("struct vec%s", dim);
 			} catch(Exception) {
 				assert(false);
 			}
 		}
+	}
+	override TypeBase dup() const {
+		return new Type!(T, dim);
 	}
 }
 class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
@@ -107,6 +119,9 @@ class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
 	override string c_type() const {
 		return "struct list_head";
 	}
+	override TypeBase dup() const {
+		return new ArrayType!ElemType;
+	}
 	//array of array not supported
 }
 
@@ -123,7 +138,40 @@ class BinOP : Expr {
 	override @property pure nothrow string str() {
 		return "<" ~ lhs.str ~ op ~ rhs.str ~ ">";
 	}
-	override pure TypeBase gen_type() {
+	override string c_code(Symbols s) {
+		assert(ty !is null);
+		if (ty.dimension != 1) {
+			string suffix = "";
+			final switch(op) {
+			case "+":
+				suffix = "add";
+				break;
+			case "-":
+				suffix = "sub";
+				break;
+			case "*":
+				if (rhs.ty.dimension == 1)
+					suffix = "muln1";
+				else if (lhs.ty.dimension == 1)
+					suffix = "mul1n";
+				else
+					suffix = "mul";
+				break;
+			case "/":
+				if (rhs.ty.dimension == 1)
+					suffix = "div1";
+				else
+					suffix = "div";
+				break;
+			}
+			return format("vec%s_%s(%s, %s)", ty.dimension, suffix,
+				      lhs.c_code(s), rhs.c_code(s));
+		}
+		return format("(%s%s%s)", lhs.c_code(s), op, rhs.c_code(s));
+	}
+	pure TypeBase _gen_type(Symbols s) {
+		lhs.gen_type(s);
+		rhs.gen_type(s);
 		auto ld = lhs.ty.dimension, rd = rhs.ty.dimension;
 		if (ld > 1 || rd > 1) {
 			int resd;
@@ -183,11 +231,18 @@ class UnOP : Expr {
 	T opCast(T: string)() {
 		return op ~ to!string(opr);
 	}
-	override pure TypeBase gen_type() {
-		return opr.gen_type();
+	pure TypeBase _gen_type(Symbols s) {
+		return opr.gen_type(s);
 	}
 	override @property pure nothrow string str() {
 		return op ~ opr.str;
+	}
+	override string c_code(Symbols s) {
+		if (ty.dimension != 1) {
+			assert(op == "-", "Unsupported '"~op~"' on vector");
+			return format("vec%s_neg(%s)", ty.dimension, opr.c_code(s));
+		}
+		return format("(%s%s)", op, opr.c_code(s));
 	}
 	mixin GetTy;
 }
@@ -195,11 +250,25 @@ class UnOP : Expr {
 class Var : LValue {
 	string name;
 	this(string xname) { name = xname; }
-	override pure TypeBase gen_type() {
-		return new Type!(int, 1);
+	pure TypeBase _gen_type(Symbols s) {
+		auto d = s.lookup(name);
+		assert(d !is null, "Undefined symbol "~name);
+		auto vd = cast(VarDecl)d;
+		assert(vd !is null, "Non-variable symbol "~name~" used as variable");
+		return vd.ty.dup;
 	}
 	override @property pure nothrow string str() {
 		return "Var(" ~ name ~ ")";
+	}
+	override string c_code(Symbols s) {
+		auto d = s.lookup(name);
+		assert(d !is null, "Undefined symbol "~name);
+		auto vd = cast(VarDecl)d;
+		assert(vd !is null, name~" is not a variable");
+		if (vd.member)
+			return format("(__current->%s)", name);
+		else
+			return format("(%s)", name);
 	}
 	mixin GetTy;
 }
@@ -229,11 +298,14 @@ class Field : LValue {
 		lhs = xlhs;
 		rhs = xrhs;
 	}
-	override pure TypeBase gen_type() {
+	pure TypeBase _gen_type(Symbols s) {
 		return null;
 	}
 	override @property pure nothrow string str() {
 		return "<" ~ lhs ~ "." ~ rhs ~ ">";
+	}
+	override string c_code(Symbols s) {
+		assert(false, "NIY");
 	}
 	mixin GetTy;
 }
@@ -258,7 +330,7 @@ class Num : Expr {
 	@property pure nothrow string str() {
 		return _str;
 	}
-	override pure nothrow TypeBase gen_type() {
+	pure nothrow TypeBase _gen_type(Symbols s) {
 		switch(_type) {
 		case 0:
 			return new Type!(float, 1);
@@ -266,6 +338,14 @@ class Num : Expr {
 			return new Type!(int, 1);
 		default:
 			assert(0);
+		}
+	}
+	override string c_code(Symbols s) {
+		final switch(_type) {
+		case 0:
+			return format("(%s)", f);
+		case 1:
+			return format("(%s)", i);
 		}
 	}
 	mixin GetTy;
@@ -287,18 +367,17 @@ class Vec(int dim) : Expr if (dim >= 2) {
 		res ~= elem[dim-1].str ~ ")";
 		return res;
 	}
-	override pure nothrow TypeBase gen_type() {
+	pure nothrow TypeBase _gen_type(Symbols s) {
 		return new Type!(float, dim);
 	}
+	override string c_code(Symbols s) {
+		auto res = format("((struct vec%s){", dim);
+		foreach(e; elem)
+			res ~= e.c_code(s)~",";
+		res ~= "})";
+		return res;
+	}
 	mixin GetTy;
-}
-
-immutable bool[string] reserved_names;
-
-static this() {
-	string[] ns = ["_particle"];
-	foreach(n; ns)
-		reserved_names[n] = true;
 }
 
 unittest {
@@ -306,12 +385,19 @@ unittest {
 	writeln("Run ast.d unittest");
 	auto lhs = new Num(1);
 	auto rhs = new Num(1.0);
+	auto s = new Symbols(null);
 	auto bop = new BinOP(lhs, "+", rhs);
+	bop.gen_type(s);
+	writeln(typeid(new Type!(int, 1)));
 	assert(typeid(bop.ty) == typeid(Type!(float, 1)));
 
 	bop = new BinOP(lhs, "-", lhs);
+	bop.gen_type(s);
+	writeln(typeid(bop.ty));
 	assert(typeid(bop.ty) == typeid(Type!(int, 1)));
 
 	bop = new BinOP(lhs, "/", lhs);
+	bop.gen_type(s);
+	writeln(typeid(bop.ty));
 	assert(typeid(bop.ty) == typeid(Type!(float, 1)));
 }

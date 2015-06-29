@@ -1,6 +1,7 @@
 module ast.decl;
 import ast.expr,
-       ast.stmt;
+       ast.stmt,
+       ast.symbols;
 
 interface Decl {
 	@property nothrow pure string symbol();
@@ -8,6 +9,8 @@ interface Decl {
 	final string toString() {
 		return str;
 	}
+	string c_code(Symbols s);
+	void set_prefix(string p);
 }
 
 class EventParameter {
@@ -77,7 +80,7 @@ class StateTransition {
 	}
 	pure nothrow string str() {
 		auto res = "On event " ~ e.str ~ " do:\n";
-		res ~= str_stmt_block(s);
+		res ~= s.str;
 		res ~= "=> " ~ next ~ "\n";
 		return res;
 	}
@@ -87,6 +90,7 @@ class State : Decl {
 	StateTransition[] st;
 	Stmt[] entry;
 	string name;
+	string prefix;
 	this(string xname, Stmt[] e, StateTransition[] xst) {
 		name = xname;
 		st = xst;
@@ -97,25 +101,30 @@ class State : Decl {
 	}
 	@property override string str() {
 		auto res = "state(" ~ name ~ "):\n";
-		res ~= "entry: " ~ str_stmt_block(entry);
+		res ~= "entry: " ~ entry.str;
 		foreach(ste; st)
 			res ~= ste.str;
 		return res;
 	}
-	string c_code(string particle, Symbols p) {
-		auto res = "void " ~ particle ~ "_state_" ~ name ~ "_entry(";
-		res ~= "struct particle *_particle) {\n";
-		res ~= c_code_stmt_block(entry);
+	override void set_prefix(string p) {
+		prefix = p;
+	}
+	override string c_code(Symbols p) {
+		import std.format : format;
+		auto res = format("static inline void %s_state_%s_entry(struct %s *__next) {\n", prefix, name, prefix);
+		res ~= entry.c_code(p);
 		res ~= "}";
 		return res;
 	}
 }
 
 class VarDecl : Decl {
-	TypeBase ty;
+	const(TypeBase) ty;
 	string name;
-	this(TypeBase xty, string xname) {
+	bool member;
+	pure this(const(TypeBase) xty, string xname, bool xmember=false) {
 		name = xname;
+		member = xmember;
 		ty = xty;
 	}
 	override string str() {
@@ -124,17 +133,30 @@ class VarDecl : Decl {
 	override string symbol() {
 		return name;
 	}
+	override string c_code(Symbols s) {
+		return "";
+	}
+	override void set_prefix(string p) { }
 }
 
 class Ctor : Decl {
 	Stmt[] stmt;
+	string prefix;
 	this(Stmt[] x) {
 		stmt = x;
 	}
 	override string str() {
-		return "Ctor: " ~ str_stmt_block(stmt);
+		return "Ctor: " ~ stmt.str;
 	}
 	override string symbol() {
 		return "this";
+	}
+	override string c_code(Symbols s) {
+		auto res = "void "~prefix~"_ctor() {\n";
+		res ~= stmt.c_code(s)~"}";
+		return res;
+	}
+	override void set_prefix(string p) {
+		prefix = p;
 	}
 }

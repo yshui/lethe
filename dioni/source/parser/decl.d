@@ -62,7 +62,7 @@ auto parse_var_decl(Stream i) {
 	r.r.name = "variable declaration";
 	if (!r.ok)
 		return err_result!Decl(r.r);
-	auto ret = new VarDecl(r.result!0, r.result!1);
+	auto ret = new VarDecl(r.result!0, r.result!1, true);
 	return ok_result!Decl(ret, r.consumed, r.r);
 }
 
@@ -84,5 +84,7 @@ auto parse_decl(Stream i) {
 	r.r.name = "declaration";
 	if (!r.ok)
 		return err_result!Decl(r.r);
+	import std.stdio : writeln;
+	writeln(typeid(r.result));
 	return ok_result(r.result, r.consumed, r.r);
 }

@@ -1,7 +1,9 @@
 module ast.stmt;
-import ast.expr;
+import ast.expr, ast.symbols, ast.decl;
+import std.format;
 interface Stmt {
 	@property nothrow pure string str();
+	string c_code(Symbols s);
 }
 class Assign : Stmt {
 	LValue lhs;
@@ -30,8 +32,35 @@ class Assign : Stmt {
 			return lhs.str ~ " = " ~ rhs.str ~ "\n";
 		}
 	}
+	string c_code(Symbols s) {
+		assert(type != Aggregate);
+		rhs.gen_type(s);
+		auto ty = rhs.ty;
+		auto v = cast(Var)lhs;
+		if (v !is null) {
+			auto d = s.lookup(v.name);
+			VarDecl vd;
+			if (d is null) {
+				//New variable
+				vd = new VarDecl(ty, v.name);
+				s.insert(vd);
+			} else {
+				vd = cast(VarDecl)d;
+				assert(vd !is null, "Assigning to non variable");
+				assert(typeid(ty) == typeid(vd.ty), "Type miss match");
+			}
+			if (type == Delayed) {
+				assert(vd.member, "Delayed assign can't be used with non-member");
+				return format("__next->%s = %s;\n", v.name, rhs.c_code(s));
+			} else {
+				assert(!vd.member, "Member variable must use delayed assign");
+				return format("%s = %s;\n", v.name, rhs.c_code(s));
+			}
+		} else
+			assert (false, "Not implemented assign to field");
+	}
 }
-package nothrow pure string str_stmt_block(Stmt[] ss) {
+package nothrow pure string str(Stmt[] ss) {
 	string res = "";
 	foreach(s; ss)
 		res ~= s.str;
@@ -40,7 +69,12 @@ package nothrow pure string str_stmt_block(Stmt[] ss) {
 	return res;
 }
 
-package nothrow pure string c_code_stmt_block(Stmt[] ss, Symbols s) {
+package string c_code(Stmt[] ss, Symbols p) {
+	string res = "";
+	Symbols c = new Symbols(p);
+	foreach(s; ss)
+		res ~= s.c_code(c);
+	return c.c_defs~res;
 }
 class If : Stmt {
 	Expr cond;
@@ -52,11 +86,14 @@ class If : Stmt {
 	}
 	string str() {
 		auto res = "If(" ~ cond.str ~ ") Then {\n";
-		res ~= str_stmt_block(_then);
+		res ~= _then.str;
 		res ~= "} Else {\n";
-		res ~= str_stmt_block(_else);
+		res ~= _else.str;
 		res ~= "}\n";
 		return res;
+	}
+	override string c_code(Symbols s) {
+		assert(false, "NIY");
 	}
 }
 class Foreach : Stmt {
@@ -69,9 +106,12 @@ class Foreach : Stmt {
 	}
 	string str() {
 		auto res = "Foreach(" ~ var.str ~ " in " ~ agg.str ~ ") {\n";
-		res ~= str_stmt_block(bdy);
+		res ~= bdy.str;
 		res ~= "}\n";
 		return res;
+	}
+	override string c_code(Symbols s) {
+		assert(false, "NIY");
 	}
 }
 class Loop : Stmt {
@@ -86,8 +126,11 @@ class Loop : Stmt {
 	}
 	string str() {
 		auto res = "Loop(" ~ (var is null ? "_" : var.str) ~ " from " ~ s.str ~ " to " ~ t.str ~ ") {\n";
-		res ~= str_stmt_block(bdy);
+		res ~= bdy.str;
 		res ~= "}\n";
 		return res;
+	}
+	override string c_code(Symbols s) {
+		assert(false, "NIY");
 	}
 }

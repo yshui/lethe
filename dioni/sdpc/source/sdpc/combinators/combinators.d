@@ -215,12 +215,12 @@ auto lookahead(alias p, alias u, bool negative = false)(Stream i) {
 	i.push();
 
 	auto r = p(i);
-	auto re = Reason(i, "lookahead");
 	alias RetTy = typeof(r);
 	alias ElemTy = ElemType!RetTy;
 	if (!r.ok) {
-		re.dep ~= r.r;
-		return err_result!ElemTy(re);
+		r.r.name = "lookahead";
+		i.pop();
+		return err_result!ElemTy(r.r);
 	}
 
 	i.push();
@@ -233,14 +233,13 @@ auto lookahead(alias p, alias u, bool negative = false)(Stream i) {
 		pass = !pass;
 
 	if (!pass) {
+		auto re = Reason(i, "lookahead");
 		i.pop();
 		if (r2.ok) {
-			auto re2 = r2.r;
-			re2.state = "succeeded";
-			re2.msg = "which is not expected";
-			re.dep ~= re2;
-		} else
-			re.dep ~= r2.r;
+			r2.r.state = "succeeded";
+			r2.r.msg = "which is not expected";
+		}
+		re.dep ~= r2.r;
 		return err_result!ElemTy(re);
 	}
 	i.drop();

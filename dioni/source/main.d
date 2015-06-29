@@ -21,8 +21,13 @@ void main(string[] argv) {
 	Symbols global = new Symbols(null);
 	foreach(p; r.result)
 		global.insert(p);
-	foreach(p; r.result)
-		p.populate_symbols(global);
+	foreach(p; r.result) {
+		if (p.visited)
+			continue;
+		p.gen_symbols(global);
+	}
 	foreach(p; r.result)
 		writeln(p.c_struct);
+	foreach(p; r.result)
+		writeln(p.c_code);
 }

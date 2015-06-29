@@ -89,10 +89,9 @@ auto parse_state_decl(Stream i) {
 		chain!(parse_state_transition_arr, arr_append, discard!(token_ws!",")),
 		token_ws!";"
 	)(i);
-	auto re = r.r;
-	re.name = "state";
+	r.r.name = "state";
 	if (!r.ok)
-		return err_result!Decl(re);
+		return err_result!Decl(r.r);
 
-	return ok_result!Decl(new State(r.result!1, r.result!2, r.result!3), r.consumed, re);
+	return ok_result!Decl(new State(r.result!1, r.result!2, r.result!3), r.consumed, r.r);
 }

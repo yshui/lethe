@@ -3,6 +3,7 @@
 	"description": "LetheC",
 	"copyright": "Copyright © 2015, Yuxuan Shui",
 	"authors": ["Yuxuan Shui"],
+	"license" : "Custom",
 	"dependencies": {
 		"dioni:sdpc" : "*"
 	},
