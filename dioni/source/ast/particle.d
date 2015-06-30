@@ -5,7 +5,7 @@ class Particle : Decl {
 	string name, parent;
 	private Particle p;
 	private Symbols s;
-	private bool _visited;
+	private bool _visited, _visiting;
 	@property nothrow pure bool visited() const {
 		return _visited;
 	}
@@ -40,8 +40,11 @@ class Particle : Decl {
 		return res;
 	}
 	void gen_symbols(Symbols glob) {
-		assert(!_visited, "Possible inheritance circle");
-		_visited = true;
+		if (_visited)
+			return;
+
+		assert(!_visiting, "Possible inheritance circle");
+		_visiting = true;
 		if (parent !is null) {
 			auto d = glob.lookup(parent);
 			assert(d !is null, "Base particle "~parent~" not found");
@@ -59,6 +62,8 @@ class Particle : Decl {
 			}
 			s.insert(d, true);
 		}
+		_visited = true;
+		_visiting = false;
 	}
 	override @property nothrow pure string str() {
 		auto res = "particle " ~ name;

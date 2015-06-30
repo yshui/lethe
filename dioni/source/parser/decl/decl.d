@@ -1,4 +1,4 @@
-module parser.decl;
+module parser.decl.decl;
 import ast.decl,
        ast.expr,
        ast.stmt;
@@ -90,5 +90,16 @@ auto parse_decl(Stream i) {
 		return err_result!Decl(r.r);
 	import std.stdio : writeln;
 	writeln(typeid(r.result));
+	return ok_result(r.result, r.consumed, r.r);
+}
+
+auto parse_top_decl(Stream i) {
+	auto r = choice!(
+		parse_particle,
+		parse_event
+	)(i);
+	r.r.name = "top level declaration";
+	if (!r.ok)
+		return err_result!Decl(r.r);
 	return ok_result(r.result, r.consumed, r.r);
 }

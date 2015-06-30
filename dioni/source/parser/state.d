@@ -23,30 +23,25 @@ import parser.stmt,
 import sdpc;
 auto parse_event_parameter(Stream i) {
 	auto re = Reason(i, "event parameter");
-	if (i.starts_with("_")) {
-		i.advance(1);
-		return ok_result!EventParameter(new EventParameter(), 1, re);
-	}
 
-	auto r = choice!(
-		seq!(
-			token_ws!"~",
-			parse_var_expr
-		),
-		seq!(
-			token_ws!"=",
-			parse_primary
-		),
+	auto r = seq!(
+		parse_var_expr,
+		token_ws!"~",
+		parse_primary
 	)(i);
 	r.r.name = "event parameter";
 	if (!r.ok)
 		return err_result!EventParameter(r.r);
+	
+	auto condv = cast(Var)r.result!2;
+	auto expr = r.result!2;
+	auto var = r.result!0;
+	if (condv !is null && condv.name == "_")
+		expr = null;
+	if (var.name == "_")
+		var = null;
 
-	EventParameter ep;
-	if (r.result!0 == "~")
-		ep = new EventParameter(cast(Var)r.result!1);
-	else
-		ep = new EventParameter(r.result!1);
+	auto ep = new EventParameter(var, expr);
 	return ok_result!EventParameter(ep, r.consumed, r.r);
 }
 auto parse_event(Stream i) {

@@ -10,7 +10,7 @@ void main(string[] argv) {
 
 	char[] file_content = cast(char[])read(argv[1]);
 	auto i = new BufStream(cast(immutable(char)[])file_content);
-	auto r = many!parse_particle(i);
+	auto r = many!parse_top_decl(i);
 
 	writefln("%s, %s", r.consumed, i.head.length);
 	if (!i.eof)
@@ -21,7 +21,10 @@ void main(string[] argv) {
 	Symbols global = new Symbols(null);
 	foreach(p; r.result)
 		global.insert(p);
-	foreach(p; r.result) {
+	foreach(pd; r.result) {
+		auto p = cast(Particle)pd;
+		if (p is null)
+			continue;
 		if (p.visited)
 			continue;
 		p.gen_symbols(global);

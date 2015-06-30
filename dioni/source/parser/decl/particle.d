@@ -1,4 +1,4 @@
-module parser.particle;
+module parser.decl.particle;
 import ast.particle;
 import parser.decl, parser.utils;
 import sdpc;

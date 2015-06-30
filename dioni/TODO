@@ -1,5 +1,8 @@
 # Must
 * Generate state transition functions
 
+# Useful
+* Particle tag support (partcile Name[Tag1, Tag2, ...] : Parent { ... })
+
 # Maybe
 * Aggregator implementation, enforce every aggregator is cleared before write

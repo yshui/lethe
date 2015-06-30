@@ -17,48 +17,36 @@ interface Decl {
 class EventParameter {
 	Var var;
 	Expr expr;
-	static enum {
-		Match,
-		Assign,
-		Ignore
-	}
-	int type;
-	this(Var v) {
-		assert(v !is null);
-		type = Assign;
+	this(Var v, Expr e) {
 		var = v;
-	}
-	this(Expr e) {
-		assert(e !is null);
-		type = Match;
 		expr = e;
 	}
-	this() {
-		type = Ignore;
+	string str() {
+		string res;
+		if (var is null)
+			res = "_";
+		else
+			res = var.name;
+		res ~= "~";
+		if (expr is null)
+			res ~= "_";
+		else
+			res ~= expr.str;
+		return res;
 	}
 }
 
 package pure nothrow string str_event_parameters(EventParameter[] ep) {
 	auto res = "";
 	foreach(i, e; ep) {
-		final switch(e.type) {
-		case EventParameter.Match:
-			res ~= "=" ~ e.expr.str;
-			break;
-		case EventParameter.Assign:
-			res ~= "~" ~ e.var.str;
-			break;
-		case EventParameter.Ignore:
-			res ~= "_";
-			break;
-		}
-		if (i+1 != ep.length)
+		if (i)
 			res ~= ", ";
+		res ~= e.str;
 	}
 	return res;
 }
 
-class Event {
+class Condition {
 	string name;
 	EventParameter[] ep;
 	this(string xname, EventParameter[] xep) {
@@ -71,7 +59,7 @@ class Event {
 }
 
 class StateTransition {
-	Event e;
+	Condition e;
 	string next;
 	Stmt[] s;
 	this(Event xe, Stmt[] xs, string xnext) {
@@ -84,6 +72,9 @@ class StateTransition {
 		res ~= s.str;
 		res ~= "=> " ~ next ~ "\n";
 		return res;
+	}
+	string c_code(Symbols s) {
+		return s.c_code(s);
 	}
 }
 
@@ -131,7 +122,14 @@ class State : Decl {
 		import std.format : format;
 		auto res = format("static inline void %s_state_%s_entry(%s) {\n", _prefix, name, _particle.param_list);
 		res ~= entry.c_code(p);
-		res ~= "}";
+		res ~= "}\n";
+		foreach(i, x; st) {
+			res ~= format("static inline void %s_state_%s_event_%s%s(%s, struct event_%s* __event) {\n",
+				      _prefix, name, x.e.name, i, _particle.param_list, x.e.name);
+			res ~= st.e.c_code(p);
+			res ~= x.c_code(p);
+			res ~= "}\n";
+		}
 		return res;
 	}
 }
@@ -184,5 +182,29 @@ class Ctor : Decl {
 	}
 	override @property void particle(string p) {
 		_particle = p;
+	}
+}
+
+class Event : Decl {
+	VarDecl[] member;
+	string name;
+	this(string x, VarDecl[] vd) {
+		member = vd;
+		name = x;
+	}
+	override string str() {
+		return "Event "~name;
+	}
+	override string symbol() {
+		return name;
+	}
+	override string c_code(Symbols s) {
+		assert(false);
+	}
+	override @property void prefix(string p) {
+		assert(false);
+	}
+	override @property void particle(string p) {
+		assert(false);
 	}
 }
