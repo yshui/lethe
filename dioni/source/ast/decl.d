@@ -4,12 +4,13 @@ import ast.expr,
        ast.symbols;
 
 interface Decl {
-	@property nothrow pure string symbol();
-	@property nothrow pure string str();
-	final string toString() {
+	@property nothrow pure string symbol() const;
+	@property nothrow pure string str() const;
+	final string toString() const {
 		return str;
 	}
-	string c_code(string particle, string prefix, Symbols s);
+	string c_code(string particle, string prefix, Symbols s) const;
+	pure nothrow Decl combine(const(Decl) o) const;
 }
 
 class EventParameter {
@@ -100,30 +101,33 @@ class State : Decl {
 		st = xst;
 		entry = e;
 	}
-	override string symbol() {
+	override Decl combine(const(Decl) _o) const {
+		auto o = cast(State)_o;
+		assert(o !is null, "Can't combine state with non-state");
+		assert(entry.length == 0 || o.entry.length == 0,
+		       "Can't combine two state when they both have entry actions");
+		StateTransition[] new_st = st~o.st;
+		Stmt[] new_e = entry~o.entry;
+		return new State(name, new_e, new_st);
+	}
+	override string symbol() const {
 		return name;
 	}
-	@property override string str() {
+	@property override string str() const {
 		auto res = "state("~name~"):\n";
 		res ~= "entry: "~entry.str;
 		foreach(ste; st)
 			res ~= ste.str;
 		return res;
 	}
-	override @property void prefix(string p) {
-		_prefix = p;
-	}
-	override @property void particle(string p) {
-		_particle = p;
-	}
-	override string c_code(Symbols p) {
+	override string c_code(string particle, string prefix, Symbols p) const {
 		import std.format : format;
-		auto res = format("static inline void %s_state_%s_entry(%s) {\n", _prefix, name, _particle.param_list);
+		auto res = format("static inline void %s_state_%s_entry(%s) {\n", prefix, name, particle.param_list);
 		res ~= entry.c_code(p);
 		res ~= "}\n";
 		foreach(i, x; st) {
 			res ~= format("static inline void %s_state_%s_event_%s%s(%s, struct event_%s* __event) {\n",
-				      _prefix, name, x.e.name, i, _particle.param_list, x.e.name);
+				      prefix, name, x.e.name, i, particle.param_list, x.e.name);
 			res ~= st.e.c_code(p);
 			res ~= x.c_code(p);
 			res ~= "}\n";
@@ -145,17 +149,18 @@ class VarDecl : Decl {
 		sc = xsc;
 		ty = xty;
 	}
-	override string str() {
+	override Decl combine(const(Decl) _) const {
+		assert(false, "Combining variables with name "~name);
+	}
+	override string str() const {
 		return name ~ ":" ~ ty.str ~ "\n";
 	}
-	override string symbol() {
+	override string symbol() const {
 		return name;
 	}
-	override string c_code(Symbols s) {
+	override string c_code(string a, string b, Symbols s) const {
 		return "";
 	}
-	override @property void prefix(string p) { }
-	override @property void particle(string p) { }
 }
 
 class Ctor : Decl {
@@ -164,22 +169,16 @@ class Ctor : Decl {
 	this(Stmt[] x) {
 		stmt = x;
 	}
-	override string str() {
+	override string str() const {
 		return "Ctor: " ~ stmt.str;
 	}
-	override string symbol() {
-		return "this";
+	override string symbol() const {
+		return "_";
 	}
-	override string c_code(Symbols s) {
-		auto res = "static inline void "~_prefix~"_ctor("~_particle.param_list~") {\n";
+	override string c_code(string particle, string prefix, Symbols s) const {
+		auto res = "static inline void "~prefix~"_ctor("~particle.param_list~") {\n";
 		res ~= stmt.c_code(s)~"}";
 		return res;
-	}
-	override @property void prefix(string p) {
-		_prefix = p;
-	}
-	override @property void particle(string p) {
-		_particle = p;
 	}
 }
 
@@ -190,19 +189,13 @@ class Event : Decl {
 		member = vd;
 		name = x;
 	}
-	override string str() {
+	override string str() const {
 		return "Event "~name;
 	}
-	override string symbol() {
+	override string symbol() const {
 		return name;
 	}
-	override string c_code(Symbols s) {
-		assert(false);
-	}
-	override @property void prefix(string p) {
-		assert(false);
-	}
-	override @property void particle(string p) {
+	override string c_code(string a, string b, Symbols s) const {
 		assert(false);
 	}
 }

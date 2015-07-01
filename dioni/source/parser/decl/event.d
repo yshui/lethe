@@ -1,5 +1,6 @@
 module parser.decl.event;
 import parser.decl;
+import sdpc;
 auto parse_member_type(Stream i) {
 	auto r = choice!(
 		token_ws!"int",

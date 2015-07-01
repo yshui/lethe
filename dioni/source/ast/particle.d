@@ -1,15 +1,5 @@
 module ast.particle;
 import ast.decl, ast.symbols;
-class ProxyDecl : Decl {
-	Decl d;
-	Particle owner;
-	override string symbol() {
-		return d.symbol;
-	}
-	string c_code(string particle, string prefix, Symbols s) {
-		return d.c_code(particle, prefix, s);
-	}
-}
 class Particle : Decl {
 	Decl[] decl;
 	string name;
@@ -19,28 +9,25 @@ class Particle : Decl {
 	private Particle p;
 	private Symbols s;
 	private bool _visited, _visiting;
+	override size_t toHash() {
+		return name.toHash();
+	}
+	override Decl combine(const(Decl) _) const {
+		assert(false);
+	}
 	@property nothrow pure bool visited() const {
 		return _visited;
 	}
-	this(string xn, string t[], string com[], Decl[] d) {
+	this(string xn, string[] t, string[] com, Decl[] d) {
 		decl = d;
 		name = xn;
 		component_str = com;
 		tag = t;
 	}
-	override string c_code(string particle, string prefix, Symbols xs) {
+	override string c_code(string particle, string prefix, Symbols xs) const {
 		return c_code;
 	}
-	const(Decl)[] local_decl() const {
-		const(Decl)[] ret = [];
-		foreach(d; decl) {
-			if (d.symbol == "this")
-				continue;
-			ret ~= d;
-		}
-		return ret;
-	}
-	string c_code() {
+	string c_code() const {
 		int this_count = 0;
 		foreach(d; decl) {
 			if (d.symbol == "this") {
@@ -56,33 +43,62 @@ class Particle : Decl {
 			res ~= d.c_code(s);
 		return res;
 	}
-	void gen_symbols(Symbols glob) {
+	void resolve(Symbols glob) {
 		if (_visited)
 			return;
-
 		assert(!_visiting, "Possible inheritance circle");
 		_visiting = true;
+
 		s = new Symbols(glob);
+
+		//Get all dependencies of this particle
+		bool[Particle] dict;
 		foreach(c; component_str) {
 			auto d = glob.lookup(c);
 			assert(d !is null, "Mixin particle "~c~" not found");
 			auto p = cast(Particle)d;
 			assert(d !is null, c~" is not a particle");
-			p.gen_symbols(glob);
-			component ~= [p];
+			p.resolve(glob);
+			foreach(c; p.component)
+				dict[c] = true;
+			dict[p] = true;
 		}
+
+		//Generate tags
+		bool[string] tagd;
+		foreach(c; dict.keys) {
+			component ~= c;
+			foreach(t; c.tag)
+				tagd[t] = true;
+		}
+		foreach(t; tag) {
+			if (t[0] == '-')
+				tagd[t[1..$]] = false;
+			else
+				tagd[t] = true;
+		}
+		tag = tagd.keys;
+
+		//Now generate the symbols, try to combine them when duplicates are found
 		foreach(d; decl) {
-			if (d.symbol == "this") {
-				auto c = cast(Ctor)d;
-				assert(c !is null, "Can't have variable/state named 'this'");
+			if (cast(Ctor)d !is null)
 				continue;
-			}
 			s.insert(d);
 		}
+		foreach(c; component) {
+			foreach(od; c.s.table) {
+				auto d = s.lookup(od.symbol);
+				if (d is null)
+					s.insert(d);
+				else
+					s.replace(d.combine(od));
+			}
+		}
+
 		_visited = true;
 		_visiting = false;
 	}
-	override @property nothrow pure string str() {
+	override @property nothrow pure string str() const {
 		auto res = "particle " ~ name;
 		if (parent !is null)
 			res ~= ":" ~ parent ~ "{\n";
@@ -93,34 +109,21 @@ class Particle : Decl {
 		res ~= "}";
 		return res;
 	}
-	private pure string bare_c_struct(string suffix, StorageClass sc) {
+	private pure string bare_c_struct(StorageClass sc) const {
 		auto res = "";
 		foreach(c; component)
-			res ~= "struct "~c~suffix~" p_"~c~";\n";
+			res ~= c.bare_c_struct(sc);
 		res ~= s.c_defs(sc);
 		return res;
 	}
-	@property pure string c_structs() {
-		auto res = "struct "~name~" {\n"~bare_c_struct("", StorageClass.Particle)~"};\n";
-		res ~= "struct "~name~"_shared {\n"~bare_c_struct("_shared", StorageClass.Shared)~"};";
+	@property pure string c_structs() const {
+		auto res = "struct "~name~" {\n"~bare_c_struct(StorageClass.Particle)~"};\n";
+		res ~= "struct "~name~"_shared {\n"~bare_c_struct(StorageClass.Shared)~"};";
 		return res;
 	}
-	@property pure string c_forward_defs() {
-		return "struct "~name~";\nstruct "~name~"_shared;\n";
-	}
-	override string symbol() {
+	override string symbol() const {
 		return name;
 	}
-	Decl member(string symbol) {
-		return s.lookup(symbol);
-	}
-	string c_member_var(string symbol) {
-		auto d = s.lookup(symbol);
-		assert(d !is null, "Accessing non-existent member "~symbol);
-		auto vd = cast(VarDecl)d;
-		assert(vd !is null, "Using non-variable member '"~symbol~"' as variable");
-
-		
 
 	alias toString = str;
 }

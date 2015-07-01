@@ -18,6 +18,13 @@ class Symbols {
 		assert(lookup(d.symbol) is null, "Duplicated name "~d.symbol);
 		table[d.symbol] = d;
 	}
+	void replace(Decl d) {
+		if ((d.symbol in table) is null) {
+			insert(d);
+			return;
+		}
+		table[d.symbol] = d;
+	}
 	this(Symbols p) {
 		parent = p;
 	}

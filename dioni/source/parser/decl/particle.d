@@ -4,10 +4,23 @@ import parser.decl, parser.utils;
 import sdpc;
 auto parse_idarr(Stream i) {
 	auto r = identifier(i);
-	r.r.name = "identifier array";
+	r.r.name = "mixin array";
 	if (!r.ok)
 		return err_result!(string[])(r.r);
 	return ok_result([r.result], r.consumed, r.r);
+}
+auto parse_tagarr(Stream i) {
+	auto r = seq!(
+		optional!(token_ws!"-"),
+		identifier(i)
+	)(i);
+	r.r.name = "tag array";
+	if (!r.ok)
+		return err_result!(string[])(r.r);
+	auto res = r.result!1;
+	if (r.result!0 !is null)
+		res = r.result!0~res;
+	return ok_result([res], r.consumed, r.r);
 }
 auto parse_particle(Stream i) {
 	auto r = seq!(
