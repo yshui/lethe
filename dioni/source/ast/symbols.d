@@ -2,8 +2,8 @@ module ast.symbols;
 import ast.decl;
 class Symbols {
 	Decl[string] table;
-	Symbols parent;
-	pure nothrow Decl lookup(string name) {
+	const(Symbols) parent;
+	pure nothrow const(Decl) lookup(string name) const {
 		if (name is null)
 			return null;
 		if ((name in table) !is null)
@@ -13,10 +13,10 @@ class Symbols {
 		else
 			return null;
 	}
-	void insert(Decl d) {
+	void insert(const(Decl) d) {
 		assert((d.symbol in reserved_names) is null, "Reserved name "~d.symbol);
 		assert(lookup(d.symbol) is null, "Duplicated name "~d.symbol);
-		table[d.symbol] = d;
+		table[d.symbol] = cast(Decl)d;
 	}
 	void replace(Decl d) {
 		if ((d.symbol in table) is null) {
@@ -25,7 +25,7 @@ class Symbols {
 		}
 		table[d.symbol] = d;
 	}
-	this(Symbols p) {
+	pure this(const(Symbols) p) {
 		parent = p;
 	}
 	pure string c_defs(StorageClass sc) const {

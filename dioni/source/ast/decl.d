@@ -9,7 +9,7 @@ interface Decl {
 	final string toString() const {
 		return str;
 	}
-	string c_code(string particle, string prefix, Symbols s) const;
+	string c_code(string particle, string prefix, const(Symbols) s) const;
 	pure nothrow Decl combine(const(Decl) o) const;
 }
 
@@ -20,7 +20,7 @@ class EventParameter {
 		var = v;
 		expr = e;
 	}
-	string str() {
+	nothrow pure string str() const {
 		string res;
 		if (var is null)
 			res = "_";
@@ -35,7 +35,7 @@ class EventParameter {
 	}
 }
 
-package pure nothrow string str_event_parameters(EventParameter[] ep) {
+package pure nothrow string str_ep(const(EventParameter)[] ep) {
 	auto res = "";
 	foreach(i, e; ep) {
 		if (i)
@@ -47,33 +47,33 @@ package pure nothrow string str_event_parameters(EventParameter[] ep) {
 
 class Condition {
 	string name;
-	EventParameter[] ep;
-	this(string xname, EventParameter[] xep) {
+	const(EventParameter)[] ep;
+	this(string xname, const(EventParameter)[] xep) {
 		ep = xep;
 		name = xname;
 	}
-	pure nothrow string str() {
-		return name ~ "(" ~ str_event_parameters(ep) ~ ")";
+	pure nothrow string str() const {
+		return name ~ "(" ~ ep.str_ep ~ ")";
 	}
 }
 
 class StateTransition {
 	Condition e;
 	string next;
-	Stmt[] s;
-	this(Event xe, Stmt[] xs, string xnext) {
+	const(Stmt)[] s;
+	this(Condition xe, const(Stmt)[] xs, string xnext) {
 		e = xe;
 		s = xs;
 		next = xnext;
 	}
-	pure nothrow string str() {
+	pure nothrow string str() const {
 		auto res = "On event " ~ e.str ~ " do:\n";
 		res ~= s.str;
 		res ~= "=> " ~ next ~ "\n";
 		return res;
 	}
-	string c_code(Symbols s) {
-		return s.c_code(s);
+	string c_code(const(Symbols) p) const {
+		return s.c_code(p);
 	}
 }
 
@@ -92,11 +92,11 @@ pure nothrow string param_list(string particle) {
 }
 
 class State : Decl {
-	StateTransition[] st;
-	Stmt[] entry;
+	const(StateTransition)[] st;
+	const(Stmt)[] entry;
 	string name;
 	private string _prefix, _particle;
-	this(string xname, Stmt[] e, StateTransition[] xst) {
+	nothrow pure this(string xname, const(Stmt)[] e, const(StateTransition)[] xst) {
 		name = xname;
 		st = xst;
 		entry = e;
@@ -106,8 +106,8 @@ class State : Decl {
 		assert(o !is null, "Can't combine state with non-state");
 		assert(entry.length == 0 || o.entry.length == 0,
 		       "Can't combine two state when they both have entry actions");
-		StateTransition[] new_st = st~o.st;
-		Stmt[] new_e = entry~o.entry;
+		const(StateTransition)[] new_st = st~o.st;
+		const(Stmt)[] new_e = entry~o.entry;
 		return new State(name, new_e, new_st);
 	}
 	override string symbol() const {
@@ -120,7 +120,7 @@ class State : Decl {
 			res ~= ste.str;
 		return res;
 	}
-	override string c_code(string particle, string prefix, Symbols p) const {
+	override string c_code(string particle, string prefix, const(Symbols) p) const {
 		import std.format : format;
 		auto res = format("static inline void %s_state_%s_entry(%s) {\n", prefix, name, particle.param_list);
 		res ~= entry.c_code(p);
@@ -128,7 +128,7 @@ class State : Decl {
 		foreach(i, x; st) {
 			res ~= format("static inline void %s_state_%s_event_%s%s(%s, struct event_%s* __event) {\n",
 				      prefix, name, x.e.name, i, particle.param_list, x.e.name);
-			res ~= st.e.c_code(p);
+			//res ~= st.e.c_code(p); //Generate code for matching the condition TODO
 			res ~= x.c_code(p);
 			res ~= "}\n";
 		}
@@ -158,7 +158,7 @@ class VarDecl : Decl {
 	override string symbol() const {
 		return name;
 	}
-	override string c_code(string a, string b, Symbols s) const {
+	override string c_code(string a, string b, const(Symbols) s) const {
 		return "";
 	}
 }
@@ -175,7 +175,10 @@ class Ctor : Decl {
 	override string symbol() const {
 		return "_";
 	}
-	override string c_code(string particle, string prefix, Symbols s) const {
+	override Decl combine(const(Decl) _) const {
+		assert(false);
+	}
+	override string c_code(string particle, string prefix, const(Symbols) s) const {
 		auto res = "static inline void "~prefix~"_ctor("~particle.param_list~") {\n";
 		res ~= stmt.c_code(s)~"}";
 		return res;
@@ -189,13 +192,16 @@ class Event : Decl {
 		member = vd;
 		name = x;
 	}
+	override Decl combine(const(Decl) _) const {
+		assert(false);
+	}
 	override string str() const {
 		return "Event "~name;
 	}
 	override string symbol() const {
 		return name;
 	}
-	override string c_code(string a, string b, Symbols s) const {
+	override string c_code(string a, string b, const(Symbols) s) const {
 		assert(false);
 	}
 }

@@ -1,6 +1,7 @@
 module parser.decl.event;
-import parser.decl;
+import parser.decl, parser.utils;
 import sdpc;
+import ast.expr, ast.decl, ast.particle;
 auto parse_member_type(Stream i) {
 	auto r = choice!(
 		token_ws!"int",
@@ -33,15 +34,15 @@ auto parse_event_member(Stream i) {
 }
 auto parse_event(Stream i) {
 	auto r = seq!(
-		token_ws!"event",
+		discard!(token_ws!"event"),
 		identifier,
-		token_ws!"{",
+		discard!(token_ws!"{"),
 		many!parse_event_member,
 		token_ws!"}"
 	)(i);
 	r.r.name = "event definition";
 	if (!r.ok)
 		return err_result!Decl(r.r);
-	return ok_result!Decl(new Event(r.result!1, r.result!2), r.consumed, r.r);
+	return ok_result!Decl(new Event(r.result!0, r.result!1), r.consumed, r.r);
 }
 

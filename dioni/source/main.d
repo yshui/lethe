@@ -1,6 +1,6 @@
 import std.stdio, std.file;
 import parser;
-import ast.symbols;
+import ast.symbols, ast.particle;
 import sdpc;
 void main(string[] argv) {
 	if (argv.length < 2) {
@@ -27,21 +27,20 @@ void main(string[] argv) {
 			continue;
 		if (p.visited)
 			continue;
-		p.gen_symbols(global);
+		p.resolve(global);
 	}
 
 	auto mainf = File("statefn.c", "w");
 	auto defsf = File("defs.h", "w");
 	defsf.writeln("#include \"stdlib/vec.h\"\n");
-	foreach(id, p; r.result)
-		defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, id);
-
-	foreach(p; r.result)
-		defsf.writeln(p.c_structs);
-
 	mainf.writeln("#include \"defs.h\"");
-	foreach(p; r.result)
+	foreach(id, pd; r.result) {
+		auto p = cast(Particle)pd;
+		if (p is null)
+			continue;
+		defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, id);
+		defsf.writeln(p.c_structs);
 		mainf.writeln(p.c_code);
-
+	}
 
 }

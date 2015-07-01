@@ -7,10 +7,8 @@ import std.conv,
        std.format;
 import dioni.utils;
 interface Expr {
-	pure TypeBase gen_type(Symbols s);
-	@property @nogc pure nothrow const(TypeBase) ty();
-	@property pure nothrow string str();
-	string c_code(Symbols s);
+	@property pure nothrow string str() const;
+	string c_code(Symbols s, out TypeBase ty) const;
 }
 
 interface LValue : Expr {
@@ -19,7 +17,7 @@ interface LValue : Expr {
 	}
 }
 
-TypeBase type_matching(T...)(const(TypeBase)[] ity) {
+pure TypeBase type_matching(T...)(const(TypeBase)[] ity) {
 	pattern_loop: foreach(tp; T) {
 		static if (is(tp: TypePattern!M, M...)) {
 			assert(ity.length+1 == M.length);
@@ -36,20 +34,6 @@ TypeBase type_matching(T...)(const(TypeBase)[] ity) {
 	foreach(n; ity)
 		exc ~= ", " ~ n.str;
 	throw new Exception(exc);
-}
-
-template GetTy() {
-	private TypeBase _ty;
-	override pure TypeBase gen_type(Symbols s) {
-		if (_ty !is null)
-			return _ty.dup;
-		_ty = _gen_type(s);
-		return _ty.dup;
-	}
-	override @property nothrow pure const(TypeBase) ty() {
-		assert(_ty !is null);
-		return _ty;
-	}
 }
 
 class TypeBase {
@@ -135,11 +119,13 @@ class BinOP : Expr {
 		rhs = xrhs;
 		op = xop;
 	}
-	override @property pure nothrow string str() {
+	override @property pure nothrow string str() const {
 		return "<" ~ lhs.str ~ op ~ rhs.str ~ ">";
 	}
-	override string c_code(Symbols s) {
-		assert(ty !is null);
+	override string c_code(Symbols s, out TypeBase ty) const {
+		TypeBase lty, rty;
+		auto lcode = lhs.c_code(s, lty), rcode = rhs.c_code(s, rty);
+		ty = gen_type(lty, rty, op);
 		if (ty.dimension != 1) {
 			string suffix = "";
 			final switch(op) {
@@ -150,29 +136,27 @@ class BinOP : Expr {
 				suffix = "sub";
 				break;
 			case "*":
-				if (rhs.ty.dimension == 1)
+				if (rty.dimension == 1)
 					suffix = "muln1";
-				else if (lhs.ty.dimension == 1)
+				else if (lty.dimension == 1)
 					suffix = "mul1n";
 				else
 					suffix = "mul";
 				break;
 			case "/":
-				if (rhs.ty.dimension == 1)
+				if (rty.dimension == 1)
 					suffix = "div1";
 				else
 					suffix = "div";
 				break;
 			}
 			return format("vec%s_%s(%s, %s)", ty.dimension, suffix,
-				      lhs.c_code(s), rhs.c_code(s));
+				      lcode, rcode);
 		}
-		return format("(%s%s%s)", lhs.c_code(s), op, rhs.c_code(s));
+		return format("(%s%s%s)", lcode, op, rcode);
 	}
-	pure TypeBase _gen_type(Symbols s) {
-		lhs.gen_type(s);
-		rhs.gen_type(s);
-		auto ld = lhs.ty.dimension, rd = rhs.ty.dimension;
+	static pure TypeBase gen_type(const(TypeBase) lty, const(TypeBase) rty, string op) {
+		auto ld = lty.dimension, rd = rty.dimension;
 		if (ld > 1 || rd > 1) {
 			int resd;
 			switch(op) {
@@ -207,18 +191,17 @@ class BinOP : Expr {
 				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
 				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(float, 1)),
 				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
-			)([lhs.ty, rhs.ty]);
+			)([lty, rty]);
 		} else if (op == "/") {
 			return type_matching!(
 				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(int, 1)),
 				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
 				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(float, 1)),
 				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
-			)([lhs.ty, rhs.ty]);
+			)([lty, rty]);
 		}
 		assert(false);
 	}
-	mixin GetTy;
 }
 
 class UnOP : Expr {
@@ -231,40 +214,32 @@ class UnOP : Expr {
 	T opCast(T: string)() {
 		return op ~ to!string(opr);
 	}
-	pure TypeBase _gen_type(Symbols s) {
-		return opr.gen_type(s);
-	}
-	override @property pure nothrow string str() {
+	override @property pure nothrow string str() const {
 		return op ~ opr.str;
 	}
-	override string c_code(Symbols s) {
+	override string c_code(Symbols s, out TypeBase ty) const {
+		auto ocode = opr.c_code(s, ty);
 		if (ty.dimension != 1) {
 			assert(op == "-", "Unsupported '"~op~"' on vector");
-			return format("vec%s_neg(%s)", ty.dimension, opr.c_code(s));
+			return format("vec%s_neg(%s)", ty.dimension, ocode);
 		}
-		return format("(%s%s)", op, opr.c_code(s));
+		return format("(%s%s)", op, ocode);
 	}
-	mixin GetTy;
 }
 
 class Var : LValue {
 	string name;
 	this(string xname) { name = xname; }
-	pure TypeBase _gen_type(Symbols s) {
-		auto d = s.lookup(name);
-		assert(d !is null, "Undefined symbol "~name);
-		auto vd = cast(VarDecl)d;
-		assert(vd !is null, "Non-variable symbol "~name~" used as variable");
-		return vd.ty.dup;
-	}
-	override @property pure nothrow string str() {
+	override @property pure nothrow string str() const {
 		return "Var(" ~ name ~ ")";
 	}
-	override string c_code(Symbols s) {
+	override string c_code(Symbols s, out TypeBase ty) const {
 		auto d = s.lookup(name);
 		assert(d !is null, "Undefined symbol "~name);
 		auto vd = cast(VarDecl)d;
 		assert(vd !is null, name~" is not a variable");
+
+		ty = vd.ty.dup;
 		final switch(vd.sc) {
 		case StorageClass.Particle:
 			return format("(__current->%s)", name);
@@ -274,7 +249,6 @@ class Var : LValue {
 			return format("(%s)", name);
 		}
 	}
-	mixin GetTy;
 }
 
 /*
@@ -302,16 +276,15 @@ class Field : LValue {
 		lhs = xlhs;
 		rhs = xrhs;
 	}
-	pure TypeBase _gen_type(Symbols s) {
+	pure TypeBase _gen_type(Symbols s) const {
 		return null;
 	}
-	override @property pure nothrow string str() {
+	override @property pure nothrow string str() const {
 		return "<" ~ lhs ~ "." ~ rhs ~ ">";
 	}
-	override string c_code(Symbols s) {
+	override string c_code(Symbols s, out TypeBase ty) const {
 		assert(false, "NIY");
 	}
-	mixin GetTy;
 }
 
 class Num : Expr {
@@ -331,28 +304,19 @@ class Num : Expr {
 		i = a;
 		_str = "Int(" ~ to!string(i) ~ ")";
 	}
-	@property pure nothrow string str() {
+	@property pure nothrow string str() const {
 		return _str;
 	}
-	pure nothrow TypeBase _gen_type(Symbols s) {
-		switch(_type) {
-		case 0:
-			return new Type!(float, 1);
-		case 1:
-			return new Type!(int, 1);
-		default:
-			assert(0);
-		}
-	}
-	override string c_code(Symbols s) {
+	override string c_code(Symbols s, out TypeBase ty) const {
 		final switch(_type) {
 		case 0:
-			return format("(%s)", f);
+			ty = new Type!(float, 1);
+			return "("~text(f)~")";
 		case 1:
-			return format("(%s)", i);
+			ty = new Type!(int, 1);
+			return "("~text(i)~")";
 		}
 	}
-	mixin GetTy;
 }
 
 class Vec(int dim) : Expr if (dim >= 2) {
@@ -364,24 +328,25 @@ class Vec(int dim) : Expr if (dim >= 2) {
 		foreach(i; StaticRange!(0, dim))
 			elem[i] = xelem[i];
 	}
-	override @property pure nothrow string str() {
+	override @property pure nothrow string str() const {
 		auto res = _header.dup;
 		foreach(i; StaticRange!(0, dim-1))
 			res ~= elem[i].str ~ ", ";
 		res ~= elem[dim-1].str ~ ")";
 		return res;
 	}
-	pure nothrow TypeBase _gen_type(Symbols s) {
-		return new Type!(float, dim);
-	}
-	override string c_code(Symbols s) {
+	override string c_code(Symbols s, out TypeBase ty) const {
+		ty = new Type!(float, dim);
 		auto res = format("((struct vec%s){", dim);
-		foreach(e; elem)
-			res ~= e.c_code(s)~",";
+		foreach(e; elem) {
+			TypeBase tmpty;
+			res ~= e.c_code(s, tmpty)~",";
+			assert(typeid(tmpty) == typeid(Type!(int, 1)) ||
+			       typeid(tmpty) == typeid(Type!(float, 1)));
+		}
 		res ~= "})";
 		return res;
 	}
-	mixin GetTy;
 }
 
 unittest {

@@ -3,8 +3,7 @@ import ast.decl,
        ast.expr,
        ast.stmt;
 import sdpc;
-import parser.utils, parser.stmt;
-public import parser.state;
+import parser.utils, parser.stmt, parser.decl;
 auto parse_type(Stream i) {
 	auto r = choice!(
 		token_ws!"int",
@@ -92,10 +91,10 @@ auto parse_decl(Stream i) {
 	writeln(typeid(r.result));
 	return ok_result(r.result, r.consumed, r.r);
 }
-
+alias parse_particle_decl = cast_result!(Decl, parse_particle);
 auto parse_top_decl(Stream i) {
 	auto r = choice!(
-		parse_particle,
+		parse_particle_decl,
 		parse_event
 	)(i);
 	r.r.name = "top level declaration";

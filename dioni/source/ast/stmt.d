@@ -2,8 +2,8 @@ module ast.stmt;
 import ast.expr, ast.symbols, ast.decl;
 import std.format;
 interface Stmt {
-	@property nothrow pure string str();
-	string c_code(Symbols s);
+	@property nothrow pure string str() const;
+	string c_code(Symbols s) const;
 }
 class Assign : Stmt {
 	LValue lhs;
@@ -19,7 +19,7 @@ class Assign : Stmt {
 		rhs = xrhs;
 		type = xtype;
 	}
-	string str() {
+	string str() const {
 		final switch(type) {
 		case Delayed:
 			if (rhs !is null)
@@ -32,10 +32,10 @@ class Assign : Stmt {
 			return lhs.str ~ " = " ~ rhs.str ~ "\n";
 		}
 	}
-	string c_code(Symbols s) {
+	string c_code(Symbols s) const {
 		assert(type != Aggregate);
-		rhs.gen_type(s);
-		auto ty = rhs.ty;
+		TypeBase ty;
+		auto rcode = rhs.c_code(s, ty);
 		auto v = cast(Var)lhs;
 		if (v !is null) {
 			auto d = s.lookup(v.name);
@@ -52,18 +52,18 @@ class Assign : Stmt {
 			if (type == Delayed) {
 				assert(vd.sc != StorageClass.Local, "Delayed assign can't be used with local variable");
 				if (vd.sc == StorageClass.Particle)
-					return format("__next->%s = %s;\n", v.name, rhs.c_code(s));
+					return format("__next->%s = %s;\n", v.name, rcode);
 				else if (vd.sc == StorageClass.Shared)
-					return format("__shared_next->%s = %s;\n", v.name, rhs.c_code(s));
+					return format("__shared_next->%s = %s;\n", v.name, rcode);
 			} else {
 				assert(vd.sc == StorageClass.Local, "Direct assign can only be used with local variable");
-				return format("%s = %s;\n", v.name, rhs.c_code(s));
+				return format("%s = %s;\n", v.name, rcode);
 			}
 		}
 		assert (false, "Not implemented assign to field");
 	}
 }
-package nothrow pure string str(Stmt[] ss) {
+package nothrow pure string str(const(Stmt)[] ss) {
 	string res = "";
 	foreach(s; ss)
 		res ~= s.str;
@@ -72,7 +72,7 @@ package nothrow pure string str(Stmt[] ss) {
 	return res;
 }
 
-package string c_code(Stmt[] ss, Symbols p) {
+package string c_code(const(Stmt)[] ss, const(Symbols) p) {
 	string res = "";
 	Symbols c = new Symbols(p);
 	foreach(s; ss)
@@ -87,7 +87,7 @@ class If : Stmt {
 		_then = t;
 		_else = e;
 	}
-	string str() {
+	string str() const {
 		auto res = "If(" ~ cond.str ~ ") Then {\n";
 		res ~= _then.str;
 		res ~= "} Else {\n";
@@ -95,7 +95,7 @@ class If : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	override string c_code(Symbols s) {
+	override string c_code(Symbols s) const {
 		assert(false, "NIY");
 	}
 }
@@ -107,13 +107,13 @@ class Foreach : Stmt {
 		agg = xagg;
 		bdy = b;
 	}
-	string str() {
+	string str() const {
 		auto res = "Foreach(" ~ var.str ~ " in " ~ agg.str ~ ") {\n";
 		res ~= bdy.str;
 		res ~= "}\n";
 		return res;
 	}
-	override string c_code(Symbols s) {
+	override string c_code(Symbols s) const {
 		assert(false, "NIY");
 	}
 }
@@ -127,13 +127,13 @@ class Loop : Stmt {
 		var = xvar;
 		bdy = xbdy;
 	}
-	string str() {
+	string str() const {
 		auto res = "Loop(" ~ (var is null ? "_" : var.str) ~ " from " ~ s.str ~ " to " ~ t.str ~ ") {\n";
 		res ~= bdy.str;
 		res ~= "}\n";
 		return res;
 	}
-	override string c_code(Symbols s) {
+	override string c_code(Symbols s) const {
 		assert(false, "NIY");
 	}
 }

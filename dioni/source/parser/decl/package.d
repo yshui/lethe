@@ -1,4 +1,6 @@
 module parser.decl;
-public import parser.decl.decl;
-public import parser.decl.particle;
-public import parser.decl.event;
+public import parser.decl.decl,
+	      parser.decl.particle,
+	      parser.decl.event,
+	      parser.decl.state;
+

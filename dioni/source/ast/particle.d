@@ -1,5 +1,6 @@
 module ast.particle;
 import ast.decl, ast.symbols;
+import std.string;
 class Particle : Decl {
 	Decl[] decl;
 	string name;
@@ -10,7 +11,7 @@ class Particle : Decl {
 	private Symbols s;
 	private bool _visited, _visiting;
 	override size_t toHash() {
-		return name.toHash();
+		return hashOf(name);
 	}
 	override Decl combine(const(Decl) _) const {
 		assert(false);
@@ -24,23 +25,23 @@ class Particle : Decl {
 		component_str = com;
 		tag = t;
 	}
-	override string c_code(string particle, string prefix, Symbols xs) const {
+	override string c_code(string particle, string prefix, const(Symbols) xs) const {
 		return c_code;
 	}
 	string c_code() const {
 		int this_count = 0;
+		auto res = "";
 		foreach(d; decl) {
+			string prefix, particle;
 			if (d.symbol == "this") {
 				import std.conv : to;
-				d.prefix = name~to!string(this_count);
+				prefix = name~to!string(this_count);
 				this_count++;
 			} else
-				d.prefix = name;
-			d.particle = name;
+				prefix = name;
+			particle = name;
+			res ~= d.c_code(particle, prefix, s);
 		}
-		auto res = "";
-		foreach(d; decl)
-			res ~= d.c_code(s);
 		return res;
 	}
 	void resolve(Symbols glob) {
@@ -59,8 +60,8 @@ class Particle : Decl {
 			auto p = cast(Particle)d;
 			assert(d !is null, c~" is not a particle");
 			p.resolve(glob);
-			foreach(c; p.component)
-				dict[c] = true;
+			foreach(dep; p.component)
+				dict[dep] = true;
 			dict[p] = true;
 		}
 
@@ -100,8 +101,8 @@ class Particle : Decl {
 	}
 	override @property nothrow pure string str() const {
 		auto res = "particle " ~ name;
-		if (parent !is null)
-			res ~= ":" ~ parent ~ "{\n";
+		if (component_str.length != 0)
+			res ~= "<<"~component_str.join(", ")~"{\n";
 		else
 			res ~= "{\n";
 		foreach(d; decl)

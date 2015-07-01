@@ -12,7 +12,7 @@ auto parse_idarr(Stream i) {
 auto parse_tagarr(Stream i) {
 	auto r = seq!(
 		optional!(token_ws!"-"),
-		identifier(i)
+		identifier
 	)(i);
 	r.r.name = "tag array";
 	if (!r.ok)
@@ -27,12 +27,12 @@ auto parse_particle(Stream i) {
 		token_ws!"particle",
 		identifier,
 		optional!(between!(token_ws!"[",
-			chain!(parse_idarr, arr_append, token_ws!","),
+			chain!(parse_idarr, arr_append, discard!(token_ws!",")),
 			token_ws!"]")
 		),
 		optional!(seq!(
 			discard!(token_ws!"<<"),
-			chain!(parse_idarr, arr_append, token_ws!",")
+			chain!(parse_idarr, arr_append, discard!(token_ws!","))
 		)),
 		between!(token_ws!"{", many!parse_decl, token_ws!"}")
 	)(i);
