@@ -6,3 +6,31 @@
 
 # Maybe
 * Aggregator implementation, enforce every aggregator is cleared before write
+
+
+
+#Particle redesign
+
+## Composition over inhertiance.
+
+Syntax:
+
+particle Particle1[Tag1, Tag2] << Particle2, Particle3 {
+	...
+}
+
+'<<' is called 'mixin'
+
+A mixin will pull in all its mixins as well. Every mixin should only be pulled in once, for example
+
+B << A, D
+C << A, E
+F << B, C
+
+Then F will pull in A, B, C, D, E exactly once each.
+
+Variable with same name is considered duplication. State with same name is merged together.
+
+A mixin will also pull in all its tags as well, prevent pull in specific tags by:
+
+particle Particle[Tag1, -Tag2] << ...
