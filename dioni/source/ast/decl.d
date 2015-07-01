@@ -9,9 +9,7 @@ interface Decl {
 	final string toString() {
 		return str;
 	}
-	string c_code(Symbols s);
-	@property void prefix(string p);
-	@property void particle(string p);
+	string c_code(string particle, string prefix, Symbols s);
 }
 
 class EventParameter {

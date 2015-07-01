@@ -13,9 +13,9 @@ class Symbols {
 		else
 			return null;
 	}
-	void insert(Decl d, bool over=false) {
+	void insert(Decl d) {
 		assert((d.symbol in reserved_names) is null, "Reserved name "~d.symbol);
-		assert(lookup(d.symbol) is null || over, "Duplicated name "~d.symbol);
+		assert(lookup(d.symbol) is null, "Duplicated name "~d.symbol);
 		table[d.symbol] = d;
 	}
 	this(Symbols p) {
