@@ -34,3 +34,9 @@ Variable with same name is considered duplication. State with same name is merge
 A mixin will also pull in all its tags as well, prevent pull in specific tags by:
 
 particle Particle[Tag1, -Tag2] << ...
+
+# Shared storage class
+
+Particles of the same exact type is allowed to share data. At particle creation time, 'sharing group' is defined, and particles with the same type and are in the same 'sharing group' will share some of their data.
+
+If no sharing group is passed at creation time, then accessing shared data is a runtime error;
