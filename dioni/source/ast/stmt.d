@@ -137,7 +137,32 @@ class Loop : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	override string c_code(Symbols s) const {
-		assert(false, "NIY");
+	override string c_code(Symbols sym) const {
+		Symbols x = new Symbols(sym);
+		TypeBase sty, tty;
+		auto scode = s.c_code(sym, sty), tcode = t.c_code(sym, tty);
+		assert(sty.dimension == 1 && tty.dimension == 1, "Can't use vectors for loop");
+		assert(typeid(sty) == typeid(tty), "Loop begin and end have different type");
+		assert(typeid(sty) == typeid(Type!(int, 1)), "Loop begin and end must have type 'int'");
+
+		import std.conv : to;
+		auto level = to!string(x.level);
+		auto sname = "__s_"~level, tname = "__t_"~level;
+		auto svar = new VarDecl(sty, sname), tvar = new VarDecl(tty, tname);
+		x.insert(svar);
+		x.insert(tvar);
+
+		auto lname = var is null ? "__r_"~level : var.name;
+		auto lvar = new VarDecl(sty, lname);
+		x.insert(lvar);
+
+		auto res = "{\n";
+		res ~= x.c_defs(StorageClass.Local);
+		res ~= sname~" = "~scode~";\n";
+		res ~= tname~" = "~tcode~";\n";
+		res ~= "for("~lname~" = "~sname~"; "~lname~" < "~tname~"; "~lname~"++) {\n";
+		res ~= bdy.c_code(x);
+		res ~= "}\n}\n";
+		return res;
 	}
 }

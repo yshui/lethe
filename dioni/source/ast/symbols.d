@@ -3,6 +3,7 @@ import ast.decl;
 class Symbols {
 	Decl[string] table;
 	const(Symbols) parent;
+	const(int) level;
 	pure nothrow const(Decl) lookup(string name) const {
 		if (name is null)
 			return null;
@@ -27,6 +28,10 @@ class Symbols {
 	}
 	pure this(const(Symbols) p) {
 		parent = p;
+		if (p !is null)
+			level = p.level+1;
+		else
+			level = 0;
 	}
 	pure string c_defs(StorageClass sc) const {
 		string res = "";
