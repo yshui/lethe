@@ -1,0 +1,17 @@
+particle A[Test] {
+	int a;
+	state Name {
+	}
+	@ event(a~a) { b = a; } => NextState,
+	@ event(_~_) { } => NextState;
+	>() {
+		a <- 1;
+	}
+
+}
+particle B << A {
+	vec2 c;
+	state Name @ X { d = a; } => NextState;
+	>(c) {
+	}
+}

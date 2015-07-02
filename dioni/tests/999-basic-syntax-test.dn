@@ -1,0 +1,20 @@
+particle A {
+	int c;
+	int b;
+	>() {
+		d = 0;
+		c <- 1;
+		b <- 0;
+		if (c) {
+			loop(a ~ 1..2) {
+				if (b) { }
+				foreach(e ~ b) { }
+			}
+		} else if (-d) {
+		}else { }
+
+		a=b+c*d-1.0;
+		d2=vec2(1.0,a);
+		e2=1.0e+9;
+	}
+}
