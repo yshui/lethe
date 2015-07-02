@@ -93,7 +93,14 @@ class If : Stmt {
 		return res;
 	}
 	override string c_code(Symbols s) const {
-		assert(false, "NIY");
+		TypeBase ty;
+		auto ccode = cond.c_code(s, ty);
+		assert(ty.dimension == 1, "if statement doesn't take vectors");
+		auto res = "if ("~ccode~") {\n";
+		res ~= _then.c_code(s)~"}\n";
+		if (_else.length != 0)
+			res ~= "else {\n"~_else.c_code(s)~"}\n";
+		return res;
 	}
 }
 class Foreach : Stmt {
