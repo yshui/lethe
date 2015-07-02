@@ -12,6 +12,12 @@ particle A {
 
 		loop(0..3) {
 			d = d+1;
+			k = 0;
+			loop(1..2) {
+				k = k+1;
+			}
+			loop(t~1..2) {
+			}
 		}
 
 		a=b+c*d-1.0;
