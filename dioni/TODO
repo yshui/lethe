@@ -3,6 +3,7 @@
 
 # Useful
 * Particle tag support (partcile Name[Tag1, Tag2, ...] : Parent { ... })
+* Improve codegen error messages
 
 # Maybe
 * Aggregator implementation, enforce every aggregator is cleared before write
@@ -29,7 +30,7 @@ F << B, C
 
 Then F will pull in A, B, C, D, E exactly once each.
 
-Variable with same name is considered duplication. State with same name is merged together.
+Variable with same name is considered duplication. State with same name is merged together, with their state transition table combined, and with the latter's entry action override the former's.
 
 A mixin will also pull in all its tags as well, prevent pull in specific tags by:
 
