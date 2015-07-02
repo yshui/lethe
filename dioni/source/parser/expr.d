@@ -18,8 +18,6 @@ ParseResult!Expr parse_expr(Stream i) {
 		build_expr_tree,
 		choice!(token_ws!"+", token_ws!"-")
 	)(i);
-	if (r.ok)
-		writeln("Matched expr");
 	r.r.name = "expr";
 	return r;
 }
@@ -111,4 +109,7 @@ alias parse_field_expr = cast_result!(Expr, parse_field);
 
 Expr build_expr_tree(Expr a, string op, Expr b) {
 	return new BinOP(a, op, b);
+}
+Expr build_expr_tree(Expr a) {
+	return a;
 }

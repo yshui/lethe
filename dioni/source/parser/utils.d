@@ -5,7 +5,27 @@ auto token_ws(string t)(Stream i) {
 	r.r.promote();
 	return r;
 }
-T[] arr_append(T)(T[] a, T[] b) {
-	a ~= b;
-	return a;
+
+template arr_append(T) {
+	T[] arr_append(T[] a, T[] b) {
+		a ~= b;
+		return a;
+	}
+
+	T[] arr_append(T[] a, T b) {
+		a ~= b;
+		return a;
+	}
+	T[] arr_append(T a, T b) {
+		return [a, b];
+	}
+	T[] arr_append(T a) {
+		return [a];
+	}
+	T[] arr_append(T[] a) {
+		return a;
+	}
+	T[] arr_append() {
+		return [];
+	}
 }

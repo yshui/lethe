@@ -61,7 +61,7 @@ auto parse_condition(Stream i) {
 	auto e = new Condition(r.result!0, r.result!1);
 	return ok_result(e, r.consumed, re);
 }
-auto parse_state_transition_arr(Stream i) {
+auto parse_state_transition(Stream i) {
 	auto r = seq!(
 		token_ws!"@",
 		parse_condition,
@@ -72,16 +72,16 @@ auto parse_state_transition_arr(Stream i) {
 	auto re = r.r;
 	re.name = "transition table";
 	if (!r.ok)
-		return err_result!(StateTransition[])(re);
+		return err_result!StateTransition(re);
 	auto st = new StateTransition(r.result!1, r.result!2, r.result!4);
-	return ok_result([st], r.consumed, re);
+	return ok_result(st, r.consumed, re);
 }
 auto parse_state_decl(Stream i) {
 	auto r = seq!(
 		token_ws!"state",
 		identifier,
-		parse_stmt_block,
-		chain!(parse_state_transition_arr, arr_append, discard!(token_ws!",")),
+		optional!parse_stmt_block,
+		chain!(parse_state_transition, arr_append, discard!(token_ws!",")),
 		token_ws!";"
 	)(i);
 	r.r.name = "state";

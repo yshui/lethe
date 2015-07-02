@@ -240,14 +240,7 @@ class Var : LValue {
 		assert(vd !is null, name~" is not a variable");
 
 		ty = vd.ty.dup;
-		final switch(vd.sc) {
-		case StorageClass.Particle:
-			return format("(__current->%s)", name);
-		case StorageClass.Shared:
-			return format("(__shared_current->%s)", name);
-		case StorageClass.Local:
-			return format("(%s)", name);
-		}
+		return vd.c_access;
 	}
 }
 

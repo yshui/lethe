@@ -72,7 +72,7 @@ auto identifier(Stream i) {
 
 alias skip_whitespace = skip!(choice!(token!" ", token!"\n", token!"\t"));
 
-string str_concat(string a, string b) {
+string str_concat(string a, string b="") {
 	return a ~ b;
 }
 

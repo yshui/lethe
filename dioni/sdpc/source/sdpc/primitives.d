@@ -89,6 +89,9 @@ struct Reason {
 	string explain() {
 		return str(0);
 	}
+	bool empty() {
+		return (dep is null || dep.length == 0) && (msg is null || msg == "");
+	}
 }
 
 struct ParseResult(T...) {

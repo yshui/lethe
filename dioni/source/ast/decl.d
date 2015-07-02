@@ -98,16 +98,21 @@ class State : Decl {
 	private string _prefix, _particle;
 	nothrow pure this(string xname, const(Stmt)[] e, const(StateTransition)[] xst) {
 		name = xname;
-		st = xst;
+		st = xst is null ? [] : xst;
 		entry = e;
 	}
 	override Decl combine(const(Decl) _o) const {
 		auto o = cast(State)_o;
 		assert(o !is null, "Can't combine state with non-state");
-		assert(entry.length == 0 || o.entry.length == 0,
-		       "Can't combine two state when they both have entry actions");
 		const(StateTransition)[] new_st = st~o.st;
-		const(Stmt)[] new_e = entry~o.entry;
+
+		//Allow new entry action to override the old one
+		const(Stmt)[] new_e;
+		if (entry.length != 0)
+			new_e = entry;
+		else
+			new_e = o.entry;
+
 		return new State(name, new_e, new_st);
 	}
 	override string symbol() const {
@@ -161,13 +166,27 @@ class VarDecl : Decl {
 	override string c_code(string a, string b, const(Symbols) s) const {
 		return "";
 	}
+	string c_access(bool next=false) const {
+		import std.format : format;
+		auto src = next ? "next" : "current";
+		final switch(sc) {
+		case StorageClass.Particle:
+			return format("(__%s->%s)", src, name);
+		case StorageClass.Shared:
+			return format("(__shared_%s->%s)", src, name);
+		case StorageClass.Local:
+			return format("(%s)", name);
+		}
+	}
 }
 
 class Ctor : Decl {
 	Stmt[] stmt;
+	string[] param;
 	private string _prefix, _particle;
-	this(Stmt[] x) {
+	this(string[] p, Stmt[] x) {
 		stmt = x;
+		param = p;
 	}
 	override string str() const {
 		return "Ctor: " ~ stmt.str;
@@ -179,7 +198,19 @@ class Ctor : Decl {
 		assert(false);
 	}
 	override string c_code(string particle, string prefix, const(Symbols) s) const {
-		auto res = "static inline void "~prefix~"_ctor("~particle.param_list~") {\n";
+		auto res = "static inline void "~prefix~"_ctor("~particle.param_list;
+		auto init = "";
+		foreach(p; param) {
+			auto d = s.lookup(p);
+			assert(d !is null, p~" is not a member, "~
+			       "thus can't be part of initialize list");
+			auto vd = cast(VarDecl)d;
+			assert(vd !is null, p~" is not a variable");
+			res ~= ", "~vd.ty.c_type~" "~vd.name;
+			init ~= vd.c_access(true)~" = "~p~";\n";
+		}
+		res ~= ") {\n"~init;
+		//Initialize variables in the param
 		res ~= stmt.c_code(s)~"}";
 		return res;
 	}

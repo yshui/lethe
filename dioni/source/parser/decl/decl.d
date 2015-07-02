@@ -70,11 +70,17 @@ auto parse_var_decl(Stream i) {
 }
 
 auto parse_ctor(Stream i) {
-	auto r = parse_stmt_block(i);
+	auto r = seq!(
+		discard!(token_ws!">"),
+		between!(token_ws!"(",
+			chain!(identifier, arr_append!string, discard!(token_ws!","), true),
+		token_ws!")"),
+		parse_stmt_block
+	)(i);
 	r.r.name = "ctor";
 	if (!r.ok)
 		return err_result!Decl(r.r);
-	auto c = new Ctor(r.result);
+	auto c = new Ctor(r.result!0, r.result!1);
 	return ok_result!Decl(c, r.consumed, r.r);
 }
 
@@ -87,8 +93,6 @@ auto parse_decl(Stream i) {
 	r.r.name = "declaration";
 	if (!r.ok)
 		return err_result!Decl(r.r);
-	import std.stdio : writeln;
-	writeln(typeid(r.result));
 	return ok_result(r.result, r.consumed, r.r);
 }
 alias parse_particle_decl = cast_result!(Decl, parse_particle);

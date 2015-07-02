@@ -17,17 +17,28 @@ auto between(alias begin, alias func, alias end)(Stream i) {
 		i.pop();
 		return err_result!ElemTy(begin_ret.r);
 	}
+
 	auto ret = func(i);
+	if (!begin_ret.r.empty) {
+		if (ret.r.empty)
+			ret.r = begin_ret.r;
+		else if (begin_ret.r > ret.r)
+			ret.r = begin_ret.r;
+	}
 	if (ret.s != Result.OK) {
 		i.pop();
 		return err_result!ElemTy(ret.r);
 	}
+
 	consumed += ret.consumed;
 	auto end_ret = end(i);
+	if (!end_ret.r.empty && end_ret.r > ret.r)
+		ret.r = end_ret.r;
 	if (end_ret.s != Result.OK) {
 		i.pop();
-		return err_result!ElemTy(end_ret.r);
+		return err_result!ElemTy(ret.r);
 	}
+
 	ret.consumed = end_ret.consumed+consumed;
 	i.drop();
 	return ret;
@@ -57,12 +68,19 @@ auto choice(T...)(Stream i) {
 
   Return the result of left-associative applying `op` on the result of `p`
 */
-auto chain(alias p, alias op, alias delim)(Stream i) {
+auto chain(alias p, alias op, alias delim, bool allow_empty=false)(Stream i) {
 	auto ret = p(i);
 //	alias ElemTy = ReturnType!op;
-	if (ret.s != Result.OK)
-		return ret;
-	auto res = ret.result;
+	static if (allow_empty) {
+		if (!ret.ok)
+			return ok_result(op(), 0, ret.r);
+	} else {
+		if (!ret.ok) {
+			alias RetTy = typeof(op(ret.result));
+			return err_result!RetTy(ret.r);
+		}
+	}
+	auto res = op(ret.result);
 	auto consumed = ret.consumed;
 	auto re = Reason(i, "chain");
 	re.state = "stopped";
@@ -168,9 +186,10 @@ auto seq(T...)(Stream i) {
 		static if (is(pid == ParserID!(p, id), alias p, int id)) {
 			auto ret = p(i);
 			consumed += ret.consumed;
-			if (ret.r.dep.length != 0 || ret.r.msg)
+			if (ret.r.dep.length != 0 || ret.r.msg){
 				if (ret.r > re)
 					re = ret.r;
+			}
 			if (ret.s != Result.OK) {
 				//writeln("Matching " ~ __traits(identifier, p) ~ " failed, rewind ", consumed);
 				i.pop();

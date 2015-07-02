@@ -5,8 +5,9 @@ class Particle : Decl {
 	Decl[] decl;
 	string name;
 	string[] tag;
-	string[] component_str;
+	private string[] component_str;
 	Particle[] component;
+	Ctor ctor;
 	private Particle p;
 	private Symbols s;
 	private bool _visited, _visiting;
@@ -31,9 +32,9 @@ class Particle : Decl {
 	string c_code() const {
 		int this_count = 0;
 		auto res = "";
-		foreach(d; decl) {
+		foreach(d; s.table) {
 			string prefix, particle;
-			if (d.symbol == "this") {
+			if (cast(Ctor)d !is null) {
 				import std.conv : to;
 				prefix = name~to!string(this_count);
 				this_count++;
@@ -42,6 +43,8 @@ class Particle : Decl {
 			particle = name;
 			res ~= d.c_code(particle, prefix, s);
 		}
+		if (ctor !is null)
+			res ~= ctor.c_code(name, name, s);
 		return res;
 	}
 	void resolve(Symbols glob) {
@@ -82,17 +85,24 @@ class Particle : Decl {
 
 		//Now generate the symbols, try to combine them when duplicates are found
 		foreach(d; decl) {
-			if (cast(Ctor)d !is null)
+			if (cast(Ctor)d !is null) {
+				assert(ctor is null, "Multiple ctor is not allowed");
+				ctor = cast(Ctor)d;
 				continue;
+			}
 			s.insert(d);
 		}
 		foreach(c; component) {
 			foreach(od; c.s.table) {
 				auto d = s.lookup(od.symbol);
 				if (d is null)
-					s.insert(d);
-				else
-					s.replace(d.combine(od));
+					s.insert(od);
+				else {
+					import std.stdio;
+					auto tmp = d.combine(od);
+					writeln(tmp.str);
+					s.replace(tmp);
+				}
 			}
 		}
 
@@ -112,14 +122,12 @@ class Particle : Decl {
 	}
 	private pure string bare_c_struct(StorageClass sc) const {
 		auto res = "";
-		foreach(c; component)
-			res ~= c.bare_c_struct(sc);
 		res ~= s.c_defs(sc);
 		return res;
 	}
 	@property pure string c_structs() const {
 		auto res = "struct "~name~" {\n"~bare_c_struct(StorageClass.Particle)~"};\n";
-		res ~= "struct "~name~"_shared {\n"~bare_c_struct(StorageClass.Shared)~"};";
+		res ~= "struct "~name~"_shared {\n"~bare_c_struct(StorageClass.Shared)~"};\n";
 		return res;
 	}
 	override string symbol() const {

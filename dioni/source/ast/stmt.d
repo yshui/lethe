@@ -47,14 +47,11 @@ class Assign : Stmt {
 			} else {
 				vd = cast(VarDecl)d;
 				assert(vd !is null, "Assigning to non variable");
-				assert(typeid(ty) == typeid(vd.ty), "Type miss match");
+				assert(typeid(ty) == typeid(vd.ty), "Type mismatch: "~vd.name);
 			}
 			if (type == Delayed) {
 				assert(vd.sc != StorageClass.Local, "Delayed assign can't be used with local variable");
-				if (vd.sc == StorageClass.Particle)
-					return format("__next->%s = %s;\n", v.name, rcode);
-				else if (vd.sc == StorageClass.Shared)
-					return format("__shared_next->%s = %s;\n", v.name, rcode);
+				return vd.c_access(true)~" = "~rcode~";\n";
 			} else {
 				assert(vd.sc == StorageClass.Local, "Direct assign can only be used with local variable");
 				return format("%s = %s;\n", v.name, rcode);
