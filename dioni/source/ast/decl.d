@@ -1,7 +1,8 @@
 module ast.decl;
-import ast.expr,
+import ast.type,
        ast.stmt,
-       ast.symbols;
+       ast.symbols,
+       ast.expr;
 
 interface Decl {
 	@property nothrow pure string symbol() const;
@@ -55,6 +56,44 @@ class Condition {
 	pure nothrow string str() const {
 		return name ~ "(" ~ ep.str_ep ~ ")";
 	}
+	pure nothrow string c_code(Symbols s) const {
+		//Generate c code for matching
+		int count = 0;
+		auto d = s.lookup(name);
+		assert(d !is null, "Event "~name~" is not defined");
+		auto e = cast(Event)d;
+		assert(e !is null, name~" is not an event definition");
+
+		auto mcode = "", acode = "";
+
+		foreach(i, x; ep) {
+			auto vd = e.member[i];
+			auto pt = cast(ParticleType)vd.ty;
+			if (x.expr is null) {
+				if (x.var is null)
+					continue;
+				assert(pt is null,
+				       "Cannot determine the actual type of a "~
+				       "particle without matching criteria");
+				acode ~= x.var.name~" = "~"__event->"~vd.symbol~";\n";
+				auto mv = new VarDecl(x.var.name, vd.ty, Protection.Const);
+				s.insert(mv);
+			}
+			if (pt is null) {
+				TypeBase ety;
+				auto ecode = x.expr.c_code(s, ety);
+				assert(typeid(ety) == typeid(Type!int),
+				       "Trying to match 'int' against"~
+				       ety.c_type);
+				if (count != 0)
+					mcode ~= " && ";
+				mcode ~= "(__event->"~vd.symbol~" == "~ecode~")";
+				count ++;
+			} else {
+				//Trying to match a particle
+			}
+		}
+	}
 }
 
 class StateTransition {
@@ -80,14 +119,11 @@ class StateTransition {
 pure nothrow string param_list(string particle) {
 	string res;
 	immutable string[] names = ["__current", "__next"];
-	immutable string[] shared_names = ["__shared_current", "__shared_next"];
 	foreach(i, n; names) {
 		if (i != 0)
 			res ~= ", ";
 		res ~= "struct "~particle~"* "~n;
 	}
-	foreach(n; shared_names)
-		res ~= ", struct "~particle~"_shared* "~n;
 	return res;
 }
 
@@ -143,16 +179,24 @@ class State : Decl {
 enum StorageClass {
 	Local,
 	Particle,
-	Shared
 }
+
+enum Protection {
+	Const,
+	ReadWrite,
+}
+
 class VarDecl : Decl {
 	const(TypeBase) ty;
 	string name;
 	StorageClass sc;
-	pure this(const(TypeBase) xty, string xname, StorageClass xsc=StorageClass.Local) {
+	Protection prot;
+	pure this(const(TypeBase) xty, string xname, Protection xprot=Protection.ReadWrite,
+		  StorageClass xsc=StorageClass.Local) {
 		name = xname;
 		sc = xsc;
 		ty = xty;
+		prot = xprot;
 	}
 	override Decl combine(const(Decl) _) const {
 		assert(false, "Combining variables with name "~name);
@@ -172,8 +216,6 @@ class VarDecl : Decl {
 		final switch(sc) {
 		case StorageClass.Particle:
 			return format("(__%s->%s)", src, name);
-		case StorageClass.Shared:
-			return format("(__shared_%s->%s)", src, name);
 		case StorageClass.Local:
 			return format("(%s)", name);
 		}
@@ -235,4 +277,12 @@ class Event : Decl {
 	override string c_code(string a, string b, const(Symbols) s) const {
 		assert(false);
 	}
+	string c_structs() const {
+		string res = "struct event_"~name~"{\n";
+		foreach(vd; member)
+			res ~= vd.ty.c_type~" "~vd.symbol~"\n";
+		res ~= "}";
+		return res;
+	}
+	alias toString = str;
 }

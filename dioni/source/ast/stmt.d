@@ -1,5 +1,5 @@
 module ast.stmt;
-import ast.expr, ast.symbols, ast.decl;
+import ast.expr, ast.symbols, ast.decl, ast.type;
 import std.format;
 interface Stmt {
 	@property nothrow pure string str() const;
@@ -48,6 +48,7 @@ class Assign : Stmt {
 				vd = cast(VarDecl)d;
 				assert(vd !is null, "Assigning to non variable");
 				assert(typeid(ty) == typeid(vd.ty), "Type mismatch: "~vd.name);
+				assert(vd.prot != Protection.Const, "Writing to readonly variable '"~v.name~"'");
 			}
 			if (type == Delayed) {
 				assert(vd.sc != StorageClass.Local, "Delayed assign can't be used with local variable");
@@ -143,17 +144,18 @@ class Loop : Stmt {
 		auto scode = s.c_code(sym, sty), tcode = t.c_code(sym, tty);
 		assert(sty.dimension == 1 && tty.dimension == 1, "Can't use vectors for loop");
 		assert(typeid(sty) == typeid(tty), "Loop begin and end have different type");
-		assert(typeid(sty) == typeid(Type!(int, 1)), "Loop begin and end must have type 'int'");
+		assert(typeid(sty) == typeid(Type!int), "Loop begin and end must have type 'int'");
 
 		import std.conv : to;
 		auto level = to!string(x.level);
 		auto sname = "__s_"~level, tname = "__t_"~level;
-		auto svar = new VarDecl(sty, sname), tvar = new VarDecl(tty, tname);
+		auto svar = new VarDecl(sty, sname, Protection.Const),
+		     tvar = new VarDecl(tty, tname, Protection.Const);
 		x.insert(svar);
 		x.insert(tvar);
 
 		auto lname = var is null ? "__r_"~level : var.name;
-		auto lvar = new VarDecl(sty, lname);
+		auto lvar = new VarDecl(sty, lname, Protection.Const);
 		x.insert(lvar);
 
 		auto res = "{\n";

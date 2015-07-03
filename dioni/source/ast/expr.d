@@ -1,5 +1,5 @@
 module ast.expr;
-import ast.symbols, ast.decl;
+import ast.symbols, ast.decl, ast.type;
 import std.conv,
        std.range,
        std.typecons,
@@ -17,100 +17,6 @@ interface LValue : Expr {
 	}
 }
 
-pure TypeBase type_matching(T...)(const(TypeBase)[] ity) {
-	pattern_loop: foreach(tp; T) {
-		static if (is(tp: TypePattern!M, M...)) {
-			assert(ity.length+1 == M.length);
-			//Generate a "if"
-			foreach(i, ty; M[1..$])
-				if (cast(ty)ity[i] is null)
-					continue pattern_loop;
-			alias res = M[0];
-			return new res;
-		} else
-			static assert(false, tp.stringof);
-	}
-	string exc = "No type match found";
-	foreach(n; ity)
-		exc ~= ", " ~ n.str;
-	throw new Exception(exc);
-}
-
-class TypeBase {
-	@property nothrow pure @nogc int dimension() const {
-		return 0;
-	}
-	@property nothrow pure TypeBase element_type() const {
-		return null;
-	}
-	@property nothrow pure string str() const { return "void"; }
-	@property nothrow pure TypeBase arr_of() const { assert(false); }
-	@property nothrow pure string c_type() const { return "void"; }
-	@property nothrow pure TypeBase dup() const { return new TypeBase; }
-}
-class Type(T, int dim) : TypeBase {
-	override int dimension() const {
-		return dim;
-	}
-	override string str() const {
-		import std.format : format;
-		string res;
-		try {
-			res = format("%s*%s", T.stringof, dim);
-		} catch (Exception) {
-			res = "Invalid";
-		}
-		return res;
-	}
-	override TypeBase arr_of() const {
-		return new ArrayType!(Type!(T, dim));
-	}
-	override string c_type() const {
-		static if (dim == 1)
-			return T.stringof;
-		else {
-			import std.format;
-			static assert(is(T == float));
-			try {
-				return format("struct vec%s", dim);
-			} catch(Exception) {
-				assert(false);
-			}
-		}
-	}
-	override TypeBase dup() const {
-		return new Type!(T, dim);
-	}
-}
-class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
-	override int dimension() const {
-		static if (is(ElemType == Type!(T, dim), T, int dim))
-			return dim;
-		else
-			static assert(0);
-	}
-	override @property nothrow pure TypeBase element_type() const {
-		return new ElemType();
-	}
-	override string str() const {
-		import std.format : format;
-		try {
-			return format("ArrayOf %s", element_type.str);
-		}catch(Exception) {
-			return "Invalid";
-		}
-	}
-	override string c_type() const {
-		return "struct list_head";
-	}
-	override TypeBase dup() const {
-		return new ArrayType!ElemType;
-	}
-	//array of array not supported
-}
-
-///Define a type match pattern: if input types match T..., then the output type is Result
-class TypePattern(Result, T...) { }
 class BinOP : Expr {
 	Expr lhs, rhs;
 	string op;
@@ -187,17 +93,17 @@ class BinOP : Expr {
 		}
 		if (op == "+" || op == "-" || op == "*") {
 			return type_matching!(
-				TypePattern!(Type!(int, 1), Type!(int, 1), Type!(int, 1)),
-				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
-				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(float, 1)),
-				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
+				TypePattern!(Type!int,   Type!int,   Type!int),
+				TypePattern!(Type!float, Type!float, Type!float),
+				TypePattern!(Type!float, Type!int,   Type!float),
+				TypePattern!(Type!float, Type!float, Type!float),
 			)([lty, rty]);
 		} else if (op == "/") {
 			return type_matching!(
-				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(int, 1)),
-				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
-				TypePattern!(Type!(float, 1), Type!(int, 1), Type!(float, 1)),
-				TypePattern!(Type!(float, 1), Type!(float, 1), Type!(float, 1)),
+				TypePattern!(Type!float, Type!int,   Type!int),
+				TypePattern!(Type!float, Type!float, Type!float),
+				TypePattern!(Type!float, Type!int,   Type!float),
+				TypePattern!(Type!float, Type!float, Type!float),
 			)([lty, rty]);
 		}
 		assert(false);
@@ -303,10 +209,10 @@ class Num : Expr {
 	override string c_code(Symbols s, out TypeBase ty) const {
 		final switch(_type) {
 		case 0:
-			ty = new Type!(float, 1);
+			ty = new Type!float;
 			return "("~text(f)~")";
 		case 1:
-			ty = new Type!(int, 1);
+			ty = new Type!int;
 			return "("~text(i)~")";
 		}
 	}
@@ -334,8 +240,8 @@ class Vec(int dim) : Expr if (dim >= 2) {
 		foreach(e; elem) {
 			TypeBase tmpty;
 			res ~= e.c_code(s, tmpty)~",";
-			assert(typeid(tmpty) == typeid(Type!(int, 1)) ||
-			       typeid(tmpty) == typeid(Type!(float, 1)));
+			assert(typeid(tmpty) == typeid(Type!int) ||
+			       typeid(tmpty) == typeid(Type!float));
 		}
 		res ~= "})";
 		return res;
@@ -350,16 +256,15 @@ unittest {
 	auto s = new Symbols(null);
 	auto bop = new BinOP(lhs, "+", rhs);
 	bop.gen_type(s);
-	writeln(typeid(new Type!(int, 1)));
-	assert(typeid(bop.ty) == typeid(Type!(float, 1)));
+	assert(typeid(bop.ty) == typeid(Type!float));
 
 	bop = new BinOP(lhs, "-", lhs);
 	bop.gen_type(s);
 	writeln(typeid(bop.ty));
-	assert(typeid(bop.ty) == typeid(Type!(int, 1)));
+	assert(typeid(bop.ty) == typeid(Type!int));
 
 	bop = new BinOP(lhs, "/", lhs);
 	bop.gen_type(s);
 	writeln(typeid(bop.ty));
-	assert(typeid(bop.ty) == typeid(Type!(float, 1)));
+	assert(typeid(bop.ty) == typeid(Type!float));
 }

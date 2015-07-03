@@ -127,7 +127,6 @@ class Particle : Decl {
 	}
 	@property pure string c_structs() const {
 		auto res = "struct "~name~" {\n"~bare_c_struct(StorageClass.Particle)~"};\n";
-		res ~= "struct "~name~"_shared {\n"~bare_c_struct(StorageClass.Shared)~"};\n";
 		return res;
 	}
 	override string symbol() const {

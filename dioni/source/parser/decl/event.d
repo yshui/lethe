@@ -1,7 +1,7 @@
 module parser.decl.event;
 import parser.decl, parser.utils;
 import sdpc;
-import ast.expr, ast.decl, ast.particle;
+import ast.expr, ast.decl, ast.particle, ast.type;
 auto parse_member_type(Stream i) {
 	auto r = choice!(
 		token_ws!"int",
@@ -13,10 +13,10 @@ auto parse_member_type(Stream i) {
 	TypeBase ret = null;
 	final switch(r.result) {
 	case "int":
-		ret = new Type!(int, 1);
+		ret = new Type!int;
 		break;
 	case "particle":
-		ret = new Type!(Particle, 1);
+		ret = new ParticleType;
 		break;
 	}
 	return ok_result(ret, r.consumed, r.r);

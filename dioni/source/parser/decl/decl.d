@@ -1,6 +1,6 @@
 module parser.decl.decl;
 import ast.decl,
-       ast.expr,
+       ast.type,
        ast.stmt;
 import sdpc;
 import parser.utils, parser.stmt, parser.decl;
@@ -19,10 +19,10 @@ auto parse_type(Stream i) {
 	TypeBase ret = null;
 	final switch(r.result) {
 	case "int":
-		ret = new Type!(int, 1);
+		ret = new Type!int;
 		break;
 	case "float":
-		ret = new Type!(float, 1);
+		ret = new Type!float;
 		break;
 	case "vec2":
 		ret = new Type!(float, 2);
@@ -51,7 +51,6 @@ auto parse_arr_type(Stream i) {
 }
 auto parse_var_decl(Stream i) {
 	auto r = seq!(
-		optional!(token_ws!"shared"),
 		choice!(
 			parse_arr_type,
 			parse_type
@@ -63,9 +62,7 @@ auto parse_var_decl(Stream i) {
 	if (!r.ok)
 		return err_result!Decl(r.r);
 	StorageClass sc = StorageClass.Particle;
-	if (r.result!0 !is null && r.result!0 == "shared")
-		sc = StorageClass.Shared;
-	auto ret = new VarDecl(r.result!1, r.result!2, sc);
+	auto ret = new VarDecl(r.result!0, r.result!1, Protection.ReadWrite, sc);
 	return ok_result!Decl(ret, r.consumed, r.r);
 }
 
