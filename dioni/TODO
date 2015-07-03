@@ -1,5 +1,8 @@
 # Must
 * Generate state transition functions
+* Wildcard event match
+* Event handler forwarding
+* next_state variable
 
 # Useful
 * Particle tag support (partcile Name[Tag1, Tag2, ...] : Parent { ... })
@@ -8,7 +11,19 @@
 # Maybe
 * Aggregator implementation, enforce every aggregator is cleared before write
 
+# Next state
 
+Choosing next state is done via:
+
+nextState = StateName
+
+# Event handler forwarding
+
+The old next state syntax is repurposed for forwarding
+
+state ExtState @ _ => State, ...;
+
+The next state is thus determined by the corresponding handler in State.
 
 #Particle redesign
 
