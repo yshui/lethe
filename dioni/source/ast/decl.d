@@ -6,13 +6,15 @@ import ast.type,
        ast.particle;
 
 interface Decl {
+	@property nothrow pure void parent(Decl p);
 	@property nothrow pure string symbol() const;
 	@property nothrow pure string str() const;
 	final string toString() const {
 		return str;
 	}
-	string c_code(string particle, string prefix, const(Symbols) s) const;
+	string c_code(const(Symbols) s) const;
 	pure nothrow Decl combine(const(Decl) o) const;
+	pure nothrow Decl dup() const;
 }
 
 class EventParameter {
@@ -163,8 +165,13 @@ pure nothrow string param_list(string particle) {
 class State : Decl {
 	const(StateTransition)[] st;
 	const(Stmt)[] entry;
+	Particle _parent;
 	string name;
 	private string _prefix, _particle;
+	override void parent(Decl p) {
+		_parent = cast(Particle)p;
+		assert(_parent !is null);
+	}
 	nothrow pure this(string xname, const(Stmt)[] e, const(StateTransition)[] xst) {
 		name = xname;
 		st = xst is null ? [] : xst;
@@ -194,17 +201,26 @@ class State : Decl {
 			res ~= ste.str;
 		return res;
 	}
-	override string c_code(string particle, string prefix, const(Symbols) p) const {
+	override string c_code(const(Symbols) p) const {
+		assert(_parent !is null);
 		import std.format : format;
-		auto res = format("static inline void %s_state_%s_entry(%s) {\n", prefix, name, particle.param_list);
+		auto res = format("static inline void %s_state_%s_entry(%s) {\n",
+				  _parent.symbol, name, _parent.symbol.param_list);
 		res ~= entry.c_code(p);
 		res ~= "}\n";
-		res ~= format("static inline void %s_state_%s(%s, struct raw_event* __raw_event) {\n",
-			      prefix, name, particle.param_list);
+		res ~= format("static inline int %s_state_%s(%s, struct raw_event* __raw_event) {\n",
+			      _parent.symbol, name, _parent.symbol.param_list);
 		foreach(x; st)
 			res ~= x.c_code(p);
 		res ~= "}\n";
 		return res;
+	}
+	string c_access() const {
+		assert(_parent !is null);
+		return "(PARTICLE_"~_parent.symbol~"_STATE_"~name~")";
+	}
+	override Decl dup() const {
+		return new State(name, entry, st);
 	}
 }
 enum StorageClass {
@@ -222,6 +238,11 @@ class VarDecl : Decl {
 	string name;
 	StorageClass sc;
 	Protection prot;
+	Particle _parent;
+	override void parent(Decl p) {
+		_parent = cast(Particle)p;
+		assert(_parent !is null);
+	}
 	pure nothrow this(const(TypeBase) xty, string xname,
 			  Protection xprot=Protection.ReadWrite,
 		  StorageClass xsc=StorageClass.Local) {
@@ -239,7 +260,7 @@ class VarDecl : Decl {
 	override string symbol() const {
 		return name;
 	}
-	override string c_code(string a, string b, const(Symbols) s) const {
+	override string c_code(const(Symbols) s) const {
 		return "";
 	}
 	string c_access(bool next=false) const {
@@ -252,12 +273,20 @@ class VarDecl : Decl {
 			return format("(%s)", name);
 		}
 	}
+	override Decl dup() const {
+		return new VarDecl(ty, name, prot, sc);
+	}
 }
 
 class Ctor : Decl {
 	Stmt[] stmt;
 	string[] param;
 	private string _prefix, _particle;
+	Particle _parent;
+	override void parent(Decl p) {
+		_parent = cast(Particle)p;
+		assert(_parent !is null);
+	}
 	this(string[] p, Stmt[] x) {
 		stmt = x;
 		param = p;
@@ -271,8 +300,9 @@ class Ctor : Decl {
 	override Decl combine(const(Decl) _) const {
 		assert(false);
 	}
-	override string c_code(string particle, string prefix, const(Symbols) s) const {
-		auto res = "static inline void "~prefix~"_ctor("~particle.param_list;
+	override string c_code(const(Symbols) s) const {
+		assert(_parent !is null);
+		auto res = "static inline void "~_parent.symbol~"_ctor("~_parent.symbol.param_list;
 		auto init = "";
 		foreach(p; param) {
 			auto d = s.lookup(p);
@@ -288,11 +318,17 @@ class Ctor : Decl {
 		res ~= stmt.c_code(s)~"}";
 		return res;
 	}
+	override Decl dup() const {
+		assert(false);
+	}
 }
 
 class Event : Decl {
 	VarDecl[] member;
 	string name;
+	override void parent(Decl p) {
+		assert(false);
+	}
 	this(string x, VarDecl[] vd) {
 		member = vd;
 		name = x;
@@ -306,7 +342,7 @@ class Event : Decl {
 	override string symbol() const {
 		return name;
 	}
-	override string c_code(string a, string b, const(Symbols) s) const {
+	override string c_code(const(Symbols) s) const {
 		assert(false);
 	}
 	string c_structs() const {
@@ -316,5 +352,7 @@ class Event : Decl {
 		res ~= "};\n";
 		return res;
 	}
-	alias toString = str;
+	override Decl dup() const {
+		assert(false);
+	}
 }

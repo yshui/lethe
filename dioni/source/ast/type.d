@@ -29,8 +29,29 @@ class TypeBase {
 	}
 	@property nothrow pure string str() const { return "void"; }
 	@property nothrow pure TypeBase arr_of() const { assert(false); }
-	@property nothrow pure string c_type() const { return "void"; }
+	@property nothrow pure string c_type() const { assert(false); }
 	@property nothrow pure TypeBase dup() const { return new TypeBase; }
+}
+
+class StateType : TypeBase {
+	string name;
+	override int dimension() const {
+		return 1;
+	}
+	override string str() const {
+		assert(name !is null);
+		return "State "~name;
+	}
+	override TypeBase dup() const {
+		return new StateType(name);
+	}
+	pure nothrow this(string xname) {
+		name = xname;
+	}
+	override string c_type() const {
+		return "int";
+	}
+
 }
 
 class ParticleType : TypeBase {

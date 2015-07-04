@@ -17,34 +17,29 @@ class Particle : Decl {
 	override Decl combine(const(Decl) _) const {
 		assert(false);
 	}
+	override void parent(Decl p) {
+		assert(false);
+	}
 	@property nothrow pure bool visited() const {
 		return _visited;
 	}
+
 	this(string xn, string[] t, string[] com, Decl[] d) {
 		decl = d;
 		name = xn;
 		component_str = com;
 		tag = t;
 	}
-	override string c_code(string particle, string prefix, const(Symbols) xs) const {
+	override string c_code(const(Symbols) xs) const {
 		return c_code;
 	}
 	string c_code() const {
 		int this_count = 0;
 		auto res = "";
-		foreach(d; s.table) {
-			string prefix, particle;
-			if (cast(Ctor)d !is null) {
-				import std.conv : to;
-				prefix = name~to!string(this_count);
-				this_count++;
-			} else
-				prefix = name;
-			particle = name;
-			res ~= d.c_code(particle, prefix, s);
-		}
+		foreach(d; s.table)
+			res ~= d.c_code(s);
 		if (ctor !is null)
-			res ~= ctor.c_code(name, name, s);
+			res ~= ctor.c_code(s);
 		return res;
 	}
 	void resolve(Symbols glob) {
@@ -85,6 +80,7 @@ class Particle : Decl {
 
 		//Now generate the symbols, try to combine them when duplicates are found
 		foreach(d; decl) {
+			d.parent = this;
 			if (cast(Ctor)d !is null) {
 				assert(ctor is null, "Multiple ctor is not allowed");
 				ctor = cast(Ctor)d;
@@ -95,11 +91,14 @@ class Particle : Decl {
 		foreach(c; component) {
 			foreach(od; c.s.table) {
 				auto d = s.lookup(od.symbol);
-				if (d is null)
-					s.insert(od);
-				else {
+				if (d is null) {
+					auto newd = od.dup;
+					newd.parent = this;
+					s.insert(newd);
+				} else {
 					import std.stdio;
 					auto tmp = d.combine(od);
+					tmp.parent = this;
 					writeln(tmp.str);
 					s.replace(tmp);
 				}
@@ -132,6 +131,8 @@ class Particle : Decl {
 	override string symbol() const {
 		return name;
 	}
-
-	alias toString = str;
+	
+	override Decl dup() const {
+		assert(false);
+	}
 }

@@ -143,10 +143,16 @@ class Var : LValue {
 		auto d = s.lookup(name);
 		assert(d !is null, "Undefined symbol "~name);
 		auto vd = cast(VarDecl)d;
-		assert(vd !is null, name~" is not a variable");
+		auto sd = cast(State)d;
 
-		ty = vd.ty.dup;
-		return vd.c_access;
+		if (vd !is null) {
+			ty = vd.ty.dup;
+			return vd.c_access;
+		} else if (sd !is null) {
+			ty = new StateType(sd.symbol);
+			return sd.c_access;
+		} else
+			assert(false, name~" is not a variable or state name");
 	}
 }
 
