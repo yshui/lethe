@@ -212,6 +212,7 @@ class State : Decl {
 			      _parent.symbol, name, _parent.symbol.param_list);
 		foreach(x; st)
 			res ~= x.c_code(p);
+		res ~= "return NOT_HANDLED;\n";
 		res ~= "}\n";
 		return res;
 	}
