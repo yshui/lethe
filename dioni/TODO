@@ -3,6 +3,7 @@
 * Wildcard event match
 * Event handler forwarding
 * next_state variable
+* get_waiting_event(particle_id)
 
 # Useful
 * Particle tag support (partcile Name[Tag1, Tag2, ...] : Parent { ... })

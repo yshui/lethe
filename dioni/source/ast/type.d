@@ -58,9 +58,10 @@ class Type(string name) : TypeBase {
 			return "struct event_"~name~"*";
 		assert(false);
 	}
-	this(Particle xp, Event xe) {
-		e = xe;
-		p = xp;
+	this(const(Symbols) s) {
+		auto d = s.lookup(name);
+		e = cast(Event)d;
+		p = cast(Particle)d;
 	}
 	override TypeBase dup() const {
 		return new Type!name(p, e);

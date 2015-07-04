@@ -14,7 +14,7 @@ class Symbols {
 		else
 			return null;
 	}
-	void insert(const(Decl) d) {
+	nothrow void insert(const(Decl) d) {
 		assert((d.symbol in reserved_names) is null, "Reserved name "~d.symbol);
 		assert(lookup(d.symbol) is null, "Duplicated name "~d.symbol);
 		table[d.symbol] = cast(Decl)d;

@@ -2,7 +2,8 @@ module ast.decl;
 import ast.type,
        ast.stmt,
        ast.symbols,
-       ast.expr;
+       ast.expr,
+       ast.particle;
 
 interface Decl {
 	@property nothrow pure string symbol() const;
@@ -56,7 +57,7 @@ class Condition {
 	pure nothrow string str() const {
 		return name ~ "(" ~ ep.str_ep ~ ")";
 	}
-	pure nothrow string c_code(Symbols s) const {
+	string[2] c_code(Symbols s) const {
 		//Generate c code for matching
 		int count = 0;
 		auto d = s.lookup(name);
@@ -76,23 +77,33 @@ class Condition {
 				       "Cannot determine the actual type of a "~
 				       "particle without matching criteria");
 				acode ~= x.var.name~" = "~"__event->"~vd.symbol~";\n";
-				auto mv = new VarDecl(x.var.name, vd.ty, Protection.Const);
+				auto mv = new VarDecl(vd.ty, x.var.name, Protection.Const);
 				s.insert(mv);
 			}
+			if (count != 0)
+				mcode ~= " && ";
 			if (pt is null) {
 				TypeBase ety;
 				auto ecode = x.expr.c_code(s, ety);
 				assert(typeid(ety) == typeid(Type!int),
 				       "Trying to match 'int' against"~
 				       ety.c_type);
-				if (count != 0)
-					mcode ~= " && ";
 				mcode ~= "(__event->"~vd.symbol~" == "~ecode~")";
 				count ++;
 			} else {
 				//Trying to match a particle
+				auto ev = cast(Var)x.expr;
+				assert(ev !is null, "Particle can only be matched against a name");
+				auto d2 = s.lookup(ev.name);
+				assert(d !is null, ev.name~" is not defined");
+				auto p = cast(Particle)d;
+				assert(p !is null, ev.name~" does not name a particle");
+				if (x.var !is null)
+					acode ~= x.var.name~" = "~"__event->"~vd.symbol~".p"~";\n";
+				mcode ~= "(__event->"~vd.symbol~".t == PARTICLE_"~ev.name~")";
 			}
 		}
+		return [acode, mcode];
 	}
 }
 
@@ -112,7 +123,17 @@ class StateTransition {
 		return res;
 	}
 	string c_code(const(Symbols) p) const {
-		return s.c_code(p);
+		auto s1 = new Symbols(p);
+		string[2] cond = e.c_code(s1);
+		auto res = "if (__raw_event->t == EVENT_"~e.name~") {";
+		res ~= "struct event_"~e.name~"* __event = __raw_event->e;\n";
+		res ~= "if ("~cond[0]~") {";
+		res ~= s1.c_defs(StorageClass.Local);
+		res ~= cond[1];
+		res ~= s.c_code(p);
+		res ~= "return nextState;\n";
+		res ~= "}\n}\n";
+		return res;
 	}
 }
 
@@ -166,13 +187,10 @@ class State : Decl {
 		auto res = format("static inline void %s_state_%s_entry(%s) {\n", prefix, name, particle.param_list);
 		res ~= entry.c_code(p);
 		res ~= "}\n";
-		foreach(i, x; st) {
-			res ~= format("static inline void %s_state_%s_event_%s%s(%s, struct event_%s* __event) {\n",
-				      prefix, name, x.e.name, i, particle.param_list, x.e.name);
-			//res ~= st.e.c_code(p); //Generate code for matching the condition TODO
+		res ~= format("static inline void %s_state_%s(%s, struct event_%s* __raw_event) {\n",
+			      prefix, name, particle.param_list);
+		foreach(x; st)
 			res ~= x.c_code(p);
-			res ~= "}\n";
-		}
 		return res;
 	}
 }
@@ -191,7 +209,8 @@ class VarDecl : Decl {
 	string name;
 	StorageClass sc;
 	Protection prot;
-	pure this(const(TypeBase) xty, string xname, Protection xprot=Protection.ReadWrite,
+	pure nothrow this(const(TypeBase) xty, string xname,
+			  Protection xprot=Protection.ReadWrite,
 		  StorageClass xsc=StorageClass.Local) {
 		name = xname;
 		sc = xsc;
