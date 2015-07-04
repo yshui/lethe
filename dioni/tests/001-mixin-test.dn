@@ -1,17 +1,20 @@
+event K {
+	int a;
+}
 particle A[Test] {
 	int a;
 	state Name {
 	}
-	@ event(a~a) { b = a; } => NextState,
-	@ event(_~_) { } => NextState;
+	@ K(b~a) { c = a; } => NextState,
+	@ K(_~_) { } => NextState;
 	>() {
 		a <- 1;
 	}
 
 }
 particle B << A {
-	vec2 c;
-	state Name @ X { d = a; } => NextState;
-	>(c) {
+	vec2 d;
+	state Name @ K { e = a; } => NextState;
+	>(d) {
 	}
 }

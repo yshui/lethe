@@ -82,6 +82,11 @@ class Condition {
 			}
 			if (count != 0)
 				mcode ~= " && ";
+			count++;
+			if (x.var !is null) {
+				auto d2 = s.lookup(x.var.name);
+				assert(d2 is null, x.var.name~" is already defined");
+			}
 			if (pt is null) {
 				TypeBase ety;
 				auto ecode = x.expr.c_code(s, ety);
@@ -89,21 +94,25 @@ class Condition {
 				       "Trying to match 'int' against"~
 				       ety.c_type);
 				mcode ~= "(__event->"~vd.symbol~" == "~ecode~")";
-				count ++;
+				if (x.var !is null) {
+					auto tgt = new VarDecl(ety, x.var.name, Protection.Const);
+					s.insert(tgt);
+					acode ~= tgt.c_access~" = "~"__event->"~vd.symbol~";\n";
+				}
 			} else {
 				//Trying to match a particle
 				auto ev = cast(Var)x.expr;
 				assert(ev !is null, "Particle can only be matched against a name");
-				auto d2 = s.lookup(ev.name);
-				assert(d !is null, ev.name~" is not defined");
-				auto p = cast(Particle)d;
-				assert(p !is null, ev.name~" does not name a particle");
-				if (x.var !is null)
+				if (x.var !is null) {
+					auto pty = new ParticleType(x.var.name, s);
+					auto tgt = new VarDecl(pty, x.var.name, Protection.Const);
+					s.insert(tgt);
 					acode ~= x.var.name~" = "~"__event->"~vd.symbol~".p"~";\n";
+				}
 				mcode ~= "(__event->"~vd.symbol~".t == PARTICLE_"~ev.name~")";
 			}
 		}
-		return [acode, mcode];
+		return [mcode, acode];
 	}
 }
 
@@ -125,14 +134,17 @@ class StateTransition {
 	string c_code(const(Symbols) p) const {
 		auto s1 = new Symbols(p);
 		string[2] cond = e.c_code(s1);
-		auto res = "if (__raw_event->t == EVENT_"~e.name~") {";
+		auto res = "if (__raw_event->t == EVENT_"~e.name~") {\n";
 		res ~= "struct event_"~e.name~"* __event = __raw_event->e;\n";
-		res ~= "if ("~cond[0]~") {";
+		if (cond[0] != "")
+			res ~= "if ("~cond[0]~") {\n";
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
 		res ~= s.c_code(p);
 		res ~= "return nextState;\n";
-		res ~= "}\n}\n";
+		res ~= "}\n";
+		if (cond[0] != "")
+			res ~= "}\n";
 		return res;
 	}
 }
@@ -187,10 +199,11 @@ class State : Decl {
 		auto res = format("static inline void %s_state_%s_entry(%s) {\n", prefix, name, particle.param_list);
 		res ~= entry.c_code(p);
 		res ~= "}\n";
-		res ~= format("static inline void %s_state_%s(%s, struct event_%s* __raw_event) {\n",
+		res ~= format("static inline void %s_state_%s(%s, struct raw_event* __raw_event) {\n",
 			      prefix, name, particle.param_list);
 		foreach(x; st)
 			res ~= x.c_code(p);
+		res ~= "}\n";
 		return res;
 	}
 }
@@ -300,7 +313,7 @@ class Event : Decl {
 		string res = "struct event_"~name~"{\n";
 		foreach(vd; member)
 			res ~= vd.ty.c_type~" "~vd.symbol~"\n";
-		res ~= "}";
+		res ~= "};\n";
 		return res;
 	}
 	alias toString = str;

@@ -47,7 +47,7 @@ class Assign : Stmt {
 			} else {
 				vd = cast(VarDecl)d;
 				assert(vd !is null, "Assigning to non variable");
-				assert(typeid(ty) == typeid(vd.ty), "Type mismatch: "~vd.name);
+				assert(typeid(ty) == typeid(vd.ty), "Type mismatch: "~vd.name~":"~typeid(vd.ty).toString~"!="~typeid(ty).toString);
 				assert(vd.prot != Protection.Const, "Writing to readonly variable '"~v.name~"'");
 			}
 			if (type == Delayed) {

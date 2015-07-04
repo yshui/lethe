@@ -1,6 +1,6 @@
 import std.stdio, std.file;
 import parser;
-import ast.symbols, ast.particle;
+import ast.symbols, ast.particle, ast.decl;
 import sdpc;
 void main(string[] argv) {
 	if (argv.length < 2) {
@@ -13,11 +13,12 @@ void main(string[] argv) {
 	auto r = many!parse_top_decl(i);
 	auto mainf = File("statefn.c", "w");
 	auto defsf = File("defs.h", "w");
+	int pcnt = 0, ecnt = 0;
 	Symbols global = new Symbols(null);
 
 	if (!i.eof) {
 		writeln(r.r.explain());
-		goto end;
+		return;
 	} else
 		writeln(r.result);
 	
@@ -33,14 +34,20 @@ void main(string[] argv) {
 	}
 
 	defsf.writeln("#include \"stdlib/vec.h\"\n");
+	defsf.writeln("#include \"stdlib/event.h\"\n");
 	mainf.writeln("#include \"defs.h\"");
-	foreach(id, pd; r.result) {
+	foreach(pd; r.result) {
 		auto p = cast(Particle)pd;
-		if (p is null)
-			continue;
-		defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, id);
-		defsf.writeln(p.c_structs);
-		mainf.writeln(p.c_code);
+		auto e = cast(Event)pd;
+		if (p !is null) {
+			defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
+			defsf.writeln(p.c_structs);
+			mainf.writeln(p.c_code);
+			pcnt ++;
+		} else if (e !is null) {
+			defsf.writefln("#define EVENT_%s %s\n", e.symbol, ecnt);
+			defsf.writeln(e.c_structs);
+			ecnt++;
+		}
 	}
-end:
 }

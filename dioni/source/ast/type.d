@@ -1,5 +1,5 @@
 module ast.type;
-import ast.symbols;
+import ast.symbols, ast.decl, ast.particle;
 
 pure TypeBase type_matching(T...)(const(TypeBase)[] ity) {
 	pattern_loop: foreach(tp; T) {
@@ -31,40 +31,47 @@ class TypeBase {
 	@property nothrow pure TypeBase arr_of() const { assert(false); }
 	@property nothrow pure string c_type() const { return "void"; }
 	@property nothrow pure TypeBase dup() const { return new TypeBase; }
-	nothrow void solidify(const(Symbols) s) { };
 }
 
-class Type(string name) : TypeBase {
-	Particle p;
-	Event e;
+class ParticleType : TypeBase {
+	string name;
+	const(Particle) p;
+	const(Event) e;
 	//User defined type
-	override void solidify(const(Symbols) s) {
-		auto d = s.lookup(name);
-		assert(d !is null, "Type "~name~" is not defined");
-		p = cast(Particle)d;
-		e = cast(Event)d;
-		assert(p !is null || e !is null, name~" is not a particle or event definition");
-	}
-	override int dimentsion() const {
+	override int dimension() const {
 		return 1;
 	}
 	override string str() const {
+		assert(name !is null);
 		return "UD "~name;
 	}
 	override string c_type() const {
+		assert(name !is null);
 		if (p !is null)
 			return "struct "~name~"*";
 		if (e !is null)
 			return "struct event_"~name~"*";
 		assert(false);
 	}
-	this(const(Symbols) s) {
+	nothrow pure this() { name = null; p = null; e = null; }
+	pure this(string xname, const(Symbols) s) {
+		name = xname;
 		auto d = s.lookup(name);
+		assert(d !is null, "Type "~name~" is not defined");
 		e = cast(Event)d;
 		p = cast(Particle)d;
+		assert(p !is null || e !is null, name~" is not a particle or event definition");
+	}
+	nothrow pure this(string xname, const(Particle) xp, const(Event) xe) {
+		name = xname;
+		p = xp;
+		e = xe;
 	}
 	override TypeBase dup() const {
-		return new Type!name(p, e);
+		if (name !is null)
+			return new ParticleType(name, p, e);
+		else
+			return new ParticleType;
 	}
 }
 
@@ -141,6 +148,5 @@ class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
 	//array of array not supported
 }
 
-class ParticleType : TypeBase { }
 ///Define a type match pattern: if input types match T..., then the output type is Result
 class TypePattern(Result, T...) { }
