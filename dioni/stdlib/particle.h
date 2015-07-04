@@ -12,3 +12,7 @@ struct particle {
 	//Current version of this partcile
 	int current;
 };
+struct raw_particle {
+	int t;
+	void *p;
+};

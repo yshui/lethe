@@ -67,7 +67,8 @@ class ParticleType : TypeBase {
 		return "UD "~name;
 	}
 	override string c_type() const {
-		assert(name !is null);
+		if (name is null)
+			return "struct raw_particle";
 		if (p !is null)
 			return "struct "~name~"*";
 		if (e !is null)

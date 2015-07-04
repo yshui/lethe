@@ -106,7 +106,7 @@ class Condition {
 				auto ev = cast(Var)x.expr;
 				assert(ev !is null, "Particle can only be matched against a name");
 				if (x.var !is null) {
-					auto pty = new ParticleType(x.var.name, s);
+					auto pty = new ParticleType(ev.name, s);
 					auto tgt = new VarDecl(pty, x.var.name, Protection.Const);
 					s.insert(tgt);
 					acode ~= x.var.name~" = "~"__event->"~vd.symbol~".p"~";\n";

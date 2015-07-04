@@ -1,0 +1,13 @@
+event K {
+	particle a;
+}
+particle A[Test] {
+	int a;
+	state Name {
+	}
+	@ K(b~A) { nextState = Name; } => NextState;
+	>() {
+		a <- 1;
+	}
+
+}

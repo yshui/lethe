@@ -35,6 +35,7 @@ void main(string[] argv) {
 
 	defsf.writeln("#include \"stdlib/vec.h\"\n");
 	defsf.writeln("#include \"stdlib/event.h\"\n");
+	defsf.writeln("#include \"stdlib/particle.h\"\n");
 	mainf.writeln("#include \"defs.h\"");
 	foreach(pd; r.result) {
 		auto p = cast(Particle)pd;
