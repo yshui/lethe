@@ -5,8 +5,8 @@ particle A[Test] {
 	int a;
 	state Name {
 	}
-	@ K(b~a) { c = a; nextState = Name; } => NextState,
-	@ K(_~_) { } => NextState;
+	@ K(b~a) { c = a; nextState = Name; },
+	@ K(_~_) { };
 	>() {
 		a <- 1;
 	}
@@ -14,7 +14,7 @@ particle A[Test] {
 }
 particle B << A {
 	vec2 d;
-	state Name @ K { e = a; } => NextState;
+	state Name @ K { e = a; };
 	>(d) {
 	}
 }

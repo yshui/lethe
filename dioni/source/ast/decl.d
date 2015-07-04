@@ -120,17 +120,14 @@ class Condition {
 
 class StateTransition {
 	Condition e;
-	string next;
 	const(Stmt)[] s;
-	this(Condition xe, const(Stmt)[] xs, string xnext) {
+	this(Condition xe, const(Stmt)[] xs) {
 		e = xe;
 		s = xs;
-		next = xnext;
 	}
 	pure nothrow string str() const {
 		auto res = "On event " ~ e.str ~ " do:\n";
 		res ~= s.str;
-		res ~= "=> " ~ next ~ "\n";
 		return res;
 	}
 	string c_code(const(Symbols) p) const {

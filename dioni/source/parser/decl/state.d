@@ -65,15 +65,13 @@ auto parse_state_transition(Stream i) {
 	auto r = seq!(
 		token_ws!"@",
 		parse_condition,
-		parse_stmt_block,
-		token_ws!"=>",
-		identifier
+		parse_stmt_block
 	)(i);
 	auto re = r.r;
 	re.name = "transition table";
 	if (!r.ok)
 		return err_result!StateTransition(re);
-	auto st = new StateTransition(r.result!1, r.result!2, r.result!4);
+	auto st = new StateTransition(r.result!1, r.result!2);
 	return ok_result(st, r.consumed, re);
 }
 auto parse_state_decl(Stream i) {
