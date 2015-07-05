@@ -93,13 +93,30 @@ auto parse_decl(Stream i) {
 	return ok_result(r.result, r.consumed, r.r);
 }
 alias parse_particle_decl = cast_result!(Decl, parse_particle);
-auto parse_top_decl(Stream i) {
-	auto r = choice!(
-		parse_particle_decl,
-		parse_event
-	)(i);
-	r.r.name = "top level declaration";
-	if (!r.ok)
-		return err_result!Decl(r.r);
-	return ok_result(r.result, r.consumed, r.r);
+auto parse_top(Stream i) {
+	Decl[] result = [];
+	Reason re = Reason(i, "top level declaration");
+	while(true) {
+		auto r1 = parse_tag_decl(i);
+		if (r1.ok) {
+			result ~= r1.result;
+			continue;
+		}
+		re = Reason(i, "top level declaration");
+		re.dep ~= r1.r;
+		auto r = choice!(
+			parse_particle_decl,
+			parse_event
+		)(i);
+		re.dep ~= r.r.dep;
+		if (!r.ok)
+			break;
+		result ~= r.result;
+	}
+	if (!i.eof) {
+		import std.stdio : writeln;
+		writeln(re.explain);
+		return null;
+	}
+	return result;
 }

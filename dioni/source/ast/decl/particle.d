@@ -74,6 +74,9 @@ class Particle : Decl {
 				tagd[t] = true;
 		}
 		foreach(t; tag) {
+			auto td = cast(const(TagDecl))s.lookup_checked(t);
+			assert(td !is null, t~" is not a tag");
+
 			if (t[0] == '-')
 				tagd[t[1..$]] = false;
 			else

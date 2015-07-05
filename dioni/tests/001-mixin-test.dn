@@ -1,3 +1,4 @@
+tag Test;
 event K (int);
 particle A[Test] {
 	int a;

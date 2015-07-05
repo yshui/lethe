@@ -10,21 +10,18 @@ void main(string[] argv) {
 
 	char[] file_content = cast(char[])read(argv[1]);
 	auto i = new BufStream(cast(immutable(char)[])file_content);
-	auto r = many!parse_top_decl(i);
+	auto r = parse_top(i);
 	auto mainf = File("statefn.c", "w");
 	auto defsf = File("defs.h", "w");
-	int pcnt = 0, ecnt = 0;
 	Symbols global = new Symbols(null);
 
-	if (!i.eof) {
-		writeln(r.r.explain());
+	if (r is null)
 		return;
-	} else
-		writeln(r.result);
+	writeln(r);
 	
-	foreach(p; r.result)
+	foreach(p; r)
 		global.insert(p);
-	foreach(pd; r.result) {
+	foreach(pd; r) {
 		auto p = cast(Particle)pd;
 		if (p is null)
 			continue;
@@ -33,13 +30,15 @@ void main(string[] argv) {
 		p.resolve(global);
 	}
 
+	int pcnt = 0, ecnt = 0, tcnt = 0;
 	defsf.writeln("#include \"stdlib/vec.h\"");
 	defsf.writeln("#include \"stdlib/event.h\"");
 	defsf.writeln("#include \"stdlib/particle.h\"\n");
 	mainf.writeln("#include \"defs.h\"\n");
-	foreach(pd; r.result) {
+	foreach(pd; r) {
 		auto p = cast(Particle)pd;
 		auto e = cast(Event)pd;
+		auto td = cast(TagDecl)pd;
 		if (p !is null) {
 			defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
 			defsf.writeln(p.c_macros);
@@ -50,6 +49,9 @@ void main(string[] argv) {
 			defsf.writefln("#define EVENT_%s %s\n", e.symbol, ecnt);
 			defsf.writeln(e.c_structs);
 			ecnt++;
+		} else if (td !is null) {
+			defsf.writefln("#define TAG_%s %s\n", td.symbol, tcnt);
+			tcnt++;
 		}
 	}
 }

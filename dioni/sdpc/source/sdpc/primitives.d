@@ -54,6 +54,7 @@ struct Reason {
 		state = "failed";
 		name = xname;
 		msg = null;
+		dep = [];
 	}
 	private string str(ulong depth) {
 		import std.format : format;

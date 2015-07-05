@@ -370,3 +370,28 @@ class Event : Decl {
 		assert(false);
 	}
 }
+
+class TagDecl : Decl {
+	string name;
+	override void parent(Decl p) {
+		assert(false);
+	}
+	this(string x) {
+		name = x;
+	}
+	override Decl combine(const(Decl) _) const {
+		assert(false);
+	}
+	override string str() const {
+		return "Tag "~name;
+	}
+	override string symbol() const {
+		return name;
+	}
+	override string c_code(const(Symbols) s) const {
+		assert(false);
+	}
+	override Decl dup() const {
+		assert(false);
+	}
+}
