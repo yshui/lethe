@@ -1,0 +1,12 @@
+event B {
+	int a;
+}
+particle A {
+	state X @ B { nextState = ?; if(1)nextState = X; };
+	>() {
+		a = ?;
+		if (1) {
+			a=vec2(1,2);
+		}
+	}
+}

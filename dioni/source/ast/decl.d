@@ -133,6 +133,7 @@ class StateTransition {
 	}
 	string c_code(const(Symbols) p) const {
 		auto s1 = new Symbols(p);
+		Symbols s2;
 		string[2] cond = e.c_code(s1);
 		auto res = "if (__raw_event->t == EVENT_"~e.name~") {\n";
 		res ~= "struct event_"~e.name~"* __event = __raw_event->e;\n";
@@ -140,7 +141,13 @@ class StateTransition {
 			res ~= "if ("~cond[0]~") {\n";
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
-		res ~= s.c_code(p);
+		res ~= s.c_code(p, s2);
+
+		auto d = s2.lookup("nextState");
+		assert(d !is null, "nextState is not defined");
+		auto vd = cast(VarDecl)d;
+		assert(vd !is null, "nextState should be a variable");
+		assert(typeid(vd.ty) == typeid(StateType), "nextState is not a state");
 		res ~= "return nextState;\n";
 		res ~= "}\n";
 		if (cond[0] != "")

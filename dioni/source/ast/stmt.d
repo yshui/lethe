@@ -78,12 +78,18 @@ package nothrow pure string str(const(Stmt)[] ss) {
 	return res;
 }
 
-package string c_code(const(Stmt)[] ss, const(Symbols) p) {
+package string c_code(const(Stmt)[] ss, const(Symbols) p, out Symbols os) {
 	string res = "";
 	Symbols c = new Symbols(p);
 	foreach(s; ss)
 		res ~= s.c_code(c);
+	os = c;
 	return c.c_defs(StorageClass.Local)~res;
+}
+
+package string c_code(const(Stmt)[] ss, const(Symbols) p) {
+	Symbols _;
+	return c_code(ss, p, _);
 }
 class If : Stmt {
 	Expr cond;
