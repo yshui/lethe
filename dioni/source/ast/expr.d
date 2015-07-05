@@ -181,14 +181,19 @@ class Field : LValue {
 		lhs = xlhs;
 		rhs = xrhs;
 	}
-	pure TypeBase _gen_type(Symbols s) const {
-		return null;
-	}
 	override @property pure nothrow string str() const {
 		return "<" ~ lhs ~ "." ~ rhs ~ ">";
 	}
 	override string c_code(Symbols s, out TypeBase ty) const {
-		assert(false, "NIY");
+		//Lookup left
+		auto d = cast(const(VarDecl))s.lookup_checked(lhs);
+		assert(d !is null, lhs~" is not a variable");
+		auto p = cast(const(ParticleType))d.ty;
+		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
+		auto d2 = cast(VarDecl)p.p.sym.lookup_checked(rhs);
+		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
+		ty = d2.ty.dup;
+		return lhs~"->"~rhs;
 	}
 }
 

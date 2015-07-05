@@ -1,9 +1,9 @@
-module ast.decl;
+module ast.decl.decl;
 import ast.type,
        ast.stmt,
        ast.symbols,
        ast.expr,
-       ast.particle;
+       ast.decl;
 import std.typecons;
 
 interface Decl {
@@ -63,9 +63,7 @@ class Condition {
 	string[2] c_code(Symbols s) const {
 		//Generate c code for matching
 		int count = 0;
-		auto d = s.lookup(name);
-		assert(d !is null, "Event "~name~" is not defined");
-		auto e = cast(Event)d;
+		auto e = cast(Event)s.lookup_checked(name);
 		assert(e !is null, name~" is not an event definition");
 
 		auto mcode = "", acode = "";
@@ -141,11 +139,9 @@ class StateTransition {
 			res ~= "if ("~cond[0]~") {\n";
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
-		res ~= s.c_code(p, s2);
+		res ~= s.c_code(s1, s2);
 
-		auto d = s2.lookup("nextState");
-		assert(d !is null, "nextState is not defined");
-		auto vd = cast(VarDecl)d;
+		auto vd = cast(VarDecl)s2.lookup_checked("nextState");
 		assert(vd !is null, "nextState should be a variable");
 		assert(typeid(vd.ty) == typeid(StateType), "nextState is not a state");
 		res ~= "return nextState;\n";
@@ -363,7 +359,7 @@ class Event : Decl {
 	string c_structs() const {
 		string res = "struct event_"~name~"{\n";
 		foreach(vd; member)
-			res ~= vd.ty.c_type~" "~vd.symbol~"\n";
+			res ~= vd.ty.c_type~" "~vd.symbol~";\n";
 		res ~= "};\n";
 		return res;
 	}

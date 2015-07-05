@@ -1,4 +1,4 @@
-module ast.particle;
+module ast.decl.particle;
 import ast.decl, ast.symbols;
 import std.string;
 class Particle : Decl {
@@ -22,6 +22,9 @@ class Particle : Decl {
 	}
 	@property nothrow pure bool visited() const {
 		return _visited;
+	}
+	@property nothrow pure const(Symbols) sym() const {
+		return s;
 	}
 
 	this(string xn, string[] t, string[] com, Decl[] d) {
@@ -134,5 +137,18 @@ class Particle : Decl {
 	
 	override Decl dup() const {
 		assert(false);
+	}
+	pure string c_macros() const {
+		import std.conv;
+		auto res = "";
+		int id = 0;
+		foreach(d; s.table) {
+			auto sd = cast(State)d;
+			if (sd is null)
+				continue;
+			res ~= "#define PARTICLE_"~name~"_STATE_"~sd.symbol~" "~to!string(id)~"\n";
+			id ++;
+		}
+		return res;
 	}
 }

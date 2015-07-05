@@ -1,5 +1,5 @@
 module ast.type;
-import ast.symbols, ast.decl, ast.particle;
+import ast.symbols, ast.decl;
 
 pure TypeBase type_matching(T...)(const(TypeBase)[] ity) {
 	pattern_loop: foreach(tp; T) {

@@ -1,5 +1,5 @@
 module parser.decl.particle;
-import ast.particle;
+import ast.decl;
 import parser.decl, parser.utils;
 import sdpc;
 auto parse_tagarr(Stream i) {

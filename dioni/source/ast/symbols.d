@@ -14,6 +14,11 @@ class Symbols {
 		else
 			return null;
 	}
+	pure const(Decl) lookup_checked(string name) const {
+		auto d = lookup(name);
+		assert(d !is null, name~" is not defined");
+		return d;
+	}
 	nothrow void insert(const(Decl) d) {
 		assert((d.symbol in reserved_names) is null, "Reserved name "~d.symbol);
 		assert(lookup(d.symbol) is null, "Duplicated name "~d.symbol);

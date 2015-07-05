@@ -1,6 +1,6 @@
 import std.stdio, std.file;
 import parser;
-import ast.symbols, ast.particle, ast.decl;
+import ast.symbols, ast.decl;
 import sdpc;
 void main(string[] argv) {
 	if (argv.length < 2) {
@@ -33,15 +33,16 @@ void main(string[] argv) {
 		p.resolve(global);
 	}
 
-	defsf.writeln("#include \"stdlib/vec.h\"\n");
-	defsf.writeln("#include \"stdlib/event.h\"\n");
+	defsf.writeln("#include \"stdlib/vec.h\"");
+	defsf.writeln("#include \"stdlib/event.h\"");
 	defsf.writeln("#include \"stdlib/particle.h\"\n");
-	mainf.writeln("#include \"defs.h\"");
+	mainf.writeln("#include \"defs.h\"\n");
 	foreach(pd; r.result) {
 		auto p = cast(Particle)pd;
 		auto e = cast(Event)pd;
 		if (p !is null) {
 			defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
+			defsf.writeln(p.c_macros);
 			defsf.writeln(p.c_structs);
 			mainf.writeln(p.c_code);
 			pcnt ++;

@@ -1,0 +1,10 @@
+event A {
+	particle a;
+}
+particle B {
+	int a;
+	state S1 @ A(p~B) {
+		a <- p.a;
+		nextState = S1;
+	};
+}
