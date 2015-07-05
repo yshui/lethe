@@ -293,12 +293,19 @@ class VarDecl : Decl {
 
 class Ctor : Decl {
 	Stmt[] stmt;
+	const(VarDecl)[] param_def;
 	string[] param;
 	private string _prefix, _particle;
 	Particle _parent;
-	override void parent(Decl p) {
-		_parent = cast(Particle)p;
+	override void parent(Decl prnt) {
+		_parent = cast(Particle)prnt;
 		assert(_parent !is null);
+		auto s = _parent.sym;
+		foreach(p; param) {
+			auto vd = cast(const(VarDecl))s.lookup_checked(p);
+			assert(vd !is null, p~" is not a variable");
+			param_def ~= vd;
+		}
 	}
 	this(string[] p, Stmt[] x) {
 		stmt = x;
@@ -317,14 +324,9 @@ class Ctor : Decl {
 		assert(_parent !is null);
 		auto res = "static inline void "~_parent.symbol~"_ctor("~_parent.symbol.param_list;
 		auto init = "";
-		foreach(p; param) {
-			auto d = s.lookup(p);
-			assert(d !is null, p~" is not a member, "~
-			       "thus can't be part of initialize list");
-			auto vd = cast(VarDecl)d;
-			assert(vd !is null, p~" is not a variable");
-			res ~= ", "~vd.ty.c_type~" "~vd.name;
-			init ~= vd.c_access(true)~" = "~p~";\n";
+		foreach(p; param_def) {
+			res ~= ", "~p.ty.c_type~" "~p.name;
+			init ~= p.c_access(true)~" = "~p.name~";\n";
 		}
 		res ~= ") {\n"~init;
 		//Initialize variables in the param

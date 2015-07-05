@@ -22,6 +22,22 @@ auto parse_qmark(Stream i) {
 	return ok_result!Expr(res, r.consumed, r.r);
 }
 
+auto parse_new_particle(Stream i) {
+	auto r = seq!(
+		discard!(token_ws!"`"),
+		identifier,
+		between!(token_ws!"(",
+			chain!(parse_expr, arr_append!Expr, discard!(token_ws!",")),
+		token_ws!")")
+	)(i);
+
+	if (!r.ok)
+		return err_result!Expr(r.r);
+
+	auto res = new NewParticle(r.result!0, r.result!1);
+	return ok_result!Expr(res, r.consumed, r.r);
+}
+
 ParseResult!Expr parse_expr(Stream i) {
 	auto r = chain!(
 		parse_term,

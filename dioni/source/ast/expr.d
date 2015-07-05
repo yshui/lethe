@@ -269,6 +269,41 @@ class QMark : Expr {
 	}
 }
 
+class NewParticle : Expr {
+	string name;
+	Expr[] param;
+	this(string n, Expr[] p) {
+		name = n;
+		param = p;
+	}
+	override string str() const {
+		return "NParticle";
+	}
+	override string c_code(Symbols s, out TypeBase ty) const {
+		auto pd = cast(Particle)s.lookup_checked(name);
+		assert(pd !is null, name~" is not a particle");
+		auto ctor = pd.ctor;
+		if (ctor is null) {
+			assert(param.length == 0, "ctor of "~name~" doesn't take any parameter");
+			return "(new_particle_"~name~"())";
+		} else {
+			auto res = "(new_particle_"~name~"(";
+			foreach(i, p; param) {
+				if (i != 0)
+					res ~= ", ";
+				TypeBase pty;
+				auto pcode = p.c_code(s, pty);
+				assert(type_compatible(pty, ctor.param_def[i].ty),
+				       "Type mismatch with ctor");
+				res ~= pcode;
+			}
+			res ~= "))";
+			ty = new ParticleHandle;
+			return res;
+		}
+	}
+}
+
 unittest {
 	import std.stdio;
 	writeln("Run ast.d unittest");

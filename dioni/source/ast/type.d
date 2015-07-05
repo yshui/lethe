@@ -35,6 +35,12 @@ class TypeBase {
 
 class AnonymousType : TypeBase { }
 
+class ParticleHandle : TypeBase {
+	override string c_type() const { return "int"; }
+	override TypeBase dup() const { return new ParticleType; }
+	override string str() const { return "ParticleHandle"; }
+}
+
 class StateType : TypeBase {
 	string name;
 	override int dimension() const {
@@ -174,3 +180,11 @@ class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
 
 ///Define a type match pattern: if input types match T..., then the output type is Result
 class TypePattern(Result, T...) { }
+
+bool type_compatible(const(TypeBase) src, const(TypeBase) tgt) {
+	if (typeid(src) == typeid(tgt))
+		return true;
+	if (typeid(tgt) == typeid(Type!float))
+		return typeid(src) == typeid(Type!int);
+	return false;
+}

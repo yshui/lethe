@@ -9,7 +9,7 @@ auto parse_assign(Stream i) {
 		token_ws!"=",
 		choice!(
 			parse_expr,
-			parse_qmark
+			parse_qmark,
 		),
 		token_ws!";",
 	)(i);
@@ -142,10 +142,12 @@ auto parse_delayed_or_aggregate(Stream i) {
 	auto r = seq!(
 		parse_lvalue,
 		choice!(token_ws!"<-", token_ws!"<<"),
-		parse_expr,
+		choice!(
+			parse_expr,
+			parse_new_particle
+		),
 		token_ws!";"
 	)(i);
-	r.r.promote();
 	r.r.name = "delayed assign or aggregate";
 	if (!r.ok)
 		return err_result!Stmt(r.r);

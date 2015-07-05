@@ -1,0 +1,11 @@
+# Create new particle
+
+Two choices:
+
+* int new_particle(int type, ...) //va_args
+* int new_particle_<particle type>(param1, param2)
+
+Return a particle ID.
+
+In Dioni, the return type is a particle handle, which can be used for sending event, but not for accessing data.
+
