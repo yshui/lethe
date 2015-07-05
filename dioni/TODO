@@ -1,4 +1,6 @@
 # Must
+* Deferred variable assign (var = ?)
+* Make sure nextState is defined on exit
 * Generate state transition functions
 * Wildcard event match
 * Event handler forwarding

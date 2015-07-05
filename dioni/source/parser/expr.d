@@ -12,6 +12,16 @@ auto parse_paren(Stream i) {
 	return r;
 }
 
+auto parse_qmark(Stream i) {
+	auto r = token_ws!"?"(i);
+	r.r.name = "qmark";
+	if (!r.ok)
+		return err_result!Expr(r.r);
+
+	auto res = new QMark;
+	return ok_result!Expr(res, r.consumed, r.r);
+}
+
 ParseResult!Expr parse_expr(Stream i) {
 	auto r = chain!(
 		parse_term,

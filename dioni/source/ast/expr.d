@@ -254,6 +254,16 @@ class Vec(int dim) : Expr if (dim >= 2) {
 	}
 }
 
+class QMark : Expr {
+	override string str() const {
+		return "?";
+	}
+	override string c_code(Symbols s, out TypeBase ty) const {
+		ty = new AnonymousType;
+		return "";
+	}
+}
+
 unittest {
 	import std.stdio;
 	writeln("Run ast.d unittest");

@@ -4,6 +4,7 @@ import ast.type,
        ast.symbols,
        ast.expr,
        ast.particle;
+import std.typecons;
 
 interface Decl {
 	@property nothrow pure void parent(Decl p);
@@ -232,11 +233,20 @@ enum Protection {
 }
 
 class VarDecl : Decl {
-	const(TypeBase) ty;
+	private Rebindable!(const TypeBase) _ty;
 	string name;
 	StorageClass sc;
 	Protection prot;
 	Particle _parent;
+	@property pure nothrow const(TypeBase) ty() const {
+		return _ty;
+	}
+	@property const(TypeBase) ty(const(TypeBase) nty) {
+		auto tmp = ty;
+		assert(typeid(tmp) == typeid(AnonymousType));
+		_ty = nty;
+		return _ty;
+	}
 	override void parent(Decl p) {
 		_parent = cast(Particle)p;
 		assert(_parent !is null);
@@ -246,7 +256,7 @@ class VarDecl : Decl {
 		  StorageClass xsc=StorageClass.Local) {
 		name = xname;
 		sc = xsc;
-		ty = xty;
+		_ty = xty;
 		prot = xprot;
 	}
 	override Decl combine(const(Decl) _) const {

@@ -7,7 +7,10 @@ auto parse_assign(Stream i) {
 	auto r = seq!(
 		parse_lvalue,
 		token_ws!"=",
-		parse_expr,
+		choice!(
+			parse_expr,
+			parse_qmark
+		),
 		token_ws!";",
 	)(i);
 	r.r.promote();

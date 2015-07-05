@@ -33,6 +33,8 @@ class TypeBase {
 	@property nothrow pure TypeBase dup() const { return new TypeBase; }
 }
 
+class AnonymousType : TypeBase { }
+
 class StateType : TypeBase {
 	string name;
 	override int dimension() const {

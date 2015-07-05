@@ -47,9 +47,17 @@ class Assign : Stmt {
 			} else {
 				vd = cast(VarDecl)d;
 				assert(vd !is null, "Assigning to non variable");
-				assert(typeid(ty) == typeid(vd.ty), "Type mismatch: "~vd.name~":"~typeid(vd.ty).toString~"!="~typeid(ty).toString);
+				assert(typeid(ty) != typeid(AnonymousType), "Can't assign ? to "~vd.symbol);
+				if (typeid(vd.ty) != typeid(AnonymousType))
+					assert(typeid(ty) == typeid(vd.ty),
+					       "Type mismatch: "~vd.name~":"~typeid(vd.ty).toString~
+					       "!="~typeid(ty).toString);
+				else
+					vd.ty = ty;
 				assert(vd.prot != Protection.Const, "Writing to readonly variable '"~v.name~"'");
 			}
+			if (typeid(ty) == typeid(AnonymousType))
+				return "";
 			if (type == Delayed) {
 				assert(vd.sc != StorageClass.Local, "Delayed assign can't be used with local variable");
 				return vd.c_access(true)~" = "~rcode~";\n";
