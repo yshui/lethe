@@ -26,18 +26,17 @@ auto parse_event_parameter(Stream i) {
 
 	auto r = seq!(
 		parse_var_expr,
-		token_ws!"~",
-		parse_primary
+		optional!(seq!(
+			discard!(token_ws!"~"),
+			parse_primary
+		))
 	)(i);
 	r.r.name = "event parameter";
 	if (!r.ok)
 		return err_result!EventParameter(r.r);
 	
-	auto condv = cast(Var)r.result!2;
-	auto expr = r.result!2;
+	auto expr = r.result!1;
 	auto var = cast(Var)r.result!0;
-	if (condv !is null && condv.name == "_")
-		expr = null;
 	if (var.name == "_")
 		var = null;
 

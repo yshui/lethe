@@ -62,6 +62,7 @@ class Condition {
 	}
 	string[2] c_code(Symbols s) const {
 		//Generate c code for matching
+		import std.conv : to;
 		int count = 0;
 		auto e = cast(Event)s.lookup_checked(name);
 		assert(e !is null, name~" is not an event definition");
@@ -69,16 +70,17 @@ class Condition {
 		auto mcode = "", acode = "";
 
 		foreach(i, x; ep) {
-			auto vd = e.member[i];
-			auto pt = cast(ParticleType)vd.ty;
+			auto ty = e.member[i];
+			auto emn = "m"~to!string(i);
+			auto pt = cast(ParticleType)ty;
 			if (x.expr is null) {
 				if (x.var is null)
 					continue;
 				assert(pt is null,
 				       "Cannot determine the actual type of a "~
 				       "particle without matching criteria");
-				acode ~= x.var.name~" = "~"__event->"~vd.symbol~";\n";
-				auto mv = new VarDecl(vd.ty, x.var.name, Protection.Const);
+				acode ~= x.var.name~" = "~"__event->"~emn~";\n";
+				auto mv = new VarDecl(ty, x.var.name, Protection.Const);
 				s.insert(mv);
 			}
 			if (count != 0)
@@ -94,11 +96,11 @@ class Condition {
 				assert(typeid(ety) == typeid(Type!int),
 				       "Trying to match 'int' against"~
 				       ety.c_type);
-				mcode ~= "(__event->"~vd.symbol~" == "~ecode~")";
+				mcode ~= "(__event->"~emn~" == "~ecode~")";
 				if (x.var !is null) {
 					auto tgt = new VarDecl(ety, x.var.name, Protection.Const);
 					s.insert(tgt);
-					acode ~= tgt.c_access~" = "~"__event->"~vd.symbol~";\n";
+					acode ~= tgt.c_access~" = "~"__event->"~emn~";\n";
 				}
 			} else {
 				//Trying to match a particle
@@ -108,9 +110,9 @@ class Condition {
 					auto pty = new ParticleType(ev.name, s);
 					auto tgt = new VarDecl(pty, x.var.name, Protection.Const);
 					s.insert(tgt);
-					acode ~= x.var.name~" = "~"__event->"~vd.symbol~".p"~";\n";
+					acode ~= x.var.name~" = "~"__event->"~emn~".p"~";\n";
 				}
-				mcode ~= "(__event->"~vd.symbol~".t == PARTICLE_"~ev.name~")";
+				mcode ~= "(__event->"~emn~".t == PARTICLE_"~ev.name~")";
 			}
 		}
 		return [mcode, acode];
@@ -335,12 +337,12 @@ class Ctor : Decl {
 }
 
 class Event : Decl {
-	VarDecl[] member;
+	TypeBase[] member;
 	string name;
 	override void parent(Decl p) {
 		assert(false);
 	}
-	this(string x, VarDecl[] vd) {
+	this(string x, TypeBase[] vd) {
 		member = vd;
 		name = x;
 	}
@@ -357,9 +359,10 @@ class Event : Decl {
 		assert(false);
 	}
 	string c_structs() const {
+		import std.conv : to;
 		string res = "struct event_"~name~"{\n";
-		foreach(vd; member)
-			res ~= vd.ty.c_type~" "~vd.symbol~";\n";
+		foreach(i, ty; member)
+			res ~= ty.c_type~" m"~to!string(i)~";\n";
 		res ~= "};\n";
 		return res;
 	}

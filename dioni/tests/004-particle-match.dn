@@ -1,6 +1,4 @@
-event K {
-	particle a;
-}
+event K (particle);
 particle A[Test] {
 	int a;
 	state Name {

@@ -1,6 +1,4 @@
-event A {
-	particle a;
-}
+event A (particle);
 particle B {
 	int a;
 	state S1 @ A(p~B) {

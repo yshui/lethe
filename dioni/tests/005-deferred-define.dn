@@ -1,6 +1,4 @@
-event B {
-	int a;
-}
+event B (int);
 particle A {
 	state X @ B { nextState = ?; if(1)nextState = X; };
 	>() {
