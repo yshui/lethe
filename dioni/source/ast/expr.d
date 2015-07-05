@@ -1,5 +1,5 @@
 module ast.expr;
-import ast.symbols, ast.decl, ast.type;
+import ast.symbols, ast.decl, ast.type, ast.stmt;
 import std.conv,
        std.range,
        std.typecons,
@@ -269,7 +269,7 @@ class QMark : Expr {
 	}
 }
 
-class NewParticle : Expr {
+class NewParticle : Expr, Stmt {
 	string name;
 	Expr[] param;
 	this(string n, Expr[] p) {
@@ -301,6 +301,11 @@ class NewParticle : Expr {
 			ty = new ParticleHandle;
 			return res;
 		}
+	}
+	override string c_code(Symbols s) const {
+		TypeBase ty;
+		auto code = c_code(s, ty);
+		return code~";\n";
 	}
 }
 

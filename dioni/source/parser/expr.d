@@ -26,17 +26,20 @@ auto parse_new_particle(Stream i) {
 	auto r = seq!(
 		discard!(token_ws!"`"),
 		identifier,
-		between!(token_ws!"(",
-			chain!(parse_expr, arr_append!Expr, discard!(token_ws!",")),
-		token_ws!")")
+		optional!(between!(token_ws!"(",
+			chain!(parse_expr, arr_append!Expr, discard!(token_ws!","), true),
+		token_ws!")"))
 	)(i);
+	r.r.name = "new particle";
 
 	if (!r.ok)
-		return err_result!Expr(r.r);
+		return err_result!NewParticle(r.r);
 
 	auto res = new NewParticle(r.result!0, r.result!1);
-	return ok_result!Expr(res, r.consumed, r.r);
+	return ok_result(res, r.consumed, r.r);
 }
+
+alias parse_new_particle_expr = cast_result!(Expr, parse_new_particle);
 
 ParseResult!Expr parse_expr(Stream i) {
 	auto r = chain!(
