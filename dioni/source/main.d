@@ -33,11 +33,11 @@ void main(string[] argv) {
 
 	int pcnt = 0, ecnt = 0, tcnt = 0;
 	defsf.writeln("#pragma once\n");
-	defsf.writeln("#include \"stdlib/vec.h\"");
-	defsf.writeln("#include \"stdlib/raw.h\"");
+	defsf.writeln("#include \"runtime/vec.h\"");
+	defsf.writeln("#include \"runtime/raw.h\"");
 	defsf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
-	pf.writeln("#include \"stdlib/interface.h\"\n");
+	pf.writeln("#include \"runtime/interface.h\"\n");
 	pf.writeln("#include \"defs.h\"\n");
 
 	auto punion = "union particle_variants {\n";
