@@ -32,14 +32,16 @@ void main(string[] argv) {
 	}
 
 	int pcnt = 0, ecnt = 0, tcnt = 0;
+	defsf.writeln("#pragma once\n");
 	defsf.writeln("#include \"stdlib/vec.h\"");
-	defsf.writeln("#include \"stdlib/event.h\"");
-	defsf.writeln("#include \"stdlib/particle.h\"\n");
+	defsf.writeln("#include \"stdlib/raw.h\"");
+	defsf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
 	pf.writeln("#include \"stdlib/interface.h\"\n");
 	pf.writeln("#include \"defs.h\"\n");
 
 	auto punion = "union particle_variants {\n";
+	auto eunion = "union event_variants {\n";
 	foreach(pd; r) {
 		auto p = cast(Particle)pd;
 		auto e = cast(Event)pd;
@@ -57,6 +59,7 @@ void main(string[] argv) {
 		} else if (e !is null) {
 			defsf.writefln("#define EVENT_%s %s\n", e.symbol, ecnt);
 			defsf.writeln(e.c_structs);
+			eunion ~= "struct event_"~e.symbol~" "~e.symbol~";\n";
 			ecnt++;
 		} else if (td !is null) {
 			defsf.writefln("#define TAG_%s %s\n", td.symbol, tcnt);
@@ -64,4 +67,7 @@ void main(string[] argv) {
 		}
 	}
 	defsf.writeln(punion~"};\n");
+	defsf.writeln(eunion~"};\n");
+	defsf.writeln("#define MAX_TAG_ID "~to!string(tcnt)~"\n");
+	defsf.writeln("#define MAX_PARTICLE_ID "~to!string(pcnt)~"\n");
 }

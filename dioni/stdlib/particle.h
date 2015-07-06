@@ -13,7 +13,7 @@ struct particle {
 	//Current version of this partcile
 	int current;
 };
-struct raw_particle {
-	int t;
-	void *p;
-};
+
+struct particle *alloc_particle(void);
+void free_particle(struct particle *);
+int get_particle_id(struct particle *);

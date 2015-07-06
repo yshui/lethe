@@ -1,8 +1,12 @@
 #pragma once
+#include "../defs.h"
+#include "list.h"
 
 #define NOT_HANDLED (-1)
 
-struct raw_event {
-	int t;
-	void *e;
+struct event {
+	int type;
+	union event_variants e;
+	struct list_node q;
 };
+

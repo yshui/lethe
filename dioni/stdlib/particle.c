@@ -1,5 +1,4 @@
 #include "particle.h"
-#include "interface.h"
 #define MAX_PARTICLE 1000
 static struct particle p[MAX_PARTICLE];
 static struct particle *freep[MAX_PARTICLE];
