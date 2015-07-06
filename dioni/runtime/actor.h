@@ -2,8 +2,13 @@
 
 #include "list.h"
 
-struct statemachine {
+enum actor_state {
+	RUNNING,
+	PAUSED
+};
+
+struct actor {
 	struct particle *owner;
-	int state;
+	enum actor_state state;
 	struct list_node q;
 };
