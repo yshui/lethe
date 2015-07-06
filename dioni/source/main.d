@@ -13,6 +13,7 @@ void main(string[] argv) {
 	auto r = parse_top(i);
 	auto mainf = File("statefn.c", "w");
 	auto defsf = File("defs.h", "w");
+	auto pf = File("particles.c", "w");
 	Symbols global = new Symbols(null);
 
 	if (r is null)
@@ -35,6 +36,10 @@ void main(string[] argv) {
 	defsf.writeln("#include \"stdlib/event.h\"");
 	defsf.writeln("#include \"stdlib/particle.h\"\n");
 	mainf.writeln("#include \"defs.h\"\n");
+	pf.writeln("#include \"stdlib/interface.h\"\n");
+	pf.writeln("#include \"defs.h\"\n");
+
+	auto punion = "union particle_variants {\n";
 	foreach(pd; r) {
 		auto p = cast(Particle)pd;
 		auto e = cast(Event)pd;
@@ -44,6 +49,8 @@ void main(string[] argv) {
 			defsf.writeln(p.c_macros);
 			defsf.writeln(p.c_structs);
 			mainf.writeln(p.c_code);
+			pf.writeln(p.c_create);
+			punion ~= "struct "~p.symbol~" "~p.symbol~";\n";
 			pcnt ++;
 		} else if (e !is null) {
 			defsf.writefln("#define EVENT_%s %s\n", e.symbol, ecnt);
@@ -54,4 +61,5 @@ void main(string[] argv) {
 			tcnt++;
 		}
 	}
+	defsf.writeln(punion~"};\n");
 }

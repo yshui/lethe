@@ -41,8 +41,6 @@ class Particle : Decl {
 		auto res = "";
 		foreach(d; s.table)
 			res ~= d.c_code(s);
-		if (ctor !is null)
-			res ~= ctor.c_code(s);
 		return res;
 	}
 	void resolve(Symbols glob) {
@@ -152,6 +150,32 @@ class Particle : Decl {
 			res ~= "#define PARTICLE_"~name~"_STATE_"~sd.symbol~" "~to!string(id)~"\n";
 			id ++;
 		}
+		return res;
+	}
+	string c_create() const {
+		string res = "";
+		if (ctor !is null)
+			res ~= ctor.c_code(s)~"\n";
+		res ~= "static inline int new_particle_"~name~"(";
+		if (ctor !is null)
+			foreach(i, p; ctor.param_def) {
+				if (i != 0)
+					res ~= ", ";
+				res ~= p.ty.c_type~" "~p.symbol;
+			}
+		res ~= ") {\n";
+		res ~= "struct particle *__p = alloc_particle();\n__p->current = 0;\n";
+		res ~= "__p->type = PARTICLE_"~name~";\n";
+		if (ctor !is null) {
+			res ~= q{struct }~name~q{ *__current = (void *)&__p->data[0], };
+			res ~= q{*__next = (void *)&__p->data[1];};
+			res ~= "\n"~name~"_ctor(__current, __next";
+			foreach(p; ctor.param)
+				res ~= ", "~p;
+			res ~= ");";
+		}
+		res ~= "\nreturn get_particle_id(__p);";
+		res ~= "\n}\n";
 		return res;
 	}
 }
