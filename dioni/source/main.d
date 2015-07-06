@@ -48,6 +48,8 @@ void main(string[] argv) {
 			defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
 			defsf.writeln(p.c_macros);
 			defsf.writeln(p.c_structs);
+			defsf.writeln(p.c_code(true));
+			defsf.writeln(p.c_create(true));
 			mainf.writeln(p.c_code);
 			pf.writeln(p.c_create);
 			punion ~= "struct "~p.symbol~" "~p.symbol~";\n";

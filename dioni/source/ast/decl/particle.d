@@ -33,14 +33,18 @@ class Particle : Decl {
 		component_str = com;
 		tag = t;
 	}
-	override string c_code(const(Symbols) xs) const {
-		return c_code;
+	override string c_code(const(Symbols) xs, bool prototype_only) const {
+		assert(false);
 	}
-	string c_code() const {
+	string c_code(bool prototype_only=false) const {
 		int this_count = 0;
 		auto res = "";
-		foreach(d; s.table)
-			res ~= d.c_code(s);
+		foreach(d; s.table) {
+			auto st = cast(const(State))d;
+			if (st is null)
+				continue;
+			res ~= st.c_code(s, prototype_only);
+		}
 		return res;
 	}
 	void resolve(Symbols glob) {
@@ -152,10 +156,10 @@ class Particle : Decl {
 		}
 		return res;
 	}
-	string c_create() const {
+	string c_create(bool prototype_only=false) const {
 		string res = "";
 		if (ctor !is null)
-			res ~= ctor.c_code(s)~"\n";
+			res ~= ctor.c_code(s, prototype_only)~"\n";
 		res ~= "static inline int new_particle_"~name~"(";
 		if (ctor !is null)
 			foreach(i, p; ctor.param_def) {
@@ -163,6 +167,9 @@ class Particle : Decl {
 					res ~= ", ";
 				res ~= p.ty.c_type~" "~p.symbol;
 			}
+		if (prototype_only)
+			return res~");\n";
+
 		res ~= ") {\n";
 		res ~= "struct particle *__p = alloc_particle();\n__p->current = 0;\n";
 		res ~= "__p->type = PARTICLE_"~name~";\n";

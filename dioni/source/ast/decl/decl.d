@@ -13,7 +13,7 @@ interface Decl {
 	final string toString() const {
 		return str;
 	}
-	string c_code(const(Symbols) s) const;
+	string c_code(const(Symbols) s, bool prototype_only=false) const;
 	pure nothrow Decl combine(const(Decl) o) const;
 	pure nothrow Decl dup() const;
 }
@@ -204,19 +204,29 @@ class State : Decl {
 			res ~= ste.str;
 		return res;
 	}
-	override string c_code(const(Symbols) p) const {
+	override string c_code(const(Symbols) p, bool prototype_only) const {
 		assert(_parent !is null);
 		import std.format : format;
-		auto res = format("static inline void %s_state_%s_entry(%s) {\n",
+		auto res = format("static inline void %s_state_%s_entry(%s)",
 				  _parent.symbol, name, _parent.symbol.param_list);
-		res ~= entry.c_code(p);
-		res ~= "}\n";
-		res ~= format("static inline int %s_state_%s(%s, struct raw_event* __raw_event) {\n",
+		if (prototype_only)
+			res ~= ";\n";
+		else {
+			res ~= " {\n"~entry.c_code(p);
+			res ~= "}\n";
+		}
+
+		res ~= format("static inline int %s_state_%s(%s, struct raw_event* __raw_event)",
 			      _parent.symbol, name, _parent.symbol.param_list);
-		foreach(x; st)
-			res ~= x.c_code(p);
-		res ~= "return NOT_HANDLED;\n";
-		res ~= "}\n";
+		if (prototype_only)
+			res ~= ";\n";
+		else {
+			res ~= " {\n";
+			foreach(x; st)
+				res ~= x.c_code(p);
+			res ~= "return NOT_HANDLED;\n";
+			res ~= "}\n";
+		}
 		return res;
 	}
 	string c_access() const {
@@ -273,8 +283,9 @@ class VarDecl : Decl {
 	override string symbol() const {
 		return name;
 	}
-	override string c_code(const(Symbols) s) const {
-		return "";
+	override string c_code(const(Symbols) s, bool prototype_only) const {
+		assert(false);
+		//return "";
 	}
 	string c_access(bool next=false) const {
 		import std.format : format;
@@ -320,7 +331,7 @@ class Ctor : Decl {
 	override Decl combine(const(Decl) _) const {
 		assert(false);
 	}
-	override string c_code(const(Symbols) s) const {
+	override string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(_parent !is null);
 		auto res = "static inline void "~_parent.symbol~"_ctor("~_parent.symbol.param_list;
 		auto init = "";
@@ -328,6 +339,9 @@ class Ctor : Decl {
 			res ~= ", "~p.ty.c_type~" "~p.name;
 			init ~= p.c_access(true)~" = "~p.name~";\n";
 		}
+		if (prototype_only)
+			return res~");";
+
 		res ~= ") {\n"~init;
 		//Initialize variables in the param
 		res ~= stmt.c_code(s)~"}";
@@ -357,7 +371,7 @@ class Event : Decl {
 	override string symbol() const {
 		return name;
 	}
-	override string c_code(const(Symbols) s) const {
+	override string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(false);
 	}
 	string c_structs() const {
@@ -390,7 +404,7 @@ class TagDecl : Decl {
 	override string symbol() const {
 		return name;
 	}
-	override string c_code(const(Symbols) s) const {
+	override string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(false);
 	}
 	override Decl dup() const {
