@@ -9,6 +9,7 @@ enum actor_state {
 
 struct actor {
 	struct particle *owner;
-	enum actor_state state;
+	enum actor_state astate;
+	int state;
 	struct list_node q;
 };

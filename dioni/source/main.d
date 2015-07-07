@@ -2,6 +2,26 @@ import std.stdio, std.file;
 import parser;
 import ast.symbols, ast.decl;
 import sdpc;
+string c_particle_handler(const(Decl)[] s) {
+	//XXX this implementation is incomplete, run_particle function must
+	//fetch events by itself, not via argument
+	auto res = "int run_particle(struct actor *a, struct raw_event *re) {\n";
+	res ~= "\tstruct particle *p = a->owner;\n";
+	res ~= "\tswitch(p->type) {\n";
+	foreach(d; s) {
+		auto p = cast(const(Particle))d;
+		if (p is null)
+			continue;
+		res ~= "\tcase PARTICLE_"~p.symbol~":\n";
+		//Get current and next
+		res ~= "\t\tstruct "~p.symbol;
+		res ~= " *current = &p->data[p->current]."~p.symbol;
+		res ~= ", *next = &p->data[!p->current]."~p.symbol~";\n";
+		res ~= "\t\treturn run_particle_"~p.symbol~"(current, next, re, a->state);\n";
+	}
+	res ~= "\t}\n}\n";
+	return res;
+}
 void main(string[] argv) {
 	if (argv.length < 2) {
 		stderr.writefln("Usage: %s file", argv[0]);
@@ -67,6 +87,7 @@ void main(string[] argv) {
 			tcnt++;
 		}
 	}
+	mainf.writeln(c_particle_handler(r));
 	defsf.writeln(punion~"};\n");
 	defsf.writeln(eunion~"};\n");
 	defsf.writeln("#define MAX_TAG_ID "~to!string(tcnt)~"\n");
