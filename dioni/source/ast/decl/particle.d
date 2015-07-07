@@ -185,4 +185,21 @@ class Particle : Decl {
 		res ~= "\n}\n";
 		return res;
 	}
+	string c_run(bool prototype_only=false) const {
+		string res = format("int run_particle_%s(struct %s *__current,"~
+		    "struct %s *__next, struct raw_event *__raw_event, int state)",
+		    name, name, name);
+		if (prototype_only)
+			return res~";\n";
+		res ~= " {\n\tswitch(state) {\n";
+		foreach(d; s.table) {
+			auto sd = cast(State)d;
+			if (sd is null)
+				continue;
+			res ~= "\tcase PARTICLE_"~name~"_STATE_"~sd.symbol~":\n";
+			res ~= "\t\treturn "~name~"_state_"~sd.symbol~"(__current, __next, __raw_event);\n";
+		}
+		res ~= "\t}\n}\n";
+		return res;
+	}
 }

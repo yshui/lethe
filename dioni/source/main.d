@@ -53,6 +53,7 @@ void main(string[] argv) {
 			defsf.writeln(p.c_code(true));
 			defsf.writeln(p.c_create(true));
 			mainf.writeln(p.c_code);
+			mainf.writeln(p.c_run);
 			pf.writeln(p.c_create);
 			punion ~= "struct "~p.symbol~" "~p.symbol~";\n";
 			pcnt ++;

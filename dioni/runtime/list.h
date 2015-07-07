@@ -816,3 +816,7 @@ static inline void *list_entry_or_null(const struct list_head *h,
 	if (n == &h->n) return NULL;
 	return (char *)n - off;
 }
+
+static inline bool list_node_invalid(const struct list_node *n) {
+	return n->next == NULL && n->prev == NULL;
+}
