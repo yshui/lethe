@@ -187,7 +187,7 @@ class Particle : Decl {
 	}
 	string c_run(bool prototype_only=false) const {
 		string res = format("int run_particle_%s(struct %s *__current,"~
-		    "struct %s *__next, struct raw_event *__raw_event, int state)",
+		    "struct %s *__next, struct event *__event, int state)",
 		    name, name, name);
 		if (prototype_only)
 			return res~";\n";
@@ -197,7 +197,7 @@ class Particle : Decl {
 			if (sd is null)
 				continue;
 			res ~= "\tcase PARTICLE_"~name~"_STATE_"~sd.symbol~":\n";
-			res ~= "\t\treturn "~name~"_state_"~sd.symbol~"(__current, __next, __raw_event);\n";
+			res ~= "\t\treturn "~name~"_state_"~sd.symbol~"(__current, __next, __event);\n";
 		}
 		res ~= "\t}\n\tassert(false);\n}\n";
 		return res;

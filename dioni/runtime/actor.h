@@ -13,3 +13,5 @@ struct actor {
 	int state;
 	struct list_node q;
 };
+
+extern struct list_head active_actor;

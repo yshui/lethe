@@ -135,8 +135,8 @@ class StateTransition {
 		auto s1 = new Symbols(p);
 		Symbols s2;
 		string[2] cond = e.c_code(s1);
-		auto res = "if (__raw_event->t == EVENT_"~e.name~") {\n";
-		res ~= "struct event_"~e.name~"* __event = __raw_event->e;\n";
+		auto res = "if (__raw_event->type == EVENT_"~e.name~") {\n";
+		res ~= "struct event_"~e.name~"* __event = &__raw_event->e."~e.name~";\n";
 		if (cond[0] != "")
 			res ~= "if ("~cond[0]~") {\n";
 		res ~= s1.c_defs(StorageClass.Local);
@@ -216,7 +216,7 @@ class State : Decl {
 			res ~= "}\n";
 		}
 
-		res ~= format("static inline int %s_state_%s(%s, struct raw_event* __raw_event)",
+		res ~= format("static inline int %s_state_%s(%s, struct event* __raw_event)",
 			      _parent.symbol, name, _parent.symbol.param_list);
 		if (prototype_only)
 			res ~= ";\n";

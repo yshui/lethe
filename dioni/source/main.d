@@ -5,7 +5,7 @@ import sdpc;
 string c_particle_handler(const(Decl)[] s) {
 	//XXX this implementation is incomplete, run_particle function must
 	//fetch events by itself, not via argument
-	auto res = "int run_particle(struct actor *a, struct raw_event *re) {\n";
+	auto res = "int run_particle_with_event(struct actor *a, struct event *e) {\n";
 	res ~= "\tstruct particle *p = a->owner;\n";
 	res ~= "\tswitch(p->type) {\n";
 	foreach(d; s) {
@@ -15,7 +15,7 @@ string c_particle_handler(const(Decl)[] s) {
 		res ~= "\tcase PARTICLE_"~p.symbol~":\n";
 		//Get current and next
 		res ~= "\t\treturn run_particle_"~p.symbol~"(&p->data[p->current]."~
-			p.symbol~", &p->data[!p->current]."~p.symbol~", re, a->state);\n";
+			p.symbol~", &p->data[!p->current]."~p.symbol~", e, a->state);\n";
 	}
 	res ~= "\t}\n\tassert(false);\n}\n";
 	return res;
@@ -57,12 +57,15 @@ void main(string[] argv) {
 	defsf.writeln("#include \"runtime/raw.h\"");
 	defsf.writeln("#include \"runtime/event.h\"");
 	defsf.writeln("#include \"runtime/particle.h\"");
+	defsf.writeln("#include \"runtime/tag.h\"");
 	defsf.writeln("#include \"runtime/actor.h\"");
+	defsf.writeln("#include \"runtime/list.h\"");
 	exf.writeln("#pragma once\n");
+	exf.writeln("#include \"runtime/vec.h\"");
 	exf.writeln("#include \"runtime/raw.h\"\n");
 	exf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
-	pf.writeln("#include \"runtime/interface.h\"\n");
+	pf.writeln("#include \"runtime/particle.h\"\n");
 	pf.writeln("#include \"defs.h\"\n");
 
 	auto punion = "union particle_variants {\n";
