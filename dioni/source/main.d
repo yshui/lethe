@@ -14,12 +14,10 @@ string c_particle_handler(const(Decl)[] s) {
 			continue;
 		res ~= "\tcase PARTICLE_"~p.symbol~":\n";
 		//Get current and next
-		res ~= "\t\tstruct "~p.symbol;
-		res ~= " *current = &p->data[p->current]."~p.symbol;
-		res ~= ", *next = &p->data[!p->current]."~p.symbol~";\n";
-		res ~= "\t\treturn run_particle_"~p.symbol~"(current, next, re, a->state);\n";
+		res ~= "\t\treturn run_particle_"~p.symbol~"(&p->data[p->current]."~
+			p.symbol~", &p->data[!p->current]."~p.symbol~", re, a->state);\n";
 	}
-	res ~= "\t}\n}\n";
+	res ~= "\t}\n\tassert(false);\n}\n";
 	return res;
 }
 void main(string[] argv) {
@@ -34,6 +32,7 @@ void main(string[] argv) {
 	auto mainf = File("statefn.c", "w");
 	auto defsf = File("defs.h", "w");
 	auto pf = File("particles.c", "w");
+	auto exf = File("export.h", "w");
 	Symbols global = new Symbols(null);
 
 	if (r is null)
@@ -53,9 +52,15 @@ void main(string[] argv) {
 
 	int pcnt = 0, ecnt = 0, tcnt = 0;
 	defsf.writeln("#pragma once\n");
+	defsf.writeln("#include \"export.h\"");
 	defsf.writeln("#include \"runtime/vec.h\"");
 	defsf.writeln("#include \"runtime/raw.h\"");
-	defsf.writeln("struct event;\nstruct particle;\n");
+	defsf.writeln("#include \"runtime/event.h\"");
+	defsf.writeln("#include \"runtime/particle.h\"");
+	defsf.writeln("#include \"runtime/actor.h\"");
+	exf.writeln("#pragma once\n");
+	exf.writeln("#include \"runtime/raw.h\"\n");
+	exf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
 	pf.writeln("#include \"runtime/interface.h\"\n");
 	pf.writeln("#include \"defs.h\"\n");
@@ -67,9 +72,9 @@ void main(string[] argv) {
 		auto e = cast(Event)pd;
 		auto td = cast(TagDecl)pd;
 		if (p !is null) {
-			defsf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
-			defsf.writeln(p.c_macros);
-			defsf.writeln(p.c_structs);
+			exf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
+			exf.writeln(p.c_macros);
+			exf.writeln(p.c_structs);
 			defsf.writeln(p.c_code(true));
 			defsf.writeln(p.c_create(true));
 			mainf.writeln(p.c_code);
@@ -78,18 +83,18 @@ void main(string[] argv) {
 			punion ~= "struct "~p.symbol~" "~p.symbol~";\n";
 			pcnt ++;
 		} else if (e !is null) {
-			defsf.writefln("#define EVENT_%s %s\n", e.symbol, ecnt);
-			defsf.writeln(e.c_structs);
+			exf.writefln("#define EVENT_%s %s\n", e.symbol, ecnt);
+			exf.writeln(e.c_structs);
 			eunion ~= "struct event_"~e.symbol~" "~e.symbol~";\n";
 			ecnt++;
 		} else if (td !is null) {
-			defsf.writefln("#define TAG_%s %s\n", td.symbol, tcnt);
+			exf.writefln("#define TAG_%s %s\n", td.symbol, tcnt);
 			tcnt++;
 		}
 	}
 	mainf.writeln(c_particle_handler(r));
-	defsf.writeln(punion~"};\n");
-	defsf.writeln(eunion~"};\n");
-	defsf.writeln("#define MAX_TAG_ID "~to!string(tcnt)~"\n");
-	defsf.writeln("#define MAX_PARTICLE_ID "~to!string(pcnt)~"\n");
+	exf.writeln(punion~"};\n");
+	exf.writeln(eunion~"};\n");
+	exf.writeln("#define MAX_TAG_ID "~to!string(tcnt)~"\n");
+	exf.writeln("#define MAX_PARTICLE_ID "~to!string(pcnt)~"\n");
 }

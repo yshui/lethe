@@ -1,5 +1,5 @@
 #pragma once
-#include "../defs.h"
+#include "../export.h"
 #include "list.h"
 
 #define NOT_HANDLED (-1)

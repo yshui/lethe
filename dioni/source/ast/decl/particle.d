@@ -199,7 +199,7 @@ class Particle : Decl {
 			res ~= "\tcase PARTICLE_"~name~"_STATE_"~sd.symbol~":\n";
 			res ~= "\t\treturn "~name~"_state_"~sd.symbol~"(__current, __next, __raw_event);\n";
 		}
-		res ~= "\t}\n}\n";
+		res ~= "\t}\n\tassert(false);\n}\n";
 		return res;
 	}
 }
