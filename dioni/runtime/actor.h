@@ -12,6 +12,7 @@ struct actor {
 	enum actor_state astate;
 	int state;
 	struct list_node q;
+	struct list_node silblings;
 };
 
-extern struct list_head active_actor;
+extern struct list_head active_actors;

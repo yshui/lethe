@@ -4,12 +4,19 @@
 
 #define NOT_HANDLED (-1)
 
-extern struct list_head particle_type_event_queue[];
-extern struct list_head tag_event_queue[];
-extern struct list_head global_event_queue;
+extern struct list_head event_queue;
+
+enum target_type {
+	PARTICLE,
+	PARTICLE_TYPE,
+	TAG,
+	GLOBAL
+};
 
 struct event {
-	int type;
+	enum target_type tgtt;
+	int target;
+	int event_type;
 	union event_variants e;
 	struct list_node q;
 };

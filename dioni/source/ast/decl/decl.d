@@ -135,7 +135,7 @@ class StateTransition {
 		auto s1 = new Symbols(p);
 		Symbols s2;
 		string[2] cond = e.c_code(s1);
-		auto res = "if (__raw_event->type == EVENT_"~e.name~") {\n";
+		auto res = "if (__raw_event->event_type == EVENT_"~e.name~") {\n";
 		res ~= "struct event_"~e.name~"* __event = &__raw_event->e."~e.name~";\n";
 		if (cond[0] != "")
 			res ~= "if ("~cond[0]~") {\n";

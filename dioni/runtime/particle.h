@@ -15,8 +15,10 @@ struct particle {
 	int current;
 
 	struct tag t;
+	struct list_head actors;
 };
 
 struct particle *alloc_particle(void);
 void free_particle(struct particle *);
 int get_particle_id(struct particle *);
+struct particle *get_particle_by_id(int);
