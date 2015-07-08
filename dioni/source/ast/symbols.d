@@ -4,7 +4,7 @@ class Symbols {
 	Decl[string] table;
 	const(Symbols) parent;
 	const(int) level;
-	pure nothrow const(Decl) lookup(string name) const {
+	@safe pure nothrow const(Decl) lookup(string name) const {
 		if (name is null)
 			return null;
 		if ((name in table) !is null)

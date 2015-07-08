@@ -20,44 +20,57 @@ pure TypeBase type_matching(T...)(const(TypeBase)[] ity) {
 	throw new Exception(exc);
 }
 
-class TypeBase {
-	@property nothrow pure @nogc int dimension() const {
-		return 0;
+abstract class TypeBase {
+	@property nothrow pure @safe {
+		@nogc int dimension() const {
+			return 0;
+		}
+		TypeBase element_type() const {
+			return null;
+		}
+		string str() const { return "void"; }
+		TypeBase arr_of() const { assert(false); }
+		string c_type() const { assert(false); }
+		TypeBase dup() const { assert(false); }
 	}
-	@property nothrow pure TypeBase element_type() const {
-		return null;
-	}
-	@property nothrow pure string str() const { return "void"; }
-	@property nothrow pure TypeBase arr_of() const { assert(false); }
-	@property nothrow pure string c_type() const { assert(false); }
-	@property nothrow pure TypeBase dup() const { return new TypeBase; }
 }
 
 class AnonymousType : TypeBase { }
 
 class ParticleHandle : TypeBase {
-	override string c_type() const { return "int"; }
-	override TypeBase dup() const { return new ParticleType; }
-	override string str() const { return "ParticleHandle"; }
+override :
+	string c_type() const { return "int"; }
+	TypeBase dup() const { return new ParticleType; }
+	string str() const { return "ParticleHandle"; }
+	bool opEquals(Object o) const {
+		return typeid(o) == typeid(ParticleHandle);
+	}
 }
 
 class StateType : TypeBase {
 	string name;
-	override int dimension() const {
+	pure nothrow @safe this(string xname) {
+		name = xname;
+	}
+override :
+	int dimension() const {
 		return 1;
 	}
-	override string str() const {
+	string str() const {
 		assert(name !is null);
 		return "State "~name;
 	}
-	override TypeBase dup() const {
+	TypeBase dup() const {
 		return new StateType(name);
 	}
-	pure nothrow this(string xname) {
-		name = xname;
-	}
-	override string c_type() const {
+	string c_type() const {
 		return "int";
+	}
+	bool opEquals(Object o) const {
+		auto st = cast(const(StateType))o;
+		if (st is null)
+			return false;
+		return name == st.name;
 	}
 
 }
@@ -66,15 +79,33 @@ class ParticleType : TypeBase {
 	string name;
 	const(Particle) p;
 	const(Event) e;
+	@safe pure {
+		nothrow this() { name = null; p = null; e = null; }
+		this(string xname, const(Symbols) s) {
+			name = xname;
+			auto d = s.lookup(name);
+			assert(d !is null, "Type "~name~" is not defined");
+			e = cast(const(Event))d;
+			p = cast(const(Particle))d;
+			assert(p !is null || e !is null,
+			       name~" is not a particle or event definition");
+		}
+		nothrow this(string xname, const(Particle) xp, const(Event) xe) {
+			name = xname;
+			p = xp;
+			e = xe;
+		}
+	}
+override :
 	//User defined type
-	override int dimension() const {
+	int dimension() const {
 		return 1;
 	}
-	override string str() const {
+	string str() const {
 		assert(name !is null);
 		return "UD "~name;
 	}
-	override string c_type() const {
+	string c_type() const {
 		if (name is null)
 			return "struct raw_particle";
 		if (p !is null)
@@ -83,53 +114,50 @@ class ParticleType : TypeBase {
 			return "struct event_"~name~"*";
 		assert(false);
 	}
-	nothrow pure this() { name = null; p = null; e = null; }
-	pure this(string xname, const(Symbols) s) {
-		name = xname;
-		auto d = s.lookup(name);
-		assert(d !is null, "Type "~name~" is not defined");
-		e = cast(Event)d;
-		p = cast(Particle)d;
-		assert(p !is null || e !is null, name~" is not a particle or event definition");
-	}
-	nothrow pure this(string xname, const(Particle) xp, const(Event) xe) {
-		name = xname;
-		p = xp;
-		e = xe;
-	}
-	override TypeBase dup() const {
+	TypeBase dup() const {
 		if (name !is null)
 			return new ParticleType(name, p, e);
 		else
 			return new ParticleType;
 	}
+	bool opEquals(Object o) const {
+		auto pt = cast(const(ParticleType))o;
+		if (pt is null)
+			return false;
+		return name == pt.name;
+	}
 }
 
 class Type(T) : TypeBase
     if (is(T == int) || is(T == float)) {
-	override int dimension() const {
+override :
+	int dimension() const {
 		return 1;
 	}
-	override string str() const {
+	string str() const {
 		return T.stringof;
 	}
-	override TypeBase arr_of() const {
+	TypeBase arr_of() const {
 		return new ArrayType!(Type!T);
 	}
-	override string c_type() const {
+	string c_type() const {
 		return T.stringof;
 	}
-	override TypeBase dup() const {
+	TypeBase dup() const {
 		return new Type!T;
+	}
+	bool opEquals(Object o) const {
+		return typeid(o) == typeid(Type!T);
 	}
 }
 
 class Type(T, int dim) : TypeBase
     if (is(T == float) && dim > 1) {
-	override int dimension() const {
+override :
+	int dimension() const {
 		return dim;
 	}
-	override string str() const {
+	string str() const {
 		import std.format : format;
 		string res;
 		try {
@@ -139,10 +167,10 @@ class Type(T, int dim) : TypeBase
 		}
 		return res;
 	}
-	override TypeBase arr_of() const {
+	TypeBase arr_of() const {
 		return new ArrayType!(Type!(T, dim));
 	}
-	override string c_type() const {
+	string c_type() const {
 		import std.format;
 		try {
 			return format("struct vec%s", dim);
@@ -150,18 +178,22 @@ class Type(T, int dim) : TypeBase
 			assert(false);
 		}
 	}
-	override TypeBase dup() const {
+	TypeBase dup() const {
 		return new Type!(T, dim);
+	}
+	bool opEquals(Object o) const {
+		return typeid(o) == typeid(Type!(T, dim));
 	}
 }
 class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
-	override int dimension() const {
+override :
+	int dimension() const {
 		assert(false);
 	}
-	override @property nothrow pure TypeBase element_type() const {
+	@property nothrow pure TypeBase element_type() const {
 		return new ElemType();
 	}
-	override string str() const {
+	string str() const {
 		import std.format : format;
 		try {
 			return format("ArrayOf %s", element_type.str);
@@ -169,11 +201,14 @@ class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
 			return "Invalid";
 		}
 	}
-	override string c_type() const {
+	string c_type() const {
 		return "struct list_head";
 	}
-	override TypeBase dup() const {
+	TypeBase dup() const {
 		return new ArrayType!ElemType;
+	}
+	bool opEquals(Object o) const {
+		return typeid(o) == typeid(ArrayType!ElemType);
 	}
 	//array of array not supported
 }
