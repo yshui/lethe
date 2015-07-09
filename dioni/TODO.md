@@ -1,25 +1,37 @@
 # Must
-* ~~Deferred variable assign (var = ?)~~
-* ~~Make sure nextState is defined on exit~~
-* ~~Generate state transition functions~~
-* Particle creation functions
-* Wildcard event match
-* Event handler forwarding
-* next_state variable
-* get_waiting_event(particle_id)
+- [x] Deferred variable assign (var = ?)
+- [x] Make sure nextState is defined on exit
+- [x] Generate state transition functions
+- [x] nextState = StateName
+- [ ] Unified matching syntax
+- [ ] event handler forwarding
+- [x] Particle creation functions
+- [ ] Wildcard event match
+- [ ] Event handler forwarding
+- [ ] get_waiting_event(particle_id)
+- [ ] Aggregators
 
 # Useful
 * Particle tag support (partcile Name[Tag1, Tag2, ...] : Parent { ... })
 * Improve codegen error messages
 
-# Maybe
-* Aggregator implementation, enforce every aggregator is cleared before write
+# Unified matching syntax
 
-# Next state
+## In condition
 
-Choosing next state is done via:
+Condition => EventName "(" Matcher ("," Matcher)\* ")"
 
-nextState = StateName
+Matcher => ParticleMatcher / MatchExpression
+
+ParticleMatcher => ParticleName "(" ("\_" / Variable) ")"
+
+MatchExpression => Variable ("~"/"=="/"<="/">="/"<"/">") Expression
+
+## In if statement
+
+IfLet => "if" "let" ParticleMatcher = Variable
+
+If => "if" BooleanExpresion
 
 # Event handler forwarding
 
