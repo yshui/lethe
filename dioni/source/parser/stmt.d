@@ -100,24 +100,20 @@ auto parse_loop_var(Stream i) {
 }
 auto parse_loop(Stream i) {
 	auto r = seq!(
-		token_ws!"loop",
-		token_ws!"(",
+		discard!(token_ws!"loop"),
+		discard!(token_ws!"("),
 		parse_loop_var,
-		parse_expr,
-		token_ws!"..",
-		parse_expr,
-		token_ws!")",
+		parse_range,
+		discard!(token_ws!")"),
 		parse_stmt_block
 	)(i);
-	r.r.promote();
 	r.r.name = "loop";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
 	//writeln("Matched loop");
 	return ok_result!Stmt(
-		new Loop(cast(Var)r.result!2,
-			 r.result!3,
-			 r.result!5, r.result!7),
+		new Loop(cast(Var)r.result!0,
+			 r.result!1, r.result!2),
 		r.consumed,
 		r.r
 	);

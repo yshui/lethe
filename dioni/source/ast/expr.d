@@ -17,6 +17,22 @@ interface LValue : Expr {
 	}
 }
 
+class Range : Expr {
+	Expr a, o;
+	this(Expr x, Expr y) {
+		a = x;
+		o = y;
+	}
+	override {
+		string str() const {
+			return a.str~".."~o.str;
+		}
+		string c_code(Symbols s, out TypeBase ty) const {
+			assert(false);
+		}
+	}
+}
+
 class BinOP : Expr {
 	Expr lhs, rhs;
 	string op;

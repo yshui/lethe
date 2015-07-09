@@ -6,6 +6,18 @@ import dioni.utils;
 import std.conv: to;
 import std.stdio;
 
+auto parse_range(Stream i) {
+	auto r = seq!(
+		parse_expr,
+		discard!(token_ws!".."),
+		parse_expr
+	)(i);
+	r.r.name = "range";
+	if (!r.ok)
+		return err_result!Range(r.r);
+	return ok_result(new Range(r.result!0, r.result!1), r.consumed, r.r);
+}
+
 auto parse_paren(Stream i) {
 	auto r = between!(token_ws!"(", parse_expr, token_ws!")")(i);
 	r.r.name = "parentheses";

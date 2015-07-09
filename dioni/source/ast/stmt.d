@@ -137,17 +137,16 @@ class Foreach : Stmt {
 	}
 }
 class Loop : Stmt {
-	Expr s, t;
+	Range rng;
 	Var var;
 	Stmt[] bdy;
-	this(Var xvar, Expr xs, Expr xt, Stmt[] xbdy) {
-		s = xs;
-		t = xt;
+	this(Var xvar, Range r, Stmt[] xbdy) {
+		rng = r;
 		var = xvar;
 		bdy = xbdy;
 	}
 	string str() const {
-		auto res = "Loop(" ~ (var is null ? "_" : var.str) ~ " from " ~ s.str ~ " to " ~ t.str ~ ") {\n";
+		auto res = "Loop("~(var is null ? "_" : var.str)~"~"~rng.str~") {\n";
 		res ~= bdy.str;
 		res ~= "}\n";
 		return res;
@@ -155,7 +154,7 @@ class Loop : Stmt {
 	override string c_code(Symbols sym) const {
 		Symbols x = new Symbols(sym);
 		TypeBase sty, tty;
-		auto scode = s.c_code(sym, sty), tcode = t.c_code(sym, tty);
+		auto scode = rng.a.c_code(sym, sty), tcode = rng.o.c_code(sym, tty);
 		assert(sty.dimension == 1 && tty.dimension == 1, "Can't use vectors for loop");
 		assert(typeid(sty) == typeid(tty), "Loop begin and end have different type");
 		assert(typeid(sty) == typeid(Type!int), "Loop begin and end must have type 'int'");
