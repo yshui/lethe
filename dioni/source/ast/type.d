@@ -53,9 +53,6 @@ class StateType : TypeBase {
 		name = xname;
 	}
 override :
-	int dimension() const {
-		return 1;
-	}
 	string str() const {
 		assert(name !is null);
 		return "State "~name;
@@ -72,7 +69,50 @@ override :
 			return false;
 		return name == st.name;
 	}
+}
 
+class TagType : TypeBase {
+	string name;
+	pure nothrow @safe this(string x) {
+		name = x;
+	}
+override :
+	string str() const { return "Tag "~name; }
+	TypeBase dup() const { return new TagType(name); }
+	string c_type() const { return "int"; }
+	bool opEquals(Object t) {
+		auto tt = cast(TagType)t;
+		if (tt is null)
+			return false;
+		return name == tt.name;
+	}
+}
+
+class RangeType : TypeBase {
+	const(int) d;
+	const(bool) is_int;
+	pure nothrow @safe this(int dim, bool i) {
+		d = dim;
+		is_int = i;
+	}
+override :
+	int dimension() const { return d; }
+	string str() const { return "Range"; }
+	TypeBase dup() const { return new RangeType(d, is_int); }
+	string c_type() const {
+		import std.conv : to;
+		if (d > 1)
+			return "struct range"~to!string(d);
+		if (is_int)
+			return "struct rangei";
+		return "struct rangef";
+	}
+	bool opEquals(Object t) {
+		auto rt = cast(RangeType)t;
+		if (rt is null)
+			return false;
+		return d == rt.d && is_int == rt.is_int;
+	}
 }
 
 class ParticleType : TypeBase {
@@ -129,7 +169,7 @@ override :
 }
 
 class Type(T) : TypeBase
-    if (is(T == int) || is(T == float)) {
+    if (is(T == int) || is(T == float) || is(T == bool)) {
 override :
 	int dimension() const {
 		return 1;

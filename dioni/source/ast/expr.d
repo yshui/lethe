@@ -28,7 +28,21 @@ class Range : Expr {
 			return a.str~".."~o.str;
 		}
 		string c_code(Symbols s, out TypeBase ty) const {
-			assert(false);
+			TypeBase at, ot;
+			auto ac = a.c_code(s, at), oc = o.c_code(s, ot);
+			assert(at.dimension == ot.dimension);
+			if (at.dimension > 1) {
+				ty = new RangeType(at.dimension, false);
+				return "((struct range"~to!string(at.dimension)~
+				       "){"~ac~", "~oc~"})";
+			}
+			if (typeid(at) == typeid(Type!int) &&
+			    typeid(ot) == typeid(Type!int)) {
+				ty = new RangeType(1, true);
+				return "((struct rangei){"~ac~", "~oc~"})";
+			}
+			ty = new RangeType(1, false);
+			return "((struct rangef){"~ac~", "~oc~"})";
 		}
 	}
 }
@@ -282,6 +296,44 @@ class QMark : Expr {
 	override string c_code(Symbols s, out TypeBase ty) const {
 		ty = new AnonymousType;
 		return "";
+	}
+}
+
+class Cmp : Expr {
+	Expr lhs, rhs;
+	string op;
+	this(Expr xl, string xo, Expr xr) {
+		lhs = xl;
+		op = xo;
+		rhs = xr;
+	}
+	override {
+		string str() const {
+			return lhs.str~op~rhs.str;
+		}
+		override string c_code(Symbols s, out TypeBase ty) const {
+			ty = new Type!bool;
+			TypeBase lt, rt;
+			auto lc = lhs.c_code(s, lt), rc = rhs.c_code(s, rt);
+			if (op == "~") {
+				if(typeid(rt) == typeid(RangeType)) {
+					auto rtt = cast(RangeType)rt;
+					assert(rt.dimension == lt.dimension);
+					if (rt.dimension > 1)
+						return "vector_in_range"~to!string(rt.dimension)~
+						       "("~lc~", "~rc~")";
+					assert(type_compatible(lt, new Type!float));
+					if (rtt.is_int)
+						return "number_in_rangei("~lc~", "~rc~")";
+					else
+						return "number_in_rangef("~lc~", "~rc~")";
+				} else if (typeid(rt) == typeid(TagType)) {
+					assert(typeid(lt) == typeid(ParticleHandle));
+					return "particle_has_tag("~lc~", "~rc~")";
+				}
+			}
+			return "";
+		}
 	}
 }
 

@@ -19,28 +19,42 @@ import ast.decl,
 import parser.stmt,
        parser.utils,
        parser.atom,
-       parser.expr;
+       parser.expr,
+       parser.match;
 import sdpc;
 auto parse_event_parameter(Stream i) {
 	auto re = Reason(i, "event parameter");
 
-	auto r = seq!(
-		parse_var_expr,
-		optional!(seq!(
-			discard!(token_ws!"~"),
-			parse_primary
-		))
-	)(i);
-	r.r.name = "event parameter";
+	auto r = parse_particle_match(i);
 	if (!r.ok)
-		return err_result!EventParameter(r.r);
-	
-	auto expr = r.result!1;
-	auto var = cast(Var)r.result!0;
-	if (var.name == "_")
-		var = null;
+		re.dep ~= r.r;
+	else {
+		auto pm = r.result;
+		auto v = pm.var;
+		if (v.name == "_")
+			v = null;
+		auto ep = new EventParameter(v, pm.particle);
+		return ok_result(ep, r.consumed, r.r);
+	}
 
-	auto ep = new EventParameter(var, expr);
+	auto r2 = parse_cmp(i);
+	if (!r2.ok) {
+		re.dep ~= r2.r;
+		return err_result!EventParameter(re);
+	}
+
+	auto cmp = cast(Cmp)r2.result;
+	auto v = cast(Var)cmp.lhs;
+	if (v is null) {
+		r2.r.state = "failed";
+		r2.r.msg = "Left-hand size of event parameter matching must be a variable";
+		re.dep ~= r2.r;
+		return err_result!EventParameter(re);
+	}
+	if (v.name == "_")
+		v = null;
+
+	auto ep = new EventParameter(v, cmp.rhs);
 	return ok_result!EventParameter(ep, r.consumed, r.r);
 }
 auto parse_condition(Stream i) {

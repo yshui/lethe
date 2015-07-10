@@ -19,11 +19,18 @@ interface Decl {
 }
 
 class EventParameter {
-	Var var;
-	Expr expr;
+	const(Var) var;
+	const(Expr) expr;
+	string particle;
+	this(Var v, string p) {
+		var = v;
+		particle = p;
+		expr = null;
+	}
 	this(Var v, Expr e) {
 		var = v;
 		expr = e;
+		particle = null;
 	}
 	nothrow pure string str() const {
 		string res;

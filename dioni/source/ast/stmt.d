@@ -153,29 +153,26 @@ class Loop : Stmt {
 	}
 	override string c_code(Symbols sym) const {
 		Symbols x = new Symbols(sym);
-		TypeBase sty, tty;
-		auto scode = rng.a.c_code(sym, sty), tcode = rng.o.c_code(sym, tty);
-		assert(sty.dimension == 1 && tty.dimension == 1, "Can't use vectors for loop");
-		assert(typeid(sty) == typeid(tty), "Loop begin and end have different type");
-		assert(typeid(sty) == typeid(Type!int), "Loop begin and end must have type 'int'");
+		TypeBase rt;
+		auto rcode = rng.c_code(sym, rt);
+		auto rngt = cast(RangeType)rt;
+		assert(rt.dimension == 1, "Can't use vectors for loop");
+		assert(rngt.is_int, "Loop begin and end must have type 'int'");
 
 		import std.conv : to;
 		auto level = to!string(x.level);
-		auto sname = "__s_"~level, tname = "__t_"~level;
-		auto svar = new VarDecl(sty, sname, Protection.Const),
-		     tvar = new VarDecl(tty, tname, Protection.Const);
-		x.insert(svar);
-		x.insert(tvar);
+		auto rname = "__rng_"~level;
+		auto rvar = new VarDecl(rt, rname, Protection.Const);
+		x.insert(rvar);
 
 		auto lname = var is null ? "__r_"~level : var.name;
-		auto lvar = new VarDecl(sty, lname, Protection.Const);
+		auto lvar = new VarDecl(new Type!int, lname, Protection.Const);
 		x.insert(lvar);
 
 		auto res = "{\n";
 		res ~= x.c_defs(StorageClass.Local);
-		res ~= sname~" = "~scode~";\n";
-		res ~= tname~" = "~tcode~";\n";
-		res ~= "for("~lname~" = "~sname~"; "~lname~" < "~tname~"; "~lname~"++) {\n";
+		res ~= rname~" = "~rcode~";\n";
+		res ~= "for("~lname~" = "~rname~".a; "~lname~" < "~rname~".o; "~lname~"++) {\n";
 		res ~= bdy.c_code(x);
 		res ~= "}\n}\n";
 		return res;
