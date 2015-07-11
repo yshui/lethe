@@ -1,4 +1,5 @@
 #pragma once
+#include <stdbool.h>
 struct vec2 {
 	double x, y;
 };
@@ -6,4 +7,9 @@ struct vec2 {
 static inline struct vec2
 vec2_mul(struct vec2 a, struct vec2 b) {
 	return (struct vec2) {a.x+b.x, a.y+b.y};
+}
+
+static inline bool vec2_eq(struct vec2 a, struct vec2 b) {
+	//TODO use abs(a-b) <= eps
+	return (a.x == b.x) && (a.y == b.y);
 }

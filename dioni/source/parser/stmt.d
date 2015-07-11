@@ -55,7 +55,7 @@ auto parse_if(Stream i) {
 	auto r = seq!(
 		token_ws!"if",
 		token_ws!"(",
-		parse_expr,
+		parse_bool_expr,
 		token_ws!")",
 		parse_stmt_block,
 		parse_else_block,

@@ -5,12 +5,12 @@ particle A {
 		d = 0;
 		c <- 1;
 		b <- 0;
-		if (c) {
+		if (c != 0) {
 			loop(a ~ 1..2) {
-				if (b) { }
+				if (b != 0) { }
 				foreach(e ~ b) { }
 			}
-		} else if (-d) {
+		} else if (-d != 0) {
 		}else { }
 
 		a=b+c*d-1.0;

@@ -140,6 +140,28 @@ class BinOP : Expr {
 	}
 }
 
+class BoolOP : Expr {
+	string op;
+	Expr lhs, rhs;
+	@safe nothrow pure this(Expr a, string o, Expr b) {
+		lhs = a;
+		rhs = b;
+		op = o;
+	}
+override :
+	string str() const {
+		return lhs.str~op~rhs.str;
+	}
+	string c_code(Symbols s, out TypeBase ty) const {
+		TypeBase lt, rt;
+		auto lc = lhs.c_code(s, lt), rc = rhs.c_code(s, rt);
+		assert(typeid(lt) == typeid(Type!bool));
+		assert(typeid(rt) == typeid(Type!bool));
+		ty = new Type!bool;
+		return "("~lc~op~rc~")";
+	}
+}
+
 class UnOP : Expr {
 	string op;
 	Expr opr; ///Operand
@@ -335,7 +357,7 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 	}
 	if (ty[0].dimension > 1) {
 		assert(ty[0].dimension == ty[1].dimension);
-		return "vec_"~op_to_name(op)~to!string(ty[1].dimension)~"("~code[0]~", "~code[1]~")";
+		return "vec"~to!string(ty[1].dimension)~"_"~op_to_name(op)~"("~code[0]~", "~code[1]~")";
 	}
 	assert(type_compatible(ty[0], new Type!float));
 	return "("~code[0]~op~code[1]~")";

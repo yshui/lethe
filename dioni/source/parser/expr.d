@@ -175,12 +175,58 @@ auto parse_cmp(Stream i) {
 	auto cmp = new Cmp(r.result!0, r.result!1, r.result!2);
 	return ok_result!Expr(cmp, r.consumed, r.r);
 }
+auto parse_conj(Stream i) {
+	auto r = chain!(
+		parse_disj,
+		build_bool_tree,
+		token_ws!"||"
+	)(i);
+	return r;
+}
+auto parse_disj(Stream i) {
+	auto r = chain!(
+		parse_bool_primary,
+		build_bool_tree,
+		token_ws!"&&"
+	)(i);
+	return r;
+}
+auto parse_bool_paren(Stream i) {
+	auto r = between!(
+		token_ws!"(",
+		parse_bool_primary,
+		token_ws!")"
+	)(i);
+	return r;
+}
+ParseResult!Expr parse_bool_primary(Stream i) {
+	auto r = choice!(
+		parse_cmp,
+		parse_bool_paren,
+		parse_bool_neg,
+	)(i);
+	return r;
+}
+auto parse_bool_neg(Stream i) {
+	auto r = seq!(discard!(token_ws!"!"), parse_bool_paren)(i);
+	r.r.name = "bool neg";
+	if (!r.ok)
+		return err_result!Expr(r.r);
+	return ok_result!Expr(new UnOP("!", r.result), r.consumed, r.r);
+}
 
+alias parse_bool_expr = parse_conj;
 alias parse_field_expr = cast_result!(Expr, parse_field);
 
 Expr build_expr_tree(Expr a, string op, Expr b) {
 	return new BinOP(a, op, b);
 }
 Expr build_expr_tree(Expr a) {
+	return a;
+}
+Expr build_bool_tree(Expr a, string op, Expr b) {
+	return new BoolOP(a, op, b);
+}
+Expr build_bool_tree(Expr a) {
 	return a;
 }
