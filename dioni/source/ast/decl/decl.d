@@ -371,7 +371,7 @@ class Event : Decl {
 	}
 }
 
-class TagDecl : Decl {
+class Tag : Decl {
 	string name;
 	override void parent(Decl p) {
 		assert(false);

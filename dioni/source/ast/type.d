@@ -25,7 +25,7 @@ abstract class TypeBase {
 		@nogc int dimension() const {
 			return 0;
 		}
-		TypeBase element_type() const {
+		TypeBase element_type() {
 			return null;
 		}
 		string str() const { return "void"; }

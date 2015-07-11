@@ -74,7 +74,7 @@ void main(string[] argv) {
 	foreach(pd; r) {
 		auto p = cast(Particle)pd;
 		auto e = cast(Event)pd;
-		auto td = cast(TagDecl)pd;
+		auto td = cast(Tag)pd;
 		if (p !is null) {
 			exf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
 			exf.writeln(p.c_macros);

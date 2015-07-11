@@ -7,7 +7,7 @@ auto parse_tag_name(Stream i) {
 	r.r.name = "tag def";
 	if (!r.ok)
 		return err_result!Decl(r.r);
-	return ok_result!Decl(new TagDecl(r.result), r.consumed, r.r);
+	return ok_result!Decl(new Tag(r.result), r.consumed, r.r);
 }
 
 auto parse_tag_decl(Stream i) {
