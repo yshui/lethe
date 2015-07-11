@@ -1,10 +1,10 @@
 tag Test;
-event K (particle);
+event K (int);
 particle A[Test] {
 	int a;
 	state Name {
 	}
-	@ K(A(b)) { nextState = Name; };
+	@ K(b~1..2) { nextState = Name; };
 	>() {
 		a <- 1;
 	}

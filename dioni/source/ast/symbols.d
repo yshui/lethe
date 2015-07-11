@@ -55,7 +55,7 @@ class Symbols {
 immutable bool[string] reserved_names;
 
 static this() {
-	string[] ns = ["__current", "__next", "__event", "__p"];
+	string[] ns = ["__current", "__next", "__event", "__p", "__tags"];
 	foreach(n; ns)
 		reserved_names[n] = true;
 }

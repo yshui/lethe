@@ -3,7 +3,8 @@ import ast.type,
        ast.stmt,
        ast.symbols,
        ast.expr,
-       ast.decl;
+       ast.decl,
+       ast.match;
 import std.typecons;
 
 interface Decl {
@@ -19,31 +20,47 @@ interface Decl {
 }
 
 class EventParameter {
-	const(Var) var;
-	const(Expr) expr;
-	string particle;
-	this(Var v, string p) {
-		var = v;
-		particle = p;
-		expr = null;
+	const(ParticleMatch) pm;
+	const(Cmp) cmp;
+	this(ParticleMatch x) {
+		cmp = null;
+		pm = x;
 	}
-	this(Var v, Expr e) {
-		var = v;
-		expr = e;
-		particle = null;
+	this(Cmp x) {
+		auto v = cast(Var)cmp.lhs;
+		assert(v !is null);
+		cmp = x;
+		pm = null;
 	}
 	nothrow pure string str() const {
-		string res;
-		if (var is null)
-			res = "_";
+		if (pm !is null)
+			return pm.str;
 		else
-			res = var.name;
-		res ~= "~";
-		if (expr is null)
-			res ~= "_";
-		else
-			res ~= expr.str;
-		return res;
+			return cmp.str;
+	}
+	string c_code_match(string emem, const(TypeBase) ty, Symbols s) const {
+		if (pm !is null) {
+			assert(typeid(ty) == typeid(UDType));
+			auto var = new VarDecl(new UDType(pm.particle, s), pm.var.name);
+			s.insert(var);
+			return "("~emem~".t == PARTICLE_"~pm.particle~")";
+		}
+		assert(cmp !is null);
+		auto lv = cast(Var)cmp.lhs;
+		TypeBase rty;
+		auto rcode = cmp.rhs.c_code(s, rty);
+		auto var = new VarDecl(ty, lv.name);
+		s.insert(var);
+		return c_match([emem, rcode], [ty, cast(const(TypeBase))rty], cmp.op);
+	}
+
+	string c_code_assign(string emem, const(TypeBase) ty) const {
+		if (pm !is null)
+			return pm.var.name~"="~emem~".p"~";\n";
+		auto lv = cast(Var)cmp.lhs;
+		if (typeid(ty) == typeid(UDType))
+			return lv.name~"="~emem~".id"~";\n";
+		return lv.name~"="~emem~";\n";
 	}
 }
 
@@ -78,49 +95,9 @@ class Condition {
 
 		foreach(i, x; ep) {
 			auto ty = e.member[i];
-			auto emn = "m"~to!string(i);
-			auto pt = cast(ParticleType)ty;
-			if (x.expr is null) {
-				if (x.var is null)
-					continue;
-				assert(pt is null,
-				       "Cannot determine the actual type of a "~
-				       "particle without matching criteria");
-				acode ~= x.var.name~" = "~"__event->"~emn~";\n";
-				auto mv = new VarDecl(ty, x.var.name, Protection.Const);
-				s.insert(mv);
-			}
-			if (count != 0)
-				mcode ~= " && ";
-			count++;
-			if (x.var !is null) {
-				auto d2 = s.lookup(x.var.name);
-				assert(d2 is null, x.var.name~" is already defined");
-			}
-			if (pt is null) {
-				TypeBase ety;
-				auto ecode = x.expr.c_code(s, ety);
-				assert(typeid(ety) == typeid(Type!int),
-				       "Trying to match 'int' against"~
-				       ety.c_type);
-				mcode ~= "(__event->"~emn~" == "~ecode~")";
-				if (x.var !is null) {
-					auto tgt = new VarDecl(ety, x.var.name, Protection.Const);
-					s.insert(tgt);
-					acode ~= tgt.c_access~" = "~"__event->"~emn~";\n";
-				}
-			} else {
-				//Trying to match a particle
-				auto ev = cast(Var)x.expr;
-				assert(ev !is null, "Particle can only be matched against a name");
-				if (x.var !is null) {
-					auto pty = new ParticleType(ev.name, s);
-					auto tgt = new VarDecl(pty, x.var.name, Protection.Const);
-					s.insert(tgt);
-					acode ~= x.var.name~" = "~"__event->"~emn~".p"~";\n";
-				}
-				mcode ~= "(__event->"~emn~".t == PARTICLE_"~ev.name~")";
-			}
+			auto emn = "(__event->m"~to!string(i)~")";
+			mcode ~= x.c_code_match(emn, ty, s);
+			acode ~= x.c_code_assign(emn, ty);
 		}
 		return [mcode, acode];
 	}

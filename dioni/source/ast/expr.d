@@ -7,7 +7,7 @@ import std.conv,
        std.format;
 import dioni.utils;
 interface Expr {
-	@property pure nothrow string str() const;
+	@property pure nothrow @safe string str() const;
 	string c_code(Symbols s, out TypeBase ty) const;
 }
 
@@ -218,7 +218,7 @@ class Field : LValue {
 		//Lookup left
 		auto d = cast(const(VarDecl))s.lookup_checked(lhs);
 		assert(d !is null, lhs~" is not a variable");
-		auto p = cast(const(ParticleType))d.ty;
+		auto p = cast(const(UDType))d.ty;
 		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
 		auto d2 = cast(VarDecl)p.p.sym.lookup_checked(rhs);
 		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
@@ -299,6 +299,48 @@ class QMark : Expr {
 	}
 }
 
+string op_to_name(string op) {
+	final switch(op) {
+	case "==": return "eq";
+	case "<=": return "le";
+	case ">=": return "ge";
+	case "!=": return "ne";
+	case "<": return "lt";
+	case ">": return "gt";
+	}
+}
+
+string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
+	if (op == "~") {
+		auto rngty = cast(RangeType)ty[1];
+		auto tagty = cast(TagType)ty[1];
+		if(rngty !is null) {
+			assert(ty[0].dimension == ty[1].dimension);
+			if (ty[1].dimension > 1)
+				return "vector_in_range"~to!string(ty[1].dimension)~
+				       "("~code[0]~", "~code[1]~")";
+			assert(type_compatible(ty[0], new Type!float));
+			if (rngty.is_int)
+				return "number_in_rangei("~code[0]~", "~code[1]~")";
+			else
+				return "number_in_rangef("~code[0]~", "~code[1]~")";
+		} else if (tagty !is null) {
+			if (typeid(ty[0]) == typeid(ParticleHandle))
+				return "particle_has_tag("~code[0]~", "~code[1]~")";
+			auto udt = cast(UDType)ty[0];
+			assert(udt !is null);
+			assert(udt.name is null || udt.p !is null);
+			return "has_tag("~code[0]~"->__tags, "~code[1]~")";
+		}
+	}
+	if (ty[0].dimension > 1) {
+		assert(ty[0].dimension == ty[1].dimension);
+		return "vec_"~op_to_name(op)~to!string(ty[1].dimension)~"("~code[0]~", "~code[1]~")";
+	}
+	assert(type_compatible(ty[0], new Type!float));
+	return "("~code[0]~op~code[1]~")";
+}
+
 class Cmp : Expr {
 	Expr lhs, rhs;
 	string op;
@@ -315,24 +357,7 @@ class Cmp : Expr {
 			ty = new Type!bool;
 			TypeBase lt, rt;
 			auto lc = lhs.c_code(s, lt), rc = rhs.c_code(s, rt);
-			if (op == "~") {
-				if(typeid(rt) == typeid(RangeType)) {
-					auto rtt = cast(RangeType)rt;
-					assert(rt.dimension == lt.dimension);
-					if (rt.dimension > 1)
-						return "vector_in_range"~to!string(rt.dimension)~
-						       "("~lc~", "~rc~")";
-					assert(type_compatible(lt, new Type!float));
-					if (rtt.is_int)
-						return "number_in_rangei("~lc~", "~rc~")";
-					else
-						return "number_in_rangef("~lc~", "~rc~")";
-				} else if (typeid(rt) == typeid(TagType)) {
-					assert(typeid(lt) == typeid(ParticleHandle));
-					return "particle_has_tag("~lc~", "~rc~")";
-				}
-			}
-			return "";
+			return c_match([lc, rc], [lt, rt], op);
 		}
 	}
 }

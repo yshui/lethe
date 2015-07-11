@@ -10,7 +10,7 @@ auto parse_type2(Stream i) {
 	if (!r.ok)
 		return err_result!TypeBase(r.r);
 
-	return ok_result!TypeBase(new ParticleType, r.consumed, r.r);
+	return ok_result!TypeBase(new UDType, r.consumed, r.r);
 }
 auto parse_member_type(Stream i) {
 	auto r = choice!(

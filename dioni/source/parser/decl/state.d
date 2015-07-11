@@ -29,11 +29,7 @@ auto parse_event_parameter(Stream i) {
 	if (!r.ok)
 		re.dep ~= r.r;
 	else {
-		auto pm = r.result;
-		auto v = pm.var;
-		if (v.name == "_")
-			v = null;
-		auto ep = new EventParameter(v, pm.particle);
+		auto ep = new EventParameter(r.result);
 		return ok_result(ep, r.consumed, r.r);
 	}
 
@@ -51,10 +47,8 @@ auto parse_event_parameter(Stream i) {
 		re.dep ~= r2.r;
 		return err_result!EventParameter(re);
 	}
-	if (v.name == "_")
-		v = null;
 
-	auto ep = new EventParameter(v, cmp.rhs);
+	auto ep = new EventParameter(cmp);
 	return ok_result!EventParameter(ep, r.consumed, r.r);
 }
 auto parse_condition(Stream i) {

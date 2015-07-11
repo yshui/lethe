@@ -40,7 +40,7 @@ class AnonymousType : TypeBase { }
 class ParticleHandle : TypeBase {
 override :
 	string c_type() const { return "int"; }
-	TypeBase dup() const { return new ParticleType; }
+	TypeBase dup() const { return new ParticleHandle; }
 	string str() const { return "ParticleHandle"; }
 	bool opEquals(Object o) const {
 		return typeid(o) == typeid(ParticleHandle);
@@ -115,7 +115,7 @@ override :
 	}
 }
 
-class ParticleType : TypeBase {
+class UDType : TypeBase {
 	string name;
 	const(Particle) p;
 	const(Event) e;
@@ -156,12 +156,12 @@ override :
 	}
 	TypeBase dup() const {
 		if (name !is null)
-			return new ParticleType(name, p, e);
+			return new UDType(name, p, e);
 		else
-			return new ParticleType;
+			return new UDType;
 	}
 	bool opEquals(Object o) const {
-		auto pt = cast(const(ParticleType))o;
+		auto pt = cast(const(UDType))o;
 		if (pt is null)
 			return false;
 		return name == pt.name;

@@ -7,4 +7,7 @@ class ParticleMatch {
 		particle = xp;
 		var = xv;
 	}
+	pure nothrow @safe string str() const {
+		return particle~"("~var.str~")";
+	}
 }
