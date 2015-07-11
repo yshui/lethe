@@ -27,7 +27,7 @@ class EventParameter {
 		pm = x;
 	}
 	this(Cmp x) {
-		auto v = cast(Var)cmp.lhs;
+		auto v = cast(Var)x.lhs;
 		assert(v !is null);
 		cmp = x;
 		pm = null;

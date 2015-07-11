@@ -60,6 +60,7 @@ void main(string[] argv) {
 	defsf.writeln("#include \"runtime/tag.h\"");
 	defsf.writeln("#include \"runtime/actor.h\"");
 	defsf.writeln("#include \"runtime/list.h\"");
+	defsf.writeln("#include \"runtime/range.h\"");
 	exf.writeln("#pragma once\n");
 	exf.writeln("#include \"runtime/vec.h\"");
 	exf.writeln("#include \"runtime/raw.h\"\n");

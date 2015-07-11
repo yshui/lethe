@@ -146,7 +146,7 @@ auto parse_field(Stream i) {
 	return ok_result!LValue(new Field(r.result!0, r.result!2), r.consumed, re);
 }
 alias parse_range_expr = cast_result!(Expr, parse_range);
-alias parse_expr_and_range = choice!(parse_expr, parse_range_expr);
+alias parse_expr_and_range = choice!(parse_range_expr, parse_expr);
 auto parse_cmp(Stream i) {
 	auto r = seq!(
 		parse_expr,
