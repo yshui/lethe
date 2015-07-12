@@ -140,7 +140,7 @@ auto parse_delayed_or_aggregate(Stream i) {
 		choice!(token_ws!"<-", token_ws!"<<"),
 		choice!(
 			parse_expr,
-			parse_new_particle_expr
+			parse_new_expr
 		),
 		token_ws!";"
 	)(i);
@@ -157,7 +157,7 @@ auto parse_delayed_or_aggregate(Stream i) {
 	);
 }
 
-alias parse_new_particle_stmt = cast_result!(Stmt, seq!(parse_new_particle, discard!(token_ws!";")));
+alias parse_new_stmt = cast_result!(Stmt, seq!(parse_new, discard!(token_ws!";")));
 
 ParseResult!Stmt parse_stmt(Stream i) {
 	return choice!(
@@ -167,6 +167,6 @@ ParseResult!Stmt parse_stmt(Stream i) {
 		parse_loop,
 		parse_clear,
 		parse_delayed_or_aggregate,
-		parse_new_particle_stmt,
+		parse_new_stmt,
 	)(i);
 }

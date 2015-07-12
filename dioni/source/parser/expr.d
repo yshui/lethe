@@ -34,7 +34,7 @@ auto parse_qmark(Stream i) {
 	return ok_result!Expr(res, r.consumed, r.r);
 }
 
-auto parse_new_particle(Stream i) {
+auto parse_new(Stream i) {
 	auto r = seq!(
 		discard!(token_ws!"`"),
 		identifier,
@@ -42,16 +42,16 @@ auto parse_new_particle(Stream i) {
 			chain!(parse_expr, arr_append!Expr, discard!(token_ws!","), true),
 		token_ws!")"))
 	)(i);
-	r.r.name = "new particle";
+	r.r.name = "new";
 
 	if (!r.ok)
-		return err_result!NewParticle(r.r);
+		return err_result!NewExpr(r.r);
 
-	auto res = new NewParticle(r.result!0, r.result!1);
+	auto res = new NewExpr(r.result!0, r.result!1);
 	return ok_result(res, r.consumed, r.r);
 }
 
-alias parse_new_particle_expr = cast_result!(Expr, parse_new_particle);
+alias parse_new_expr = cast_result!(Expr, parse_new);
 
 ParseResult!Expr parse_expr(Stream i) {
 	auto r = chain!(

@@ -8,7 +8,7 @@ import std.conv,
 import dioni.utils;
 interface Expr {
 	@property pure nothrow @safe string str() const;
-	string c_code(Symbols s, out TypeBase ty) const;
+	string c_code(const(Symbols) s, out TypeBase ty) const;
 }
 
 interface LValue : Expr {
@@ -27,7 +27,7 @@ class Range : Expr {
 		string str() const {
 			return a.str~".."~o.str;
 		}
-		string c_code(Symbols s, out TypeBase ty) const {
+		string c_code(const(Symbols) s, out TypeBase ty) const {
 			TypeBase at, ot;
 			auto ac = a.c_code(s, at), oc = o.c_code(s, ot);
 			assert(at.dimension == ot.dimension);
@@ -58,7 +58,7 @@ class BinOP : Expr {
 	override @property pure nothrow string str() const {
 		return "<" ~ lhs.str ~ op ~ rhs.str ~ ">";
 	}
-	override string c_code(Symbols s, out TypeBase ty) const {
+	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		TypeBase lty, rty;
 		auto lcode = lhs.c_code(s, lty), rcode = rhs.c_code(s, rty);
 		ty = gen_type(lty, rty, op);
@@ -152,7 +152,7 @@ override :
 	string str() const {
 		return lhs.str~op~rhs.str;
 	}
-	string c_code(Symbols s, out TypeBase ty) const {
+	string c_code(const(Symbols) s, out TypeBase ty) const {
 		TypeBase lt, rt;
 		auto lc = lhs.c_code(s, lt), rc = rhs.c_code(s, rt);
 		assert(typeid(lt) == typeid(Type!bool));
@@ -175,7 +175,7 @@ class UnOP : Expr {
 	override @property pure nothrow string str() const {
 		return op ~ opr.str;
 	}
-	override string c_code(Symbols s, out TypeBase ty) const {
+	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto ocode = opr.c_code(s, ty);
 		if (ty.dimension != 1) {
 			assert(op == "-", "Unsupported '"~op~"' on vector");
@@ -191,7 +191,7 @@ class Var : LValue {
 	override @property pure nothrow string str() const {
 		return "Var(" ~ name ~ ")";
 	}
-	override string c_code(Symbols s, out TypeBase ty) const {
+	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto d = s.lookup(name);
 		assert(d !is null, "Undefined symbol "~name);
 		auto vd = cast(VarDecl)d;
@@ -236,7 +236,7 @@ class Field : LValue {
 	override @property pure nothrow string str() const {
 		return "<" ~ lhs ~ "." ~ rhs ~ ">";
 	}
-	override string c_code(Symbols s, out TypeBase ty) const {
+	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		//Lookup left
 		auto d = cast(const(VarDecl))s.lookup_checked(lhs);
 		assert(d !is null, lhs~" is not a variable");
@@ -269,7 +269,7 @@ class Num : Expr {
 	@property pure nothrow string str() const {
 		return _str;
 	}
-	override string c_code(Symbols s, out TypeBase ty) const {
+	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		final switch(_type) {
 		case 0:
 			ty = new Type!float;
@@ -297,7 +297,7 @@ class Vec(int dim) : Expr if (dim >= 2) {
 		res ~= elem[dim-1].str ~ ")";
 		return res;
 	}
-	override string c_code(Symbols s, out TypeBase ty) const {
+	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		ty = new Type!(float, dim);
 		auto res = format("((struct vec%s){", dim);
 		foreach(e; elem) {
@@ -315,7 +315,7 @@ class QMark : Expr {
 	override string str() const {
 		return "?";
 	}
-	override string c_code(Symbols s, out TypeBase ty) const {
+	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		ty = new AnonymousType;
 		return "";
 	}
@@ -375,7 +375,7 @@ class Cmp : Expr {
 		string str() const {
 			return lhs.str~op~rhs.str;
 		}
-		override string c_code(Symbols s, out TypeBase ty) const {
+		override string c_code(const(Symbols) s, out TypeBase ty) const {
 			ty = new Type!bool;
 			TypeBase lt, rt;
 			auto lc = lhs.c_code(s, lt), rc = rhs.c_code(s, rt);
@@ -384,7 +384,7 @@ class Cmp : Expr {
 	}
 }
 
-class NewParticle : Expr, Stmt {
+class NewExpr : Expr, Stmt {
 	string name;
 	Expr[] param;
 	this(string n, Expr[] p) {
@@ -392,34 +392,58 @@ class NewParticle : Expr, Stmt {
 		param = p;
 	}
 	override string str() const {
-		return "NParticle";
+		return "New";
 	}
-	override string c_code(Symbols s, out TypeBase ty) const {
-		auto pd = cast(Particle)s.lookup_checked(name);
-		assert(pd !is null, name~" is not a particle");
-		auto ctor = pd.ctor;
-		if (ctor is null) {
-			assert(param.length == 0, "ctor of "~name~" doesn't take any parameter");
-			return "(new_particle_"~name~"())";
-		} else {
-			auto res = "(new_particle_"~name~"(";
+	override string c_code(const(Symbols) s, out TypeBase ty) const {
+		auto d = s.lookup_checked(name);
+		auto pd = cast(Particle)d, sd = cast(State)d, ed = cast(Event)d;
+		if (pd !is null) {
+			auto ctor = pd.ctor;
+			if (ctor is null) {
+				assert(param.length == 0, "ctor of "~name~" doesn't take any parameter");
+				return "(new_particle_"~name~"())";
+			} else {
+				auto res = "(new_particle_"~name~"(";
+				foreach(i, p; param) {
+					if (i != 0)
+						res ~= ", ";
+					TypeBase pty;
+					auto pcode = p.c_code(s, pty);
+					assert(type_compatible(pty, ctor.param_def[i].ty),
+					       "Type mismatch with ctor");
+					res ~= pcode;
+				}
+				res ~= "))";
+				ty = new ParticleHandle;
+				return res;
+			}
+		} else if (sd !is null) {
+			ty = new StateType(sd.name);
+			return "(PARTICLE_"~sd.parent.name~"_STATE_"~sd.name~")";
+		} else if (ed !is null) {
+			assert(param.length == ed.member.length,
+			       "Event "~ed.name~" has "~to!string(ed.member.length)~
+			       "members, but "~to!string(param.length)~" are given");
+			auto res = "((struct event_"~ed.name~"){";
 			foreach(i, p; param) {
 				if (i != 0)
 					res ~= ", ";
 				TypeBase pty;
 				auto pcode = p.c_code(s, pty);
-				assert(type_compatible(pty, ctor.param_def[i].ty),
-				       "Type mismatch with ctor");
+				assert(pty == ed.member[i], "Event member type mismatch");
 				res ~= pcode;
 			}
-			res ~= "))";
-			ty = new ParticleHandle;
+			res ~= "})";
+			ty = new EventType(ed.name);
 			return res;
-		}
+		} else
+			assert(false);
 	}
 	override string c_code(Symbols s) const {
 		TypeBase ty;
 		auto code = c_code(s, ty);
+		assert(typeid(ty) == typeid(ParticleHandle),
+		       "Creating "~name~" without assigning it makes no sense.");
 		return code~";\n";
 	}
 }

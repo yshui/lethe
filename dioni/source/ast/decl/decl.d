@@ -152,12 +152,15 @@ pure nothrow string param_list(string particle) {
 class State : Decl {
 	const(StateTransition)[] st;
 	const(Stmt)[] entry;
-	Particle _parent;
+	private Particle _parent;
 	string name;
 	private string _prefix, _particle;
 	override void parent(Decl p) {
 		_parent = cast(Particle)p;
 		assert(_parent !is null);
+	}
+	const(Particle) parent() {
+		return _parent;
 	}
 	nothrow pure this(string xname, const(Stmt)[] e, const(StateTransition)[] xst) {
 		name = xname;

@@ -47,7 +47,7 @@ override :
 	}
 }
 
-class StateType : TypeBase {
+mixin template NamedType(T, string n) {
 	string name;
 	pure nothrow @safe this(string xname) {
 		name = xname;
@@ -55,37 +55,32 @@ class StateType : TypeBase {
 override :
 	string str() const {
 		assert(name !is null);
-		return "State "~name;
+		return  n~" "~name;
 	}
 	TypeBase dup() const {
-		return new StateType(name);
+		return new T(name);
 	}
 	string c_type() const {
 		return "int";
 	}
 	bool opEquals(Object o) const {
-		auto st = cast(const(StateType))o;
+		auto st = cast(const(T))o;
 		if (st is null)
 			return false;
 		return name == st.name;
 	}
 }
 
+class StateType : TypeBase {
+	mixin NamedType!(typeof(this), "State");
+}
+
 class TagType : TypeBase {
-	string name;
-	pure nothrow @safe this(string x) {
-		name = x;
-	}
-override :
-	string str() const { return "Tag "~name; }
-	TypeBase dup() const { return new TagType(name); }
-	string c_type() const { return "int"; }
-	bool opEquals(Object t) {
-		auto tt = cast(TagType)t;
-		if (tt is null)
-			return false;
-		return name == tt.name;
-	}
+	mixin NamedType!(typeof(this), "Tag");
+}
+
+class EventType : TypeBase {
+	mixin NamedType!(typeof(this), "Event");
 }
 
 class RangeType : TypeBase {
