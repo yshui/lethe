@@ -23,7 +23,7 @@ class Particle : Decl {
 	@property nothrow pure bool visited() const {
 		return _visited;
 	}
-	@property nothrow pure const(Symbols) sym() const {
+	@property nothrow pure @safe const(Symbols) sym() const {
 		return s;
 	}
 

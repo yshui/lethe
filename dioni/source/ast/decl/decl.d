@@ -8,35 +8,39 @@ import ast.type,
 import std.typecons;
 
 interface Decl {
-	@property nothrow pure void parent(Decl p);
-	@property nothrow pure string symbol() const;
-	@property nothrow pure string str() const;
-	final string toString() const {
-		return str;
+	nothrow pure @safe {
+		@property void parent(Decl p);
+		@property string symbol() const;
+		@property string str() const;
+		final string toString() const {
+			return str;
+		}
+		Decl combine(const(Decl) o) const;
+		Decl dup() const;
 	}
 	string c_code(const(Symbols) s, bool prototype_only=false) const;
-	pure nothrow Decl combine(const(Decl) o) const;
-	pure nothrow Decl dup() const;
 }
 
 class EventParameter {
 	const(ParticleMatch) pm;
 	const(Cmp) cmp;
-	this(ParticleMatch x) {
-		cmp = null;
-		pm = x;
-	}
-	this(Cmp x) {
-		auto v = cast(Var)x.lhs;
-		assert(v !is null);
-		cmp = x;
-		pm = null;
-	}
-	nothrow pure string str() const {
-		if (pm !is null)
-			return pm.str;
-		else
-			return cmp.str;
+	pure nothrow @safe {
+		this(ParticleMatch x) {
+			cmp = null;
+			pm = x;
+		}
+		this(Cmp x) {
+			auto v = cast(Var)x.lhs;
+			assert(v !is null);
+			cmp = x;
+			pm = null;
+		}
+		string str() const {
+			if (pm !is null)
+				return pm.str;
+			else
+				return cmp.str;
+		}
 	}
 	string c_code_match(string emem, const(TypeBase) ty, Symbols s) const {
 		if (pm !is null) {
@@ -64,7 +68,7 @@ class EventParameter {
 	}
 }
 
-package pure nothrow string str_ep(const(EventParameter)[] ep) {
+package pure nothrow @safe string str_ep(const(EventParameter)[] ep) {
 	auto res = "";
 	foreach(i, e; ep) {
 		if (i)
@@ -77,12 +81,14 @@ package pure nothrow string str_ep(const(EventParameter)[] ep) {
 class Condition {
 	string name;
 	const(EventParameter)[] ep;
-	this(string xname, const(EventParameter)[] xep) {
-		ep = xep;
-		name = xname;
-	}
-	pure nothrow string str() const {
-		return name ~ "(" ~ ep.str_ep ~ ")";
+	pure nothrow @safe {
+		this(string xname, const(EventParameter)[] xep) {
+			ep = xep;
+			name = xname;
+		}
+		string str() const {
+			return name ~ "(" ~ ep.str_ep ~ ")";
+		}
 	}
 	string[2] c_code(Symbols s) const {
 		//Generate c code for matching
@@ -106,30 +112,37 @@ class Condition {
 class StateTransition {
 	Condition e;
 	const(Stmt)[] s;
-	this(Condition xe, const(Stmt)[] xs) {
-		e = xe;
-		s = xs;
-	}
-	pure nothrow string str() const {
-		auto res = "On event " ~ e.str ~ " do:\n";
-		res ~= s.str;
-		return res;
+	pure nothrow @safe {
+		this(Condition xe, const(Stmt)[] xs) {
+			e = xe;
+			s = xs;
+		}
+		string str() const {
+			auto res = "On event " ~ e.str ~ " do:\n";
+			res ~= s.str;
+			return res;
+		}
 	}
 	string c_code(const(Symbols) p) const {
 		auto s1 = new Symbols(p);
-		Symbols s2;
+		Shadows sha;
 		string[2] cond = e.c_code(s1);
 		auto res = "if (__raw_event->event_type == EVENT_"~e.name~") {\n";
 		res ~= "struct event_"~e.name~"* __event = &__raw_event->e."~e.name~";\n";
 		if (cond[0] != "")
 			res ~= "if ("~cond[0]~") {\n";
+
+		auto nst = new VarDecl(new AnonymousType, "nextState");
+		s1.insert(nst);
+		auto scode = s.c_code(s1, sha);
+		s1.merge_shadowed(sha);
+		auto vd = cast(VarDecl)s1.lookup_checked("nextState");
+		assert(vd.ty.type_match!StateType, "nextState is not assigned a state");
+
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
-		res ~= s.c_code(s1, s2);
+		res ~= s.c_code(s1, sha);
 
-		auto vd = cast(VarDecl)s2.lookup_checked("nextState");
-		assert(vd !is null, "nextState should be a variable");
-		assert(typeid(vd.ty) == typeid(StateType), "nextState is not a state");
 		res ~= "return nextState;\n";
 		res ~= "}\n";
 		if (cond[0] != "")
@@ -155,24 +168,31 @@ class State : Decl {
 	private Particle _parent;
 	string name;
 	private string _prefix, _particle;
-	override void parent(Decl p) {
+	pure nothrow @safe {
+		const(Particle) parent() const {
+			return _parent;
+		}
+		this(string xname, const(Stmt)[] e, const(StateTransition)[] xst) {
+			name = xname;
+			st = xst is null ? [] : xst;
+			entry = e;
+		}
+		string c_access() const {
+			assert(_parent !is null);
+			return "(PARTICLE_"~_parent.symbol~"_STATE_"~name~")";
+		}
+	}
+override :
+	void parent(Decl p) {
 		_parent = cast(Particle)p;
 		assert(_parent !is null);
 	}
-	const(Particle) parent() {
-		return _parent;
-	}
-	nothrow pure this(string xname, const(Stmt)[] e, const(StateTransition)[] xst) {
-		name = xname;
-		st = xst is null ? [] : xst;
-		entry = e;
-	}
-	override Decl combine(const(Decl) _o) const {
-		auto o = cast(State)_o;
+	Decl combine(const(Decl) _o) const {
+		auto o = cast(const(State))_o;
 		assert(o !is null, "Can't combine state with non-state");
 		const(StateTransition)[] new_st = st~o.st;
 
-		//Allow new entry action to override the old one
+		//Allow new entry action to the old one
 		const(Stmt)[] new_e;
 		if (entry.length != 0)
 			new_e = entry;
@@ -181,17 +201,17 @@ class State : Decl {
 
 		return new State(name, new_e, new_st);
 	}
-	override string symbol() const {
+	string symbol() const {
 		return name;
 	}
-	@property override string str() const {
+	string str() const {
 		auto res = "state("~name~"):\n";
 		res ~= "entry: "~entry.str;
 		foreach(ste; st)
 			res ~= ste.str;
 		return res;
 	}
-	override string c_code(const(Symbols) p, bool prototype_only) const {
+	string c_code(const(Symbols) p, bool prototype_only) const {
 		assert(_parent !is null);
 		import std.format : format;
 		auto res = format("static inline void %s_state_%s_entry(%s)",
@@ -216,11 +236,7 @@ class State : Decl {
 		}
 		return res;
 	}
-	string c_access() const {
-		assert(_parent !is null);
-		return "(PARTICLE_"~_parent.symbol~"_STATE_"~name~")";
-	}
-	override Decl dup() const {
+	Decl dup() const {
 		return new State(name, entry, st);
 	}
 }
@@ -240,20 +256,19 @@ class VarDecl : Decl {
 	StorageClass sc;
 	Protection prot;
 	Particle _parent;
-	@property pure nothrow const(TypeBase) ty() const {
-		return _ty;
+pure nothrow @safe :
+	string c_access(bool next=false) const {
+		import std.format : format;
+		import std.exception : assumeWontThrow;
+		auto src = next ? "next" : "current";
+		final switch(sc) {
+		case StorageClass.Particle:
+			return assumeWontThrow(format("(__%s->%s)", src, name));
+		case StorageClass.Local:
+			return assumeWontThrow(format("(%s)", name));
+		}
 	}
-	@property const(TypeBase) ty(const(TypeBase) nty) {
-		auto tmp = ty;
-		assert(typeid(tmp) == typeid(AnonymousType));
-		_ty = nty;
-		return _ty;
-	}
-	override void parent(Decl p) {
-		_parent = cast(Particle)p;
-		assert(_parent !is null);
-	}
-	pure nothrow this(const(TypeBase) xty, string xname,
+	this(const(TypeBase) xty, string xname,
 			  Protection xprot=Protection.ReadWrite,
 		  StorageClass xsc=StorageClass.Local) {
 		name = xname;
@@ -261,30 +276,34 @@ class VarDecl : Decl {
 		_ty = xty;
 		prot = xprot;
 	}
-	override Decl combine(const(Decl) _) const {
+	@property const(TypeBase) ty() const {
+		return _ty;
+	}
+	@property const(TypeBase) ty(const(TypeBase) nty) {
+		auto tmp = ty;
+		assert(tmp.type_match!AnonymousType);
+		_ty = nty;
+		return _ty;
+	}
+override :
+	void parent(Decl p) {
+		_parent = cast(Particle)p;
+		assert(_parent !is null);
+	}
+	Decl combine(const(Decl) _) const {
 		assert(false, "Combining variables with name "~name);
 	}
-	override string str() const {
+	string str() const {
 		return name ~ ":" ~ ty.str ~ "\n";
 	}
-	override string symbol() const {
+	string symbol() const {
 		return name;
 	}
-	override string c_code(const(Symbols) s, bool prototype_only) const {
+	string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(false);
 		//return "";
 	}
-	string c_access(bool next=false) const {
-		import std.format : format;
-		auto src = next ? "next" : "current";
-		final switch(sc) {
-		case StorageClass.Particle:
-			return format("(__%s->%s)", src, name);
-		case StorageClass.Local:
-			return format("(%s)", name);
-		}
-	}
-	override Decl dup() const {
+	Decl dup() const {
 		return new VarDecl(ty, name, prot, sc);
 	}
 }

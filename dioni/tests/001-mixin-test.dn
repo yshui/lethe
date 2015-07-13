@@ -5,7 +5,7 @@ particle A[Test] {
 	state Name {
 	}
 	@ K(b~a) { c = a; nextState = Name; },
-	@ K(_) { nextState = Name; };
+	@ K(_==1) { nextState = Name; };
 	>() {
 		a <- 1;
 	}

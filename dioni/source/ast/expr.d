@@ -1,19 +1,24 @@
 module ast.expr;
-import ast.symbols, ast.decl, ast.type, ast.stmt;
+import ast.symbols, ast.decl, ast.type, ast.stmt, ast.aggregator;
 import std.conv,
        std.range,
        std.typecons,
        std.traits,
-       std.format;
+       std.format,
+       std.exception;
 import dioni.utils;
 interface Expr {
-	@property pure nothrow @safe string str() const;
-	string c_code(const(Symbols) s, out TypeBase ty) const;
+	@safe nothrow {
+		pure @property string str() const;
+		string c_code(const(Symbols) s, out TypeBase ty) const;
+	}
 }
 
 interface LValue : Expr {
-	@property final bool is_lvalue() {
-		return true;
+	@safe {
+		string c_assign(const(Expr) rhs, Symbols s, bool delayed) const;
+		string c_aggregate(const(Expr) rhs, const(Symbols) s) const;
+		string c_clear(const(Symbols) s) const;
 	}
 }
 
@@ -36,8 +41,8 @@ class Range : Expr {
 				return "((struct range"~to!string(at.dimension)~
 				       "){"~ac~", "~oc~"})";
 			}
-			if (typeid(at) == typeid(Type!int) &&
-			    typeid(ot) == typeid(Type!int)) {
+			if (at.type_match!(Type!int) &&
+			    ot.type_match!(Type!int)) {
 				ty = new RangeType(1, true);
 				return "((struct rangei){"~ac~", "~oc~"})";
 			}
@@ -86,55 +91,56 @@ class BinOP : Expr {
 					suffix = "div";
 				break;
 			}
-			return format("vec%s_%s(%s, %s)", ty.dimension, suffix,
-				      lcode, rcode);
+			return assumeWontThrow(format("vec%s_%s(%s, %s)", ty.dimension, suffix,
+					       lcode, rcode));
 		}
-		return format("(%s%s%s)", lcode, op, rcode);
+		return assumeWontThrow(format("(%s%s%s)", lcode, op, rcode));
 	}
-	static pure TypeBase gen_type(const(TypeBase) lty, const(TypeBase) rty, string op) {
+	static pure @safe nothrow TypeBase
+	gen_type(const(TypeBase) lty, const(TypeBase) rty, string op) {
 		auto ld = lty.dimension, rd = rty.dimension;
 		if (ld > 1 || rd > 1) {
 			int resd;
 			switch(op) {
-			case "+":
-			case "-":
-				assert(ld == rd);
-				resd = ld;
-				break;
-			case "*":
-				assert(ld == rd || ld == 1 || rd == 1);
-				resd = (ld == 1) ? rd : ld;
-				break;
-			case "/":
-				assert(ld == rd || rd == 1);
-				resd = ld;
-				break;
-			default:
-				assert(0);
+				case "+":
+				case "-":
+					assert(ld == rd);
+					resd = ld;
+					break;
+				case "*":
+					assert(ld == rd || ld == 1 || rd == 1);
+					resd = (ld == 1) ? rd : ld;
+					break;
+				case "/":
+					assert(ld == rd || rd == 1);
+					resd = ld;
+					break;
+				default:
+					assert(0);
 			}
 			switch(resd) {
 				foreach(i; StaticRange!(2, 5)) {
 					case i:
-					return new Type!(float, i); //Vector must be float
+						return new Type!(float, i); //Vector must be float
 				}
 				default:
-					assert(0);
+				assert(0);
 			}
 		}
 		if (op == "+" || op == "-" || op == "*") {
-			return type_matching!(
-				TypePattern!(Type!int,   Type!int,   Type!int),
-				TypePattern!(Type!float, Type!float, Type!float),
-				TypePattern!(Type!float, Type!int,   Type!float),
-				TypePattern!(Type!float, Type!float, Type!float),
-			)([lty, rty]);
+			return type_calc!(
+					TypePattern!(Type!int,   Type!int,   Type!int),
+					TypePattern!(Type!float, Type!float, Type!float),
+					TypePattern!(Type!float, Type!int,   Type!float),
+					TypePattern!(Type!float, Type!float, Type!float),
+					)([lty, rty]);
 		} else if (op == "/") {
-			return type_matching!(
-				TypePattern!(Type!float, Type!int,   Type!int),
-				TypePattern!(Type!float, Type!float, Type!float),
-				TypePattern!(Type!float, Type!int,   Type!float),
-				TypePattern!(Type!float, Type!float, Type!float),
-			)([lty, rty]);
+			return type_calc!(
+					TypePattern!(Type!float, Type!int,   Type!int),
+					TypePattern!(Type!float, Type!float, Type!float),
+					TypePattern!(Type!float, Type!int,   Type!float),
+					TypePattern!(Type!float, Type!float, Type!float),
+					)([lty, rty]);
 		}
 		assert(false);
 	}
@@ -155,8 +161,8 @@ override :
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		TypeBase lt, rt;
 		auto lc = lhs.c_code(s, lt), rc = rhs.c_code(s, rt);
-		assert(typeid(lt) == typeid(Type!bool));
-		assert(typeid(rt) == typeid(Type!bool));
+		assert(lt.type_match!(Type!bool));
+		assert(rt.type_match!(Type!bool));
 		ty = new Type!bool;
 		return "("~lc~op~rc~")";
 	}
@@ -179,23 +185,24 @@ class UnOP : Expr {
 		auto ocode = opr.c_code(s, ty);
 		if (ty.dimension != 1) {
 			assert(op == "-", "Unsupported '"~op~"' on vector");
-			return format("vec%s_neg(%s)", ty.dimension, ocode);
+			return assumeWontThrow(format("vec%s_neg(%s)", ty.dimension, ocode));
 		}
-		return format("(%s%s)", op, ocode);
+		return assumeWontThrow(format("(%s%s)", op, ocode));
 	}
 }
 
 class Var : LValue {
 	string name;
 	this(string xname) { name = xname; }
-	override @property pure nothrow string str() const {
+override :
+	string str() const {
 		return "Var(" ~ name ~ ")";
 	}
-	override string c_code(const(Symbols) s, out TypeBase ty) const {
+	string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto d = s.lookup(name);
 		assert(d !is null, "Undefined symbol "~name);
-		auto vd = cast(VarDecl)d;
-		auto sd = cast(State)d;
+		auto vd = cast(const(VarDecl))d;
+		auto sd = cast(const(State))d;
 
 		if (vd !is null) {
 			ty = vd.ty.dup;
@@ -206,6 +213,44 @@ class Var : LValue {
 		} else
 			assert(false, name~" is not a variable or state name");
 	}
+	string c_assign(const(Expr) rhs, Symbols s, bool delayed) const {
+		import std.typecons : Rebindable;
+		auto d = s.lookup(name);
+		TypeBase rty;
+		auto rcode = rhs.c_code(s, rty);
+		Rebindable!(const(VarDecl)) vd;
+		if (d is null) {
+			assert(rty.dimension > 1 ||
+			       rty.type_match!(Type!int) ||
+			       rty.type_match!(Type!float) ||
+			       rty.type_match!ParticleHandle ||
+			       rty.type_match!StateType, typeid(rty).toString);
+			vd = new VarDecl(rty, name);
+			s.insert(vd);
+			if (rty.type_match!(AnonymousType))
+				return "";
+		} else {
+			vd = cast(const(VarDecl))d;
+			assert(vd !is null, name~" is not a variable");
+		}
+
+		auto agg = cast(const(Aggregator))vd.ty;
+		if (agg !is null)
+			return agg.c_assign(vd, rhs, s, delayed);
+		if (vd.ty.type_match!AnonymousType) {
+			auto nvd = new VarDecl(rty, vd.name);
+			s.shadow(nvd);
+			vd = nvd;
+		} else
+			assert(type_compatible(rty, vd.ty), typeid(rty).toString~" "~typeid(vd.ty).toString);
+		assert(vd.prot != Protection.Const, "Writing to const variable '"~
+		       name~"'");
+		if (vd.sc == StorageClass.Particle)
+			assert(delayed, "Assignment to particle member should use <- ");
+		return vd.c_access(true)~" = "~rcode~";\n";
+	}
+	string c_aggregate(const(Expr) rhs, const(Symbols) s) const { assert(false); }
+	string c_clear(const(Symbols) s) const { assert(false); }
 }
 
 /*
@@ -242,11 +287,14 @@ class Field : LValue {
 		assert(d !is null, lhs~" is not a variable");
 		auto p = cast(const(UDType))d.ty;
 		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
-		auto d2 = cast(VarDecl)p.p.sym.lookup_checked(rhs);
+		auto d2 = cast(const(VarDecl))p.p.sym.lookup_checked(rhs);
 		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
 		ty = d2.ty.dup;
 		return lhs~"->"~rhs;
 	}
+	string c_assign(const(Expr) rhs, Symbols s, bool delayed) const { assert(false); }
+	string c_aggregate(const(Expr) rhs, const(Symbols) s) const { assert(false); }
+	string c_clear(const(Symbols) s) const { assert(false); }
 }
 
 class Num : Expr {
@@ -273,10 +321,10 @@ class Num : Expr {
 		final switch(_type) {
 		case 0:
 			ty = new Type!float;
-			return "("~text(f)~")";
+			return assumeWontThrow(format("(%s)", f));
 		case 1:
 			ty = new Type!int;
-			return "("~text(i)~")";
+			return assumeWontThrow(format("(%s)", i));
 		}
 	}
 }
@@ -299,12 +347,12 @@ class Vec(int dim) : Expr if (dim >= 2) {
 	}
 	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		ty = new Type!(float, dim);
-		auto res = format("((struct vec%s){", dim);
+		auto res = assumeWontThrow(format("((struct vec%s){", dim));
 		foreach(e; elem) {
 			TypeBase tmpty;
 			res ~= e.c_code(s, tmpty)~",";
-			assert(typeid(tmpty) == typeid(Type!int) ||
-			       typeid(tmpty) == typeid(Type!float));
+			assert(tmpty.type_match!(Type!int) ||
+			       tmpty.type_match!(Type!float));
 		}
 		res ~= "})";
 		return res;
@@ -321,6 +369,7 @@ class QMark : Expr {
 	}
 }
 
+pure nothrow @safe
 string op_to_name(string op) {
 	final switch(op) {
 	case "==": return "eq";
@@ -332,10 +381,11 @@ string op_to_name(string op) {
 	}
 }
 
+pure nothrow @safe
 string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 	if (op == "~") {
-		auto rngty = cast(RangeType)ty[1];
-		auto tagty = cast(TagType)ty[1];
+		auto rngty = cast(const(RangeType))ty[1];
+		auto tagty = cast(const(TagType))ty[1];
 		if(rngty !is null) {
 			assert(ty[0].dimension == ty[1].dimension);
 			if (ty[1].dimension > 1)
@@ -347,9 +397,9 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 			else
 				return "number_in_rangef("~code[0]~", "~code[1]~")";
 		} else if (tagty !is null) {
-			if (typeid(ty[0]) == typeid(ParticleHandle))
+			if (ty[0].type_match!ParticleHandle)
 				return "particle_has_tag("~code[0]~", "~code[1]~")";
-			auto udt = cast(UDType)ty[0];
+			auto udt = cast(const(UDType))ty[0];
 			assert(udt !is null);
 			assert(udt.name is null || udt.p !is null);
 			return "has_tag("~code[0]~"->__tags, "~code[1]~")";
@@ -396,7 +446,9 @@ class NewExpr : Expr, Stmt {
 	}
 	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto d = s.lookup_checked(name);
-		auto pd = cast(Particle)d, sd = cast(State)d, ed = cast(Event)d;
+		auto pd = cast(const(Particle))d,
+		     sd = cast(const(State))d,
+		     ed = cast(const(Event))d;
 		if (pd !is null) {
 			auto ctor = pd.ctor;
 			if (ctor is null) {
@@ -430,7 +482,7 @@ class NewExpr : Expr, Stmt {
 					res ~= ", ";
 				TypeBase pty;
 				auto pcode = p.c_code(s, pty);
-				assert(pty == ed.member[i], "Event member type mismatch");
+				assert(pty.opEquals(ed.member[i]), "Event member type mismatch");
 				res ~= pcode;
 			}
 			res ~= "})";

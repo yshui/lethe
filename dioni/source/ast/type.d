@@ -1,13 +1,23 @@
 module ast.type;
 import ast.symbols, ast.decl;
 
-pure TypeBase type_matching(T...)(const(TypeBase)[] ity) {
+nothrow pure @safe @nogc bool type_match(T, U)(U a) {
+	static if (is(U == const(V), V))
+		alias S = const(T);
+	else static if (is(U == immutable(V), V))
+		alias S = immutable(T);
+	else
+		alias S = T;
+	return (cast(S)a) !is null;
+}
+
+nothrow pure @safe TypeBase type_calc(T...)(const(TypeBase)[] ity) {
 	pattern_loop: foreach(tp; T) {
 		static if (is(tp: TypePattern!M, M...)) {
 			assert(ity.length+1 == M.length);
 			//Generate a "if"
 			foreach(i, ty; M[1..$])
-				if (cast(ty)ity[i] is null)
+				if (!ity[i].type_match!ty)
 					continue pattern_loop;
 			alias res = M[0];
 			return new res;
@@ -17,7 +27,7 @@ pure TypeBase type_matching(T...)(const(TypeBase)[] ity) {
 	string exc = "No type match found";
 	foreach(n; ity)
 		exc ~= ", " ~ n.str;
-	throw new Exception(exc);
+	assert(false, exc);
 }
 
 abstract class TypeBase {
@@ -32,6 +42,7 @@ abstract class TypeBase {
 		TypeBase arr_of() const { assert(false); }
 		string c_type() const { assert(false); }
 		TypeBase dup() const { assert(false); }
+		bool opEquals(const(TypeBase) tb) const { return false; }
 	}
 }
 
@@ -42,15 +53,17 @@ override :
 	string c_type() const { return "int"; }
 	TypeBase dup() const { return new ParticleHandle; }
 	string str() const { return "ParticleHandle"; }
-	bool opEquals(Object o) const {
-		return typeid(o) == typeid(ParticleHandle);
+	bool opEquals(const(TypeBase) o) const {
+		return o.type_match!ParticleHandle;
 	}
 }
 
 mixin template NamedType(T, string n) {
 	string name;
-	pure nothrow @safe this(string xname) {
-		name = xname;
+	pure nothrow @safe {
+		this(string xname) {
+			name = xname;
+		}
 	}
 override :
 	string str() const {
@@ -63,7 +76,7 @@ override :
 	string c_type() const {
 		return "int";
 	}
-	bool opEquals(Object o) const {
+	bool opEquals(const(TypeBase) o) const {
 		auto st = cast(const(T))o;
 		if (st is null)
 			return false;
@@ -86,9 +99,11 @@ class EventType : TypeBase {
 class RangeType : TypeBase {
 	const(int) d;
 	const(bool) is_int;
-	pure nothrow @safe this(int dim, bool i) {
-		d = dim;
-		is_int = i;
+	pure nothrow @safe {
+		this(int dim, bool i) {
+			d = dim;
+			is_int = i;
+		}
 	}
 override :
 	int dimension() const { return d; }
@@ -102,8 +117,8 @@ override :
 			return "struct rangei";
 		return "struct rangef";
 	}
-	bool opEquals(Object t) {
-		auto rt = cast(RangeType)t;
+	bool opEquals(const(TypeBase) t) const {
+		auto rt = cast(const(RangeType))t;
 		if (rt is null)
 			return false;
 		return d == rt.d && is_int == rt.is_int;
@@ -114,8 +129,8 @@ class UDType : TypeBase {
 	string name;
 	const(Particle) p;
 	const(Event) e;
-	@safe pure {
-		nothrow this() { name = null; p = null; e = null; }
+	@safe pure nothrow {
+		this() { name = null; p = null; e = null; }
 		this(string xname, const(Symbols) s) {
 			name = xname;
 			auto d = s.lookup(name);
@@ -125,7 +140,7 @@ class UDType : TypeBase {
 			assert(p !is null || e !is null,
 			       name~" is not a particle or event definition");
 		}
-		nothrow this(string xname, const(Particle) xp, const(Event) xe) {
+		this(string xname, const(Particle) xp, const(Event) xe) {
 			name = xname;
 			p = xp;
 			e = xe;
@@ -155,7 +170,7 @@ override :
 		else
 			return new UDType;
 	}
-	bool opEquals(Object o) const {
+	bool opEquals(const(TypeBase) o) const {
 		auto pt = cast(const(UDType))o;
 		if (pt is null)
 			return false;
@@ -181,8 +196,8 @@ override :
 	TypeBase dup() const {
 		return new Type!T;
 	}
-	bool opEquals(Object o) const {
-		return typeid(o) == typeid(Type!T);
+	bool opEquals(const(TypeBase) o) const {
+		return o.type_match!(Type!T);
 	}
 }
 
@@ -216,8 +231,8 @@ override :
 	TypeBase dup() const {
 		return new Type!(T, dim);
 	}
-	bool opEquals(Object o) const {
-		return typeid(o) == typeid(Type!(T, dim));
+	bool opEquals(const(TypeBase) o) const {
+		return o.type_match!(Type!(T, dim));
 	}
 }
 class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
@@ -242,8 +257,8 @@ override :
 	TypeBase dup() const {
 		return new ArrayType!ElemType;
 	}
-	bool opEquals(Object o) const {
-		return typeid(o) == typeid(ArrayType!ElemType);
+	@safe nothrow pure bool opEquals(Object o) const {
+		return o.type_match!(ArrayType!ElemType);
 	}
 	//array of array not supported
 }
@@ -251,10 +266,11 @@ override :
 ///Define a type match pattern: if input types match T..., then the output type is Result
 class TypePattern(Result, T...) { }
 
+nothrow pure @safe
 bool type_compatible(const(TypeBase) src, const(TypeBase) tgt) {
-	if (typeid(src) == typeid(tgt))
+	if (src.opEquals(tgt))
 		return true;
-	if (typeid(tgt) == typeid(Type!float))
-		return typeid(src) == typeid(Type!int);
+	if (tgt.type_match!(Type!float))
+		return src.type_match!(Type!int);
 	return false;
 }

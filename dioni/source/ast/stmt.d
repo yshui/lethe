@@ -2,7 +2,7 @@ module ast.stmt;
 import ast.expr, ast.symbols, ast.decl, ast.type;
 import std.format;
 interface Stmt {
-	@property nothrow pure string str() const;
+	@property @safe nothrow pure string str() const;
 	string c_code(Symbols s) const;
 }
 class Assign : Stmt {
@@ -33,43 +33,17 @@ class Assign : Stmt {
 		}
 	}
 	string c_code(Symbols s) const {
-		assert(type != Aggregate);
-		TypeBase ty;
-		auto rcode = rhs.c_code(s, ty);
-		auto v = cast(Var)lhs;
-		if (v !is null) {
-			auto d = s.lookup(v.name);
-			VarDecl vd;
-			if (d is null) {
-				//New variable
-				vd = new VarDecl(ty, v.name);
-				s.insert(vd);
-			} else {
-				vd = cast(VarDecl)d;
-				assert(vd !is null, "Assigning to non variable");
-				assert(typeid(ty) != typeid(AnonymousType), "Can't assign ? to "~vd.symbol);
-				if (typeid(vd.ty) != typeid(AnonymousType))
-					assert(typeid(ty) == typeid(vd.ty),
-					       "Type mismatch: "~vd.name~":"~typeid(vd.ty).toString~
-					       "!="~typeid(ty).toString);
-				else
-					vd.ty = ty;
-				assert(vd.prot != Protection.Const, "Writing to readonly variable '"~v.name~"'");
-			}
-			if (typeid(ty) == typeid(AnonymousType))
-				return "";
-			if (type == Delayed) {
-				assert(vd.sc != StorageClass.Local, "Delayed assign can't be used with local variable");
-				return vd.c_access(true)~" = "~rcode~";\n";
-			} else {
-				assert(vd.sc == StorageClass.Local, "Direct assign can only be used with local variable");
-				return format("%s = %s;\n", v.name, rcode);
-			}
+		final switch(type) {
+		case Delayed:
+			return lhs.c_assign(rhs, s, true);
+		case Assign:
+			return lhs.c_assign(rhs, s, false);
+		case Aggregate:
+			return lhs.c_aggregate(rhs, s);
 		}
-		assert (false, "Not implemented assign to field");
 	}
 }
-package nothrow pure string str(const(Stmt)[] ss) {
+package @safe nothrow pure string str(const(Stmt)[] ss) {
 	string res = "";
 	foreach(s; ss)
 		res ~= s.str;
@@ -78,17 +52,17 @@ package nothrow pure string str(const(Stmt)[] ss) {
 	return res;
 }
 
-package string c_code(const(Stmt)[] ss, const(Symbols) p, out Symbols os) {
+package string c_code(const(Stmt)[] ss, const(Symbols) p, out Shadows os) {
 	string res = "";
 	Symbols c = new Symbols(p);
 	foreach(s; ss)
 		res ~= s.c_code(c);
-	os = c;
+	os = c.shadowed;
 	return c.c_defs(StorageClass.Local)~res;
 }
 
 package string c_code(const(Stmt)[] ss, const(Symbols) p) {
-	Symbols _;
+	Shadows _;
 	return c_code(ss, p, _);
 }
 class If : Stmt {
