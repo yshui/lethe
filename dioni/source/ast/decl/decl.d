@@ -53,7 +53,7 @@ class EventParameter {
 		auto lv = cast(Var)cmp.lhs;
 		TypeBase rty;
 		auto rcode = cmp.rhs.c_code(s, rty);
-		auto var = new VarDecl(ty, lv.name);
+		auto var = new VarDecl(ty.type_match!UDType ? new ParticleHandle : ty, lv.name);
 		s.insert(var);
 		return c_match([emem, rcode], [ty, cast(const(TypeBase))rty], cmp.op);
 	}
@@ -412,6 +412,9 @@ class Tag : Decl {
 	}
 	override string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(false);
+	}
+	pure nothrow @safe string c_access() const {
+		return "(TAG_"~name~")";
 	}
 	override Decl dup() const {
 		assert(false);

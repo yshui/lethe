@@ -201,8 +201,9 @@ override :
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto d = s.lookup(name);
 		assert(d !is null, "Undefined symbol "~name);
-		auto vd = cast(const(VarDecl))d;
-		auto sd = cast(const(State))d;
+		auto vd = cast(const(VarDecl))d,
+		     sd = cast(const(State))d,
+		     td = cast(const(Tag))d;
 
 		if (vd !is null) {
 			ty = vd.ty.dup;
@@ -210,6 +211,9 @@ override :
 		} else if (sd !is null) {
 			ty = new StateType(sd.symbol);
 			return sd.c_access;
+		} else if (td !is null) {
+			ty = new TagType(td.symbol);
+			return td.c_access;
 		} else
 			assert(false, name~" is not a variable or state name");
 	}
@@ -405,7 +409,13 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 			auto udt = cast(const(UDType))ty[0];
 			assert(udt !is null);
 			assert(udt.name is null || udt.p !is null);
-			return "has_tag("~code[0]~"->__tags, "~code[1]~")";
+			if (udt.name is null)
+				//If name is null, then lhs is raw_particle
+				return "has_tag("~code[0]~".__tags, "~code[1]~")";
+			else {
+				assert(udt.p !is null, "Trying to match non particle");
+				return "has_tag("~code[0]~"->__tags, "~code[1]~")";
+			}
 		}
 	}
 	if (ty[0].dimension > 1) {
