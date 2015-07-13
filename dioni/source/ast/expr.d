@@ -224,7 +224,8 @@ override :
 			       rty.type_match!(Type!int) ||
 			       rty.type_match!(Type!float) ||
 			       rty.type_match!ParticleHandle ||
-			       rty.type_match!StateType, typeid(rty).toString);
+			       rty.type_match!StateType ||
+			       rty.type_match!AnonymousType, typeid(rty).toString);
 			vd = new VarDecl(rty, name);
 			s.insert(vd);
 			if (rty.type_match!(AnonymousType))
@@ -238,6 +239,8 @@ override :
 		if (agg !is null)
 			return agg.c_assign(vd, rhs, s, delayed);
 		if (vd.ty.type_match!AnonymousType) {
+			if (rty.type_match!AnonymousType)
+				return "";
 			auto nvd = new VarDecl(rty, vd.name);
 			s.shadow(nvd);
 			vd = nvd;

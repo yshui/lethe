@@ -84,11 +84,15 @@ class If : Stmt {
 	override string c_code(Symbols s) const {
 		TypeBase ty;
 		auto ccode = cond.c_code(s, ty);
+		Shadows sha;
 		assert(ty.dimension == 1, "if statement doesn't take vectors");
 		auto res = "if ("~ccode~") {\n";
-		res ~= _then.c_code(s)~"}\n";
-		if (_else.length != 0)
-			res ~= "else {\n"~_else.c_code(s)~"}\n";
+		res ~= _then.c_code(s, sha)~"}\n";
+		s.merge_shadowed(sha);
+		if (_else.length != 0) {
+			res ~= "else {\n"~_else.c_code(s, sha)~"}\n";
+			s.merge_shadowed(sha);
+		}
 		return res;
 	}
 }
@@ -144,11 +148,14 @@ class Loop : Stmt {
 		x.insert(lvar);
 
 		auto res = "{\n";
+		Shadows sha;
 		res ~= x.c_defs(StorageClass.Local);
 		res ~= rname~" = "~rcode~";\n";
 		res ~= "for("~lname~" = "~rname~".a; "~lname~" < "~rname~".o; "~lname~"++) {\n";
-		res ~= bdy.c_code(x);
+		res ~= bdy.c_code(x, sha);
 		res ~= "}\n}\n";
+
+		sym.merge_shadowed(sha);
 		return res;
 	}
 }

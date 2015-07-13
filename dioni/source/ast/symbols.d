@@ -78,7 +78,7 @@ class Symbols {
 		}
 		void shadow(const(Decl) d) {
 			assert(lookup(d.symbol) !is null, "Cannot shadow a non-existent variable");
-			assert((d.symbol in _shadow) is null, "Can't shadow twice");
+			assert((d.symbol in _shadow) is null, "Can't shadow twice "~d.symbol);
 			if ((d.symbol in table) !is null)
 				table[d.symbol] = d;
 			_shadow[d.symbol] = d;

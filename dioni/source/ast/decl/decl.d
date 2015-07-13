@@ -141,7 +141,7 @@ class StateTransition {
 
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
-		res ~= s.c_code(s1, sha);
+		res ~= scode;
 
 		res ~= "return nextState;\n";
 		res ~= "}\n";

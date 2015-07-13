@@ -5,9 +5,9 @@ particle A {
 		d = 0;
 		c <- 1;
 		b <- 0;
-		if (c) {
-				if (b) { }
-		} else if (-d) {
+		if (c != 0) {
+				if (b != 0) { }
+		} else if (-d != 0) {
 		}else { }
 
 		loop(0..3) {

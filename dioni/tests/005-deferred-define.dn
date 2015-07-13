@@ -1,9 +1,9 @@
 event B (int);
 particle A {
-	state X @ B { nextState = ?; if(1)nextState = X; };
+	state X @ B { nextState = ?; if(1==1)nextState = X; };
 	>() {
 		a = ?;
-		if (1) {
+		if (1==1) {
 			a=vec2(1,2);
 		}
 	}
