@@ -1,7 +1,7 @@
 event A (particle);
 particle B {
 	int a;
-	state S1 @ A(p~B) {
+	state S1 @ A(B(p)) {
 		a <- p.a;
 		nextState = S1;
 	};

@@ -164,14 +164,6 @@ auto parse_cmp(Stream i) {
 	r.r.name = "cmp";
 	if (!r.ok)
 		return err_result!Expr(r.r);
-	if (r.result!1 == "~") {
-		auto rng = cast(Range)r.result!2;
-		if (rng is null) {
-			r.r.state = "failed";
-			r.r.msg = "'~' can only be used with range on right hand side";
-			return err_result!Expr(r.r);
-		}
-	}
 	auto cmp = new Cmp(r.result!0, r.result!1, r.result!2);
 	return ok_result!Expr(cmp, r.consumed, r.r);
 }
