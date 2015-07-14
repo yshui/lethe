@@ -1,5 +1,5 @@
 module ast.decl.particle;
-import ast.decl, ast.symbols;
+import ast.decl, ast.symbols, ast.aggregator;
 import std.string;
 class Particle : Decl {
 	Decl[] decl;
@@ -141,6 +141,9 @@ class Particle : Decl {
 	}
 	
 	override Decl dup() const {
+		assert(false);
+	}
+	override const(Aggregator) aggregator() const {
 		assert(false);
 	}
 	pure string c_macros() const {

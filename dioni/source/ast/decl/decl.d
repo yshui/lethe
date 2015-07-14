@@ -4,14 +4,18 @@ import ast.type,
        ast.symbols,
        ast.expr,
        ast.decl,
-       ast.match;
+       ast.match,
+       ast.aggregator;
 import std.typecons;
 
 interface Decl {
 	nothrow pure @safe {
-		@property void parent(Decl p);
-		@property string symbol() const;
-		@property string str() const;
+		@property {
+			void parent(Decl p);
+			string symbol() const;
+			string str() const;
+			const(Aggregator) aggregator() const;
+		}
 		final string toString() const {
 			return str;
 		}
@@ -239,6 +243,9 @@ override :
 	Decl dup() const {
 		return new State(name, entry, st);
 	}
+	const(Aggregator) aggregator() const {
+		assert(false);
+	}
 }
 enum StorageClass {
 	Local,
@@ -306,6 +313,11 @@ override :
 	Decl dup() const {
 		return new VarDecl(ty, name, prot, sc);
 	}
+	const(Aggregator) aggregator() const {
+		auto a = cast(const(Aggregator))ty;
+		assert(a !is null);
+		return a;
+	}
 }
 
 class Ctor : Decl {
@@ -356,6 +368,9 @@ class Ctor : Decl {
 	override Decl dup() const {
 		assert(false);
 	}
+	const(Aggregator) aggregator() const {
+		assert(false);
+	}
 }
 
 class Event : Decl {
@@ -391,6 +406,9 @@ class Event : Decl {
 	override Decl dup() const {
 		assert(false);
 	}
+	const(Aggregator) aggregator() const {
+		assert(false);
+	}
 }
 
 class Tag : Decl {
@@ -418,5 +436,8 @@ class Tag : Decl {
 	}
 	override Decl dup() const {
 		assert(false);
+	}
+	const(Aggregator) aggregator() const {
+		return new EventAggregator;
 	}
 }

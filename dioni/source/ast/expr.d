@@ -256,7 +256,11 @@ override :
 			assert(delayed, "Assignment to particle member should use <- ");
 		return vd.c_access(true)~" = "~rcode~";\n";
 	}
-	string c_aggregate(const(Expr) rhs, const(Symbols) s) const { assert(false); }
+	string c_aggregate(const(Expr) rhs, const(Symbols) s) const {
+		auto d = s.lookup_checked(name);
+		auto a = d.aggregator();
+		return a.c_aggregate(d, rhs, s);
+	}
 	string c_clear(const(Symbols) s) const { assert(false); }
 }
 

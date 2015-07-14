@@ -1,0 +1,6 @@
+event E1 (int);
+particle A {
+	>() {
+		global << `E1(1);
+	}
+}

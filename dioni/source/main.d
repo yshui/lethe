@@ -1,6 +1,6 @@
 import std.stdio, std.file;
 import parser;
-import ast.symbols, ast.decl;
+import ast.symbols, ast.decl, ast.aggregator;
 import sdpc;
 string c_particle_handler(const(Decl)[] s) {
 	//XXX this implementation is incomplete, run_particle function must
@@ -34,6 +34,8 @@ void main(string[] argv) {
 	auto pf = File("particles.c", "w");
 	auto exf = File("export.h", "w");
 	Symbols global = new Symbols(null);
+	auto gevent = new VarDecl(new EventAggregator, "global");
+	global.insert(gevent);
 
 	if (r is null)
 		return;
