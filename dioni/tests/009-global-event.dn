@@ -1,0 +1,8 @@
+event B (int);
+tag G;
+particle A {
+	>() {
+		global << `B(1);
+		G << `B(2);
+	}
+}

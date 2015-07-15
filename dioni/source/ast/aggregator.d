@@ -32,13 +32,20 @@ override :
 		TypeBase ety;
 		auto ecode = vv.c_code(s, ety);
 		assert(ety.type_match!EventType, vv.name~" is not an event");
+		//Create an event object
+		auto res = "{\nstruct event *__event = alloc_event();\n";
+		res ~= "__event->e."~vv.name~" = "~ecode~";\n";
 		if (v.symbol == "global")
-			return "queue_global_event("~ecode~");\n";
+			res ~= "__event->tgtt = GLOBAL;\n";
 		else {
 			auto td = cast(const(Tag))v;
-			if (td !is null)
-				return "queue_tag_event(TAG_"~td.name~", "~ecode~");\n";
+			if (td !is null) {
+				res ~= "__event->tgtt = TAG;\n";
+				res ~= "__event->target = TAG_"~td.name~";\n";
+			} else
+				assert(false);
 		}
-		assert(false);
+		res ~= "queue_event(__event);\n}\n";
+		return res;
 	}
 }

@@ -15,7 +15,11 @@ type *alloc_##name(void) { \
 	} \
 	return &name##_pool[name##_water_mark++]; \
 } \
-void free_event(type *e) { \
+void free_##name(type *e) { \
 	assert(e->field.next == e->field.prev && e->field.next == NULL); \
 	list_add(&name##_free, &e->field); \
 }
+
+#define objpool_proto(type, name) \
+type *alloc_##name(void); \
+void free_##name(type *e);

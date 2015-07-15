@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "event.h"
-#include "objpool.h"
 #define EVENT_POOL_SIZE 100
 struct list_head event_queue;
 
@@ -10,4 +9,3 @@ void queue_event(struct event *e) {
 	assert(e->q.next == e->q.prev && e->q.next == NULL);
 	list_add(&event_queue, &e->q);
 }
-

@@ -1,5 +1,6 @@
 #pragma once
 #include "../export.h"
+#include "objpool.h"
 #include "list.h"
 
 #define NOT_HANDLED (-1)
@@ -21,3 +22,6 @@ struct event {
 	struct list_node q;
 };
 
+void queue_event(struct event *e);
+
+objpool_proto(struct event, event)
