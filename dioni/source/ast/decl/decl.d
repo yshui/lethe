@@ -48,8 +48,9 @@ class EventParameter {
 	}
 	string c_code_match(string emem, const(TypeBase) ty, Symbols s) const {
 		if (pm !is null) {
-			assert(typeid(ty) == typeid(UDType));
-			auto var = new VarDecl(new UDType(pm.particle, s), null, pm.var.name);
+			assert(ty.type_match!UDType);
+			auto var = new VarDecl(new UDType(pm.particle, s),
+					       new EventAggregator, pm.var.name);
 			s.insert(var);
 			return "("~emem~".t == PARTICLE_"~pm.particle~")";
 		}
@@ -57,7 +58,9 @@ class EventParameter {
 		auto lv = cast(Var)cmp.lhs;
 		TypeBase rty;
 		auto rcode = cmp.rhs.c_code(s, rty);
-		auto var = new VarDecl(ty.type_match!UDType ? new ParticleHandle : ty, null, lv.name);
+		const(TypeBase) nty = ty.type_match!UDType ? new ParticleHandle : ty;
+		const(Aggregator) nagg = ty.type_match!UDType ? new EventAggregator : null;
+		auto var = new VarDecl(nty, nagg, lv.name);
 		s.insert(var);
 		return c_match([emem, rcode], [ty, cast(const(TypeBase))rty], cmp.op);
 	}
@@ -66,7 +69,7 @@ class EventParameter {
 		if (pm !is null)
 			return pm.var.name~"="~emem~".p"~";\n";
 		auto lv = cast(Var)cmp.lhs;
-		if (typeid(ty) == typeid(UDType))
+		if (ty.type_match!UDType)
 			return lv.name~"="~emem~".id"~";\n";
 		return lv.name~"="~emem~";\n";
 	}
@@ -250,6 +253,7 @@ override :
 enum StorageClass {
 	Local,
 	Particle,
+	Void //No real storage, this variable can't be read
 }
 
 enum Protection {
@@ -268,12 +272,15 @@ pure nothrow @safe :
 	string c_access(bool next=false) const {
 		import std.format : format;
 		import std.exception : assumeWontThrow;
+		assert(sc != StorageClass.Void);
 		auto src = next ? "next" : "current";
 		final switch(sc) {
 		case StorageClass.Particle:
 			return assumeWontThrow(format("(__%s->%s)", src, name));
 		case StorageClass.Local:
 			return assumeWontThrow(format("(%s)", name));
+		case StorageClass.Void:
+			assert(false, name~" can't be read");
 		}
 	}
 	this(const(TypeBase) xty, const(Aggregator) xa,

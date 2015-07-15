@@ -1,0 +1,15 @@
+event B (particle);
+event C (int);
+tag G;
+particle A {
+	state k @B(q~G) {
+		q << `C(1);
+		nextState = k;
+	},
+	@B(A(q)) {
+		q << `C(1);
+		nextState = k;
+	};
+	>() {
+	}
+}

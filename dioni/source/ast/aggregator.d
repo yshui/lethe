@@ -39,9 +39,17 @@ override :
 			res ~= "__event->tgtt = GLOBAL;\n";
 		else {
 			auto td = cast(const(Tag))v;
+			auto vd = cast(const(VarDecl))v;
 			if (td !is null) {
 				res ~= "__event->tgtt = TAG;\n";
 				res ~= "__event->target = TAG_"~td.name~";\n";
+			} else if (vd !is null) {
+				res ~= "__event->tgtt = PARTICLE;\n";
+				if (vd.ty.type_match!ParticleHandle)
+					res ~= "__event->target = "~vd.c_access~";\n";
+				else
+					//Real particle
+					res ~= "__event->target = "~vd.c_access~"->__id;\n";
 			} else
 				assert(false);
 		}

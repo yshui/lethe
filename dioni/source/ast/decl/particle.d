@@ -128,7 +128,7 @@ class Particle : Decl {
 		return res;
 	}
 	private pure string bare_c_struct(StorageClass sc) const {
-		auto res = "";
+		auto res = "int __id;\n";
 		res ~= s.c_defs(sc);
 		return res;
 	}
@@ -179,6 +179,7 @@ class Particle : Decl {
 		if (ctor !is null) {
 			res ~= q{struct }~name~q{ *__current = (void *)&__p->data[0], };
 			res ~= q{*__next = (void *)&__p->data[1];};
+			res ~= "\n__current->__id = __next->__id = get_particle_id(__p);";
 			res ~= "\n"~name~"_ctor(__current, __next";
 			foreach(p; ctor.param)
 				res ~= ", "~p;

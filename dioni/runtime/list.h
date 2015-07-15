@@ -26,11 +26,9 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "container_of.h"
 
 #define typeof(x) __typeof__(x)
-
-#define container_off(containing_type, member)	\
-	offsetof(containing_type, member)
 
 #define check_type(expr, type)			\
 	((typeof(expr) *)0 != (type *)0)
