@@ -2,6 +2,7 @@ event B (particle);
 event C (int);
 tag G;
 particle A {
+	int a;
 	state k @B(q~G) {
 		q << `C(1);
 		nextState = k;

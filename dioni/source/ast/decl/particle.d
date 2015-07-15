@@ -195,7 +195,15 @@ class Particle : Decl {
 		    name, name, name);
 		if (prototype_only)
 			return res~";\n";
-		res ~= " {\n\tswitch(state) {\n";
+		//First, let's propagate data from __current to __next
+		res ~= " {\n";
+		foreach(d; s.table) {
+			auto vd = cast(const(VarDecl))d;
+			if (vd is null)
+				continue;
+			res ~= "\t"~vd.ty.c_copy(vd.c_access, vd.c_access(true))~";\n";
+		}
+		res ~= "\tswitch(state) {\n";
 		foreach(d; s.table) {
 			auto sd = cast(State)d;
 			if (sd is null)

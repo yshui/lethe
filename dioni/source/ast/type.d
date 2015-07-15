@@ -43,6 +43,9 @@ class TypeBase {
 		string c_type() const { assert(false); }
 		TypeBase dup() const { assert(false); }
 		bool opEquals(const(TypeBase) tb) const { return false; }
+		string c_copy(string src, string dst) const {
+			return dst~" = "~src;
+		}
 	}
 }
 
@@ -82,6 +85,7 @@ override :
 			return false;
 		return name == st.name;
 	}
+	string c_copy(string src, string dst) const { assert(false); }
 }
 
 class StateType : TypeBase {
@@ -176,6 +180,7 @@ override :
 			return false;
 		return name == pt.name;
 	}
+	string c_copy(string src, string dst) const { assert(false); }
 }
 
 class Type(T) : TypeBase
@@ -235,6 +240,7 @@ override :
 		return o.type_match!(Type!(T, dim));
 	}
 }
+
 class ArrayType(ElemType) : TypeBase if (is(ElemType : TypeBase)) {
 override :
 	int dimension() const {
