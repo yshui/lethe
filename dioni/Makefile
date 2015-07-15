@@ -3,8 +3,7 @@ RUNTIME_SRC=runtime/actor.c \
 	    runtime/particle.c \
 	    runtime/mainloop.c
 RUNTIME_OBJ=$(RUNTIME_SRC:.c=.o)
-MAIN_SRC=statefn.c \
-	 particles.c
+MAIN_SRC=statefn.c
 MAIN_OBJ=$(MAIN_SRC:.c=.o)
 all: libscript.a
 dioni:

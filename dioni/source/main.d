@@ -31,7 +31,7 @@ void main(string[] argv) {
 	auto r = parse_top(i);
 	auto mainf = File("statefn.c", "w");
 	auto defsf = File("defs.h", "w");
-	auto pf = File("particles.c", "w");
+	auto pf = File("particle_creation.h", "w");
 	auto exf = File("export.h", "w");
 	Symbols global = new Symbols(null);
 	auto gevent = new VarDecl(new TypeBase, new EventAggregator, "global",
@@ -69,7 +69,7 @@ void main(string[] argv) {
 	exf.writeln("#include \"runtime/raw.h\"\n");
 	exf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
-	pf.writeln("#include \"runtime/particle.h\"\n");
+	mainf.writeln("#include \"particle_creation.h\"\n");
 	pf.writeln("#include \"defs.h\"\n");
 
 	auto punion = "union particle_variants {\n";
@@ -82,8 +82,8 @@ void main(string[] argv) {
 			exf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
 			exf.writeln(p.c_macros);
 			exf.writeln(p.c_structs);
-			defsf.writeln(p.c_code(true));
-			defsf.writeln(p.c_create(true));
+			//defsf.writeln(p.c_code(true));
+			//defsf.writeln(p.c_create(true));
 			mainf.writeln(p.c_code);
 			mainf.writeln(p.c_run);
 			pf.writeln(p.c_create);
