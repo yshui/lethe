@@ -3,13 +3,16 @@
 - [x] Make sure nextState is defined on exit
 - [x] Generate state transition functions
 - [x] nextState = StateName
-- [ ] Unified matching syntax
-- [ ] event handler forwarding
+- [x] Unified matching syntax
 - [x] Particle creation functions
 - [ ] Wildcard event match
 - [ ] Event handler forwarding
 - [ ] get_waiting_event(particle_id)
 - [ ] Aggregators
+- [ ] Nil state to stop actor
+- [ ] A way to delete particle
+- [ ] Vertice definition
+- [ ] An interface to communicate (to D) what event an actor is waiting for
 
 # Useful
 * Particle tag support (partcile Name[Tag1, Tag2, ...] : Parent { ... })
