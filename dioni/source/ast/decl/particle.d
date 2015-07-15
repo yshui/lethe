@@ -144,7 +144,7 @@ class Particle : Decl {
 		assert(false);
 	}
 	override const(Aggregator) aggregator() const {
-		assert(false);
+		return null;
 	}
 	pure string c_macros() const {
 		import std.conv;

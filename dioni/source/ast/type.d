@@ -30,7 +30,7 @@ nothrow pure @safe TypeBase type_calc(T...)(const(TypeBase)[] ity) {
 	assert(false, exc);
 }
 
-abstract class TypeBase {
+class TypeBase {
 	@property nothrow pure @safe {
 		@nogc int dimension() const {
 			return 0;

@@ -230,22 +230,21 @@ override :
 			       rty.type_match!ParticleHandle ||
 			       rty.type_match!StateType ||
 			       rty.type_match!AnonymousType, typeid(rty).toString);
-			vd = new VarDecl(rty, name);
+			vd = new VarDecl(rty, null, name);
 			s.insert(vd);
 			if (rty.type_match!(AnonymousType))
 				return "";
 		} else {
+			if (d.aggregator !is null)
+				return d.aggregator.c_assign(vd, rhs, s, delayed);
 			vd = cast(const(VarDecl))d;
 			assert(vd !is null, name~" is not a variable");
 		}
 
-		auto agg = cast(const(Aggregator))vd.ty;
-		if (agg !is null)
-			return agg.c_assign(vd, rhs, s, delayed);
 		if (vd.ty.type_match!AnonymousType) {
 			if (rty.type_match!AnonymousType)
 				return "";
-			auto nvd = new VarDecl(rty, vd.name);
+			auto nvd = new VarDecl(rty, null, vd.name);
 			s.shadow(nvd);
 			vd = nvd;
 		} else

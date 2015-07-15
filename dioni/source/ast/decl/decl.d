@@ -49,7 +49,7 @@ class EventParameter {
 	string c_code_match(string emem, const(TypeBase) ty, Symbols s) const {
 		if (pm !is null) {
 			assert(typeid(ty) == typeid(UDType));
-			auto var = new VarDecl(new UDType(pm.particle, s), pm.var.name);
+			auto var = new VarDecl(new UDType(pm.particle, s), null, pm.var.name);
 			s.insert(var);
 			return "("~emem~".t == PARTICLE_"~pm.particle~")";
 		}
@@ -57,7 +57,7 @@ class EventParameter {
 		auto lv = cast(Var)cmp.lhs;
 		TypeBase rty;
 		auto rcode = cmp.rhs.c_code(s, rty);
-		auto var = new VarDecl(ty.type_match!UDType ? new ParticleHandle : ty, lv.name);
+		auto var = new VarDecl(ty.type_match!UDType ? new ParticleHandle : ty, null, lv.name);
 		s.insert(var);
 		return c_match([emem, rcode], [ty, cast(const(TypeBase))rty], cmp.op);
 	}
@@ -136,7 +136,7 @@ class StateTransition {
 		if (cond[0] != "")
 			res ~= "if ("~cond[0]~") {\n";
 
-		auto nst = new VarDecl(new AnonymousType, "nextState");
+		auto nst = new VarDecl(new AnonymousType, null, "nextState");
 		s1.insert(nst);
 		auto scode = s.c_code(s1, sha);
 		s1.merge_shadowed(sha);
@@ -244,7 +244,7 @@ override :
 		return new State(name, entry, st);
 	}
 	const(Aggregator) aggregator() const {
-		assert(false);
+		return null;
 	}
 }
 enum StorageClass {
@@ -258,7 +258,8 @@ enum Protection {
 }
 
 class VarDecl : Decl {
-	private Rebindable!(const TypeBase) _ty;
+	const(TypeBase) ty;
+	const(Aggregator) agg;
 	string name;
 	StorageClass sc;
 	Protection prot;
@@ -275,22 +276,14 @@ pure nothrow @safe :
 			return assumeWontThrow(format("(%s)", name));
 		}
 	}
-	this(const(TypeBase) xty, string xname,
-			  Protection xprot=Protection.ReadWrite,
-		  StorageClass xsc=StorageClass.Local) {
+	this(const(TypeBase) xty, const(Aggregator) xa,
+	     string xname, Protection xprot=Protection.ReadWrite,
+	     StorageClass xsc=StorageClass.Local) {
 		name = xname;
 		sc = xsc;
-		_ty = xty;
+		ty = xty;
 		prot = xprot;
-	}
-	@property const(TypeBase) ty() const {
-		return _ty;
-	}
-	@property const(TypeBase) ty(const(TypeBase) nty) {
-		auto tmp = ty;
-		assert(tmp.type_match!AnonymousType);
-		_ty = nty;
-		return _ty;
+		agg = xa;
 	}
 override :
 	void parent(Decl p) {
@@ -311,12 +304,10 @@ override :
 		//return "";
 	}
 	Decl dup() const {
-		return new VarDecl(ty, name, prot, sc);
+		return new VarDecl(ty, null, name, prot, sc);
 	}
 	const(Aggregator) aggregator() const {
-		auto a = cast(const(Aggregator))ty;
-		assert(a !is null);
-		return a;
+		return agg;
 	}
 }
 
@@ -369,7 +360,7 @@ class Ctor : Decl {
 		assert(false);
 	}
 	const(Aggregator) aggregator() const {
-		assert(false);
+		return null;
 	}
 }
 
@@ -407,7 +398,7 @@ class Event : Decl {
 		assert(false);
 	}
 	const(Aggregator) aggregator() const {
-		assert(false);
+		return null;
 	}
 }
 

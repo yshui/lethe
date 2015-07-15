@@ -140,11 +140,11 @@ class Loop : Stmt {
 		import std.conv : to;
 		auto level = to!string(x.level);
 		auto rname = "__rng_"~level;
-		auto rvar = new VarDecl(rt, rname, Protection.Const);
+		auto rvar = new VarDecl(rt, null, rname, Protection.Const);
 		x.insert(rvar);
 
 		auto lname = var is null ? "__r_"~level : var.name;
-		auto lvar = new VarDecl(new Type!int, lname, Protection.Const);
+		auto lvar = new VarDecl(new Type!int, null, lname, Protection.Const);
 		x.insert(lvar);
 
 		auto res = "{\n";

@@ -1,7 +1,7 @@
 module ast.aggregator;
 import ast.type, ast.expr, ast.symbols, ast.stmt, ast.decl;
 
-abstract class Aggregator : TypeBase {
+abstract class Aggregator {
 	nothrow @safe {
 		string c_aggregate(const(Decl) v, const(Expr) e,
 				const(Symbols) s) const {
