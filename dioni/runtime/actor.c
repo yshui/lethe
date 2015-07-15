@@ -2,7 +2,7 @@
 #include "actor.h"
 #include "objpool.h"
 
-struct list_head active_actors;
+struct list_head active_actors = LIST_HEAD_INIT(active_actors);
 
 objpool_def(struct actor, 20, actor, q)
 

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "event.h"
 #define EVENT_POOL_SIZE 100
-struct list_head event_queue;
+struct list_head event_queue = {&event_queue.n, &event_queue.n};
 
 objpool_def(struct event, 100, event, q)
 

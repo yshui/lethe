@@ -9,7 +9,7 @@ type *alloc_##name(void) { \
 		list_del(&e->field); \
 		return e; \
 	} \
-	if (name##_water_mark >= pool_size) { \
+	if (name##_water_mark >= pool_size || name##_pool == NULL) { \
 		name##_pool = malloc(sizeof(type)*pool_size); \
 		name##_water_mark = 0; \
 	} \
