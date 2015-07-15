@@ -258,6 +258,7 @@ override :
 	string c_aggregate(const(Expr) rhs, const(Symbols) s) const {
 		auto d = s.lookup_checked(name);
 		auto a = d.aggregator();
+		assert(a !is null);
 		return a.c_aggregate(d, rhs, s);
 	}
 	string c_clear(const(Symbols) s) const { assert(false); }
@@ -467,6 +468,7 @@ class NewExpr : Expr, Stmt {
 		     ed = cast(const(Event))d;
 		if (pd !is null) {
 			auto ctor = pd.ctor;
+			ty = new ParticleHandle;
 			if (ctor is null) {
 				assert(param.length == 0, "ctor of "~name~" doesn't take any parameter");
 				return "(new_particle_"~name~"())";
@@ -482,7 +484,6 @@ class NewExpr : Expr, Stmt {
 					res ~= pcode;
 				}
 				res ~= "))";
-				ty = new ParticleHandle;
 				return res;
 			}
 		} else if (sd !is null) {

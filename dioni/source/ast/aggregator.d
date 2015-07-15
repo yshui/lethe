@@ -40,6 +40,7 @@ override :
 		else {
 			auto td = cast(const(Tag))v;
 			auto vd = cast(const(VarDecl))v;
+			auto pd = cast(const(Particle))v;
 			if (td !is null) {
 				res ~= "__event->tgtt = TAG;\n";
 				res ~= "__event->target = TAG_"~td.name~";\n";
@@ -50,6 +51,9 @@ override :
 				else
 					//Real particle
 					res ~= "__event->target = "~vd.c_access~"->__id;\n";
+			} else if (pd !is null) {
+				res ~= "__event->tgtt = PARTICLE_TYPE;\n";
+				res ~= "__event->target = PARTICLE_"~pd.name~";\n";
 			} else
 				assert(false);
 		}

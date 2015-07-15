@@ -11,6 +11,9 @@ struct particle *alloc_particle(void) {
 void free_particle(struct particle *p) {
 	freep[fparticle++] = p;
 }
-int particle_get_id(struct particle *ip) {
+int get_particle_id(struct particle *ip) {
 	return ip-&p[0];
+}
+struct particle *get_particle_by_id(int id) {
+	return p+id;
 }

@@ -1,0 +1,8 @@
+event E (int);
+particle A { int a; }
+particle Bootstrap {
+	>() {
+		`A;
+		A << `E(1);
+	}
+}
