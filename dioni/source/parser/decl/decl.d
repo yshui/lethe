@@ -62,7 +62,7 @@ auto parse_var_decl(Stream i) {
 	if (!r.ok)
 		return err_result!Decl(r.r);
 	StorageClass sc = StorageClass.Particle;
-	auto ret = new VarDecl(r.result!0, null, r.result!1, Protection.ReadWrite, sc);
+	auto ret = new Var(r.result!0, null, r.result!1, Protection.ReadWrite, sc);
 	return ok_result!Decl(ret, r.consumed, r.r);
 }
 

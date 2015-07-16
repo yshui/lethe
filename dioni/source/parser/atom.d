@@ -64,7 +64,7 @@ auto parse_var_nows(Stream i) {
 		return err_result!LValue(r.r);
 	//writeln("Matched var " ~ r.result);
 
-	return ok_result!LValue(new Var(r.result), r.consumed, r.r);
+	return ok_result!LValue(new VarVal(r.result), r.consumed, r.r);
 }
 
 auto parse_number(Stream i) {

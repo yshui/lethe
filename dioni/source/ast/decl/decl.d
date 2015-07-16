@@ -34,7 +34,7 @@ class EventParameter {
 			pm = x;
 		}
 		this(Cmp x) {
-			auto v = cast(Var)x.lhs;
+			auto v = cast(VarVal)x.lhs;
 			assert(v !is null);
 			cmp = x;
 			pm = null;
@@ -49,7 +49,7 @@ class EventParameter {
 	string c_code_match(string emem, const(TypeBase) ty, Symbols s) const {
 		if (pm !is null) {
 			assert(ty.type_match!UDType);
-			auto var = new VarDecl(new UDType(pm.particle, s),
+			auto var = new Var(new UDType(pm.particle, s),
 					       new EventAggregator, pm.var.name);
 			s.insert(var);
 			return "("~emem~".t == PARTICLE_"~pm.particle~")";
@@ -60,7 +60,7 @@ class EventParameter {
 		auto rcode = cmp.rhs.c_code(s, rty);
 		const(TypeBase) nty = ty.type_match!UDType ? new ParticleHandle : ty;
 		const(Aggregator) nagg = ty.type_match!UDType ? new EventAggregator : null;
-		auto var = new VarDecl(nty, nagg, lv.name);
+		auto var = new Var(nty, nagg, lv.name);
 		s.insert(var);
 		return c_match([emem, rcode], [ty, cast(const(TypeBase))rty], cmp.op);
 	}
@@ -139,11 +139,11 @@ class StateTransition {
 		if (cond[0] != "")
 			res ~= "if ("~cond[0]~") {\n";
 
-		auto nst = new VarDecl(new AnonymousType, null, "nextState");
+		auto nst = new Var(new AnonymousType, null, "nextState");
 		s1.insert(nst);
 		auto scode = s.c_code(s1, sha);
 		s1.merge_shadowed(sha);
-		auto vd = cast(VarDecl)s1.lookup_checked("nextState");
+		auto vd = cast(Var)s1.lookup_checked("nextState");
 		assert(vd.ty.type_match!StateType, "nextState is not assigned a state");
 
 		res ~= s1.c_defs(StorageClass.Local);
@@ -261,7 +261,7 @@ enum Protection {
 	ReadWrite,
 }
 
-class VarDecl : Decl {
+class Var : Decl {
 	const(TypeBase) ty;
 	const(Aggregator) agg;
 	string name;
@@ -311,7 +311,7 @@ override :
 		//return "";
 	}
 	Decl dup() const {
-		return new VarDecl(ty, null, name, prot, sc);
+		return new Var(ty, null, name, prot, sc);
 	}
 	const(Aggregator) aggregator() const {
 		return agg;
@@ -320,7 +320,7 @@ override :
 
 class Ctor : Decl {
 	Stmt[] stmt;
-	const(VarDecl)[] param_def;
+	const(Var)[] param_def;
 	string[] param;
 	private string _prefix, _particle;
 	Particle _parent;
@@ -329,7 +329,7 @@ class Ctor : Decl {
 		assert(_parent !is null);
 		auto s = _parent.sym;
 		foreach(p; param) {
-			auto vd = cast(const(VarDecl))s.lookup_checked(p);
+			auto vd = cast(const(Var))s.lookup_checked(p);
 			assert(vd !is null, p~" is not a variable");
 			param_def ~= vd;
 		}
@@ -444,7 +444,7 @@ class Vertex : Decl {
 	override void parent(Decl p) {
 		assert(false);
 	}
-	this(string x, VarDecl[] vd) {
+	this(string x, Var[] vd) {
 		name = x;
 	}
 	override Decl combine(const(Decl) _) const {

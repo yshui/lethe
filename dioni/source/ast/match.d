@@ -1,9 +1,9 @@
 module ast.match;
 import ast.expr;
 class ParticleMatch {
-	Var var;
+	VarVal var;
 	string particle;
-	this(Var xv, string xp) {
+	this(VarVal xv, string xp) {
 		particle = xp;
 		var = xv;
 	}

@@ -57,7 +57,7 @@ class Symbols {
 			string res = "";
 			try {
 				foreach(d; table) {
-					auto vd = cast(const(VarDecl))d;
+					auto vd = cast(const(Var))d;
 					if (vd is null)
 						continue;
 					if (vd.sc != sc)

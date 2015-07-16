@@ -97,9 +97,9 @@ class If : Stmt {
 	}
 }
 class Foreach : Stmt {
-	Var var, agg;
+	VarVal var, agg;
 	Stmt[] bdy;
-	this(Var xvar, Var xagg, Stmt[] b) {
+	this(VarVal xvar, VarVal xagg, Stmt[] b) {
 		var = xvar;
 		agg = xagg;
 		bdy = b;
@@ -116,9 +116,9 @@ class Foreach : Stmt {
 }
 class Loop : Stmt {
 	Range rng;
-	Var var;
+	VarVal var;
 	Stmt[] bdy;
-	this(Var xvar, Range r, Stmt[] xbdy) {
+	this(VarVal xvar, Range r, Stmt[] xbdy) {
 		rng = r;
 		var = xvar;
 		bdy = xbdy;
@@ -140,11 +140,11 @@ class Loop : Stmt {
 		import std.conv : to;
 		auto level = to!string(x.level);
 		auto rname = "__rng_"~level;
-		auto rvar = new VarDecl(rt, null, rname, Protection.Const);
+		auto rvar = new Var(rt, null, rname, Protection.Const);
 		x.insert(rvar);
 
 		auto lname = var is null ? "__r_"~level : var.name;
-		auto lvar = new VarDecl(new Type!int, null, lname, Protection.Const);
+		auto lvar = new Var(new Type!int, null, lname, Protection.Const);
 		x.insert(lvar);
 
 		auto res = "{\n";

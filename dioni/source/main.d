@@ -38,7 +38,7 @@ void main(string[] argv) {
 	auto pf = File("particle_creation.h", "w");
 	auto exf = File("export.h", "w");
 	Symbols global = new Symbols(null);
-	auto gevent = new VarDecl(new TypeBase, new EventAggregator, "global",
+	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
 				  Protection.Const, StorageClass.Void);
 	global.insert(gevent);
 

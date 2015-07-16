@@ -198,7 +198,7 @@ class Particle : Decl {
 		//First, let's propagate data from __current to __next
 		res ~= " {\n";
 		foreach(d; s.table) {
-			auto vd = cast(const(VarDecl))d;
+			auto vd = cast(const(Var))d;
 			if (vd is null)
 				continue;
 			res ~= "\t"~vd.ty.c_copy(vd.c_access, vd.c_access(true))~";\n";

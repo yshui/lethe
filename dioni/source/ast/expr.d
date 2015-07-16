@@ -191,17 +191,17 @@ class UnOP : Expr {
 	}
 }
 
-class Var : LValue {
+class VarVal : LValue {
 	string name;
 	this(string xname) { name = xname; }
 override :
 	string str() const {
-		return "Var(" ~ name ~ ")";
+		return "VarVal(" ~ name ~ ")";
 	}
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto d = s.lookup(name);
 		assert(d !is null, "Undefined symbol "~name);
-		auto vd = cast(const(VarDecl))d,
+		auto vd = cast(const(Var))d,
 		     sd = cast(const(State))d,
 		     td = cast(const(Tag))d;
 
@@ -222,7 +222,7 @@ override :
 		auto d = s.lookup(name);
 		TypeBase rty;
 		auto rcode = rhs.c_code(s, rty);
-		Rebindable!(const(VarDecl)) vd;
+		Rebindable!(const(Var)) vd;
 		if (d is null) {
 			assert(rty.dimension > 1 ||
 			       rty.type_match!(Type!int) ||
@@ -230,21 +230,21 @@ override :
 			       rty.type_match!ParticleHandle ||
 			       rty.type_match!StateType ||
 			       rty.type_match!AnonymousType, typeid(rty).toString);
-			vd = new VarDecl(rty, null, name);
+			vd = new Var(rty, null, name);
 			s.insert(vd);
 			if (rty.type_match!(AnonymousType))
 				return "";
 		} else {
 			if (d.aggregator !is null)
 				return d.aggregator.c_assign(vd, rhs, s, delayed);
-			vd = cast(const(VarDecl))d;
+			vd = cast(const(Var))d;
 			assert(vd !is null, name~" is not a variable");
 		}
 
 		if (vd.ty.type_match!AnonymousType) {
 			if (rty.type_match!AnonymousType)
 				return "";
-			auto nvd = new VarDecl(rty, null, vd.name);
+			auto nvd = new Var(rty, null, vd.name);
 			s.shadow(nvd);
 			vd = nvd;
 		} else
@@ -294,11 +294,11 @@ class Field : LValue {
 	}
 	override string c_code(const(Symbols) s, out TypeBase ty) const {
 		//Lookup left
-		auto d = cast(const(VarDecl))s.lookup_checked(lhs);
+		auto d = cast(const(Var))s.lookup_checked(lhs);
 		assert(d !is null, lhs~" is not a variable");
 		auto p = cast(const(UDType))d.ty;
 		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
-		auto d2 = cast(const(VarDecl))p.p.sym.lookup_checked(rhs);
+		auto d2 = cast(const(Var))p.p.sym.lookup_checked(rhs);
 		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
 		ty = d2.ty.dup;
 		return lhs~"->"~rhs;

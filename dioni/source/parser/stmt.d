@@ -83,8 +83,8 @@ auto parse_foreach(Stream i) {
 	if (!r.ok)
 		return err_result!Stmt(r.r);
 	//writeln("Matched foreach");
-	auto ret = new Foreach(cast(Var)r.result!2,
-			       cast(Var)r.result!4, r.result!6);
+	auto ret = new Foreach(cast(VarVal)r.result!2,
+			       cast(VarVal)r.result!4, r.result!6);
 	return ok_result!Stmt(ret, r.consumed, r.r);
 }
 auto parse_loop_var(Stream i) {
@@ -95,8 +95,8 @@ auto parse_loop_var(Stream i) {
 	r.r.promote();
 	r.r.name = "loop variable";
 	if (!r.ok)
-		return ok_result!Var(null, 0, r.r);
-	return ok_result!Var(cast(Var)r.result!0, r.consumed, r.r);
+		return ok_result!VarVal(null, 0, r.r);
+	return ok_result!VarVal(cast(VarVal)r.result!0, r.consumed, r.r);
 }
 auto parse_loop(Stream i) {
 	auto r = seq!(
@@ -112,7 +112,7 @@ auto parse_loop(Stream i) {
 		return err_result!Stmt(r.r);
 	//writeln("Matched loop");
 	return ok_result!Stmt(
-		new Loop(cast(Var)r.result!0,
+		new Loop(cast(VarVal)r.result!0,
 			 r.result!1, r.result!2),
 		r.consumed,
 		r.r

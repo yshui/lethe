@@ -9,8 +9,8 @@ auto parse_vmember(Stream i) {
 		identifier
 	)(i);
 	if (!r.ok)
-		return err_result!VarDecl(r.r);
-	return ok_result(new VarDecl(r.result!0, null, r.result!1), r.consumed, r.r);
+		return err_result!Var(r.r);
+	return ok_result(new Var(r.result!0, null, r.result!1), r.consumed, r.r);
 }
 
 auto parse_vertex(Stream i) {
@@ -18,7 +18,7 @@ auto parse_vertex(Stream i) {
 		discard!(token_ws!"vertex"),
 		identifier,
 		between!(token_ws!"(",
-			chain!(parse_vmember, arr_append!VarDecl, discard!(token_ws!",")),
+			chain!(parse_vmember, arr_append!Var, discard!(token_ws!",")),
 		token_ws!")"),
 		discard!(token_ws!";")
 	)(i);

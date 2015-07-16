@@ -15,7 +15,7 @@ abstract class Aggregator {
 			string c_clear(const(Decl) v, const(Symbols) s) const {
 				assert(false);
 			}
-			string c_foreach(const(Decl) v, const(VarDecl) loop,
+			string c_foreach(const(Decl) v, const(Var) loop,
 					const(Stmt)[] bdy, const(Symbols) s) const {
 				assert(false);
 			}
@@ -39,7 +39,7 @@ override :
 			res ~= "__new_event->tgtt = GLOBAL;\n";
 		else {
 			auto td = cast(const(Tag))v;
-			auto vd = cast(const(VarDecl))v;
+			auto vd = cast(const(Var))v;
 			auto pd = cast(const(Particle))v;
 			if (td !is null) {
 				res ~= "__new_event->tgtt = TAG;\n";
