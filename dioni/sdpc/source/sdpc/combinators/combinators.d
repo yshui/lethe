@@ -5,6 +5,7 @@ import std.traits,
        std.stdio,
        std.typetuple;
 
+@safe :
 ///Match pattern `begin func end`, return the result of func.
 auto between(alias begin, alias func, alias end)(Stream i) {
 	alias RetTy = ReturnType!func;
@@ -179,7 +180,7 @@ auto seq(T...)(Stream i) {
 	alias RetTy = ParseResult!ElemTys;
 	alias PID = genParserID!(0, T);
 	auto re = Reason(i, "seq");
-	ElemTys res = void;
+	ElemTys res;
 	size_t consumed = 0;
 	i.push();
 	foreach(pid; PID) {

@@ -22,13 +22,14 @@ interface Decl {
 		Decl combine(const(Decl) o) const;
 		Decl dup() const;
 	}
-	string c_code(const(Symbols) s, bool prototype_only=false) const;
+	@safe string c_code(const(Symbols) s, bool prototype_only=false) const;
 }
 
 class EventParameter {
 	const(ParticleMatch) pm;
 	const(Cmp) cmp;
-	pure nothrow @safe {
+@safe :
+	pure nothrow {
 		this(ParticleMatch x) {
 			cmp = null;
 			pm = x;
@@ -55,7 +56,7 @@ class EventParameter {
 			return "("~emem~".t == PARTICLE_"~pm.particle~")";
 		}
 		assert(cmp !is null);
-		auto lv = cast(Var)cmp.lhs;
+		auto lv = cast(const(VarVal))cmp.lhs;
 		TypeBase rty;
 		auto rcode = cmp.rhs.c_code(s, rty);
 		const(TypeBase) nty = ty.type_match!UDType ? new ParticleHandle : ty;
@@ -68,7 +69,7 @@ class EventParameter {
 	string c_code_assign(string emem, const(TypeBase) ty) const {
 		if (pm !is null)
 			return pm.var.name~"="~emem~".p"~";\n";
-		auto lv = cast(Var)cmp.lhs;
+		auto lv = cast(const(VarVal))cmp.lhs;
 		if (ty.type_match!UDType)
 			return lv.name~"="~emem~".id"~";\n";
 		return lv.name~"="~emem~";\n";
@@ -88,7 +89,8 @@ package pure nothrow @safe string str_ep(const(EventParameter)[] ep) {
 class Condition {
 	string name;
 	const(EventParameter)[] ep;
-	pure nothrow @safe {
+@safe :
+	pure nothrow {
 		this(string xname, const(EventParameter)[] xep) {
 			ep = xep;
 			name = xname;
@@ -101,7 +103,7 @@ class Condition {
 		//Generate c code for matching
 		import std.conv : to;
 		int count = 0;
-		auto e = cast(Event)s.lookup_checked(name);
+		auto e = cast(const(Event))s.lookup_checked(name);
 		assert(e !is null, name~" is not an event definition");
 
 		auto mcode = "", acode = "";
@@ -119,7 +121,8 @@ class Condition {
 class StateTransition {
 	Condition e;
 	const(Stmt)[] s;
-	pure nothrow @safe {
+@safe :
+	pure nothrow {
 		this(Condition xe, const(Stmt)[] xs) {
 			e = xe;
 			s = xs;
@@ -143,7 +146,7 @@ class StateTransition {
 		s1.insert(nst);
 		auto scode = s.c_code(s1, sha);
 		s1.merge_shadowed(sha);
-		auto vd = cast(Var)s1.lookup_checked("nextState");
+		auto vd = cast(const(Var))s1.lookup_checked("nextState");
 		assert(vd.ty.type_match!StateType, "nextState is not assigned a state");
 
 		res ~= s1.c_defs(StorageClass.Local);
@@ -158,7 +161,7 @@ class StateTransition {
 	}
 }
 
-pure nothrow string param_list(string particle) {
+@safe pure nothrow string param_list(string particle) {
 	string res;
 	immutable string[] names = ["__current", "__next"];
 	foreach(i, n; names) {
@@ -324,7 +327,12 @@ class Ctor : Decl {
 	string[] param;
 	private string _prefix, _particle;
 	Particle _parent;
-	override void parent(Decl prnt) {
+	@safe this(string[] p, Stmt[] x) {
+		stmt = x;
+		param = p;
+	}
+override :
+	void parent(Decl prnt) {
 		_parent = cast(Particle)prnt;
 		assert(_parent !is null);
 		auto s = _parent.sym;
@@ -334,20 +342,16 @@ class Ctor : Decl {
 			param_def ~= vd;
 		}
 	}
-	this(string[] p, Stmt[] x) {
-		stmt = x;
-		param = p;
-	}
-	override string str() const {
+	string str() const {
 		return "Ctor: " ~ stmt.str;
 	}
-	override string symbol() const {
+	string symbol() const {
 		return "_";
 	}
-	override Decl combine(const(Decl) _) const {
+	Decl combine(const(Decl) _) const {
 		assert(false);
 	}
-	override string c_code(const(Symbols) s, bool prototype_only) const {
+	string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(_parent !is null);
 		auto res = "static inline void "~_parent.symbol~"_ctor("~_parent.symbol.param_list;
 		auto init = "";
@@ -363,7 +367,7 @@ class Ctor : Decl {
 		res ~= stmt.c_code(s)~"}";
 		return res;
 	}
-	override Decl dup() const {
+	Decl dup() const {
 		assert(false);
 	}
 	const(Aggregator) aggregator() const {
@@ -374,26 +378,11 @@ class Ctor : Decl {
 class Event : Decl {
 	TypeBase[] member;
 	string name;
-	override void parent(Decl p) {
-		assert(false);
-	}
-	this(string x, TypeBase[] vd) {
+	@safe this(string x, TypeBase[] vd) {
 		member = vd;
 		name = x;
 	}
-	override Decl combine(const(Decl) _) const {
-		assert(false);
-	}
-	override string str() const {
-		return "Event "~name;
-	}
-	override string symbol() const {
-		return name;
-	}
-	override string c_code(const(Symbols) s, bool prototype_only) const {
-		assert(false);
-	}
-	string c_structs() const {
+	@safe string c_structs() const {
 		import std.conv : to;
 		string res = "struct event_"~name~"{\n";
 		foreach(i, ty; member)
@@ -401,7 +390,23 @@ class Event : Decl {
 		res ~= "};\n";
 		return res;
 	}
-	override Decl dup() const {
+override :
+	void parent(Decl p) {
+		assert(false);
+	}
+	Decl combine(const(Decl) _) const {
+		assert(false);
+	}
+	string str() const {
+		return "Event "~name;
+	}
+	string symbol() const {
+		return name;
+	}
+	string c_code(const(Symbols) s, bool prototype_only) const {
+		assert(false);
+	}
+	Decl dup() const {
 		assert(false);
 	}
 	const(Aggregator) aggregator() const {
@@ -411,28 +416,27 @@ class Event : Decl {
 
 class Tag : Decl {
 	string name;
-	override void parent(Decl p) {
-		assert(false);
-	}
-	this(string x) {
-		name = x;
-	}
-	override Decl combine(const(Decl) _) const {
-		assert(false);
-	}
-	override string str() const {
-		return "Tag "~name;
-	}
-	override string symbol() const {
-		return name;
-	}
-	override string c_code(const(Symbols) s, bool prototype_only) const {
-		assert(false);
-	}
+	@safe this(string x) { name = x; }
 	pure nothrow @safe string c_access() const {
 		return "(TAG_"~name~")";
 	}
-	override Decl dup() const {
+override :
+	void parent(Decl p) {
+		assert(false);
+	}
+	Decl combine(const(Decl) _) const {
+		assert(false);
+	}
+	string str() const {
+		return "Tag "~name;
+	}
+	string symbol() const {
+		return name;
+	}
+	string c_code(const(Symbols) s, bool prototype_only) const {
+		assert(false);
+	}
+	Decl dup() const {
 		assert(false);
 	}
 	const(Aggregator) aggregator() const {
@@ -441,28 +445,24 @@ class Tag : Decl {
 }
 class Vertex : Decl {
 	string name;
-	override void parent(Decl p) {
+	@safe this(string x, Var[] vd) { name = x; }
+override :
+	void parent(Decl p) {
 		assert(false);
 	}
-	this(string x, Var[] vd) {
-		name = x;
-	}
-	override Decl combine(const(Decl) _) const {
+	Decl combine(const(Decl) _) const {
 		assert(false);
 	}
-	override string str() const {
+	string str() const {
 		return "Tag "~name;
 	}
-	override string symbol() const {
+	string symbol() const {
 		return name;
 	}
-	override string c_code(const(Symbols) s, bool prototype_only) const {
+	string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(false);
 	}
-	pure nothrow @safe string c_access() const {
-		return "(TAG_"~name~")";
-	}
-	override Decl dup() const {
+	Decl dup() const {
 		assert(false);
 	}
 	const(Aggregator) aggregator() const {

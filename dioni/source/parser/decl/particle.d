@@ -2,6 +2,7 @@ module parser.decl.particle;
 import ast.decl;
 import parser.decl, parser.utils;
 import sdpc;
+@safe :
 auto parse_tagarr(Stream i) {
 	auto r = seq!(
 		optional!(token_ws!"-"),

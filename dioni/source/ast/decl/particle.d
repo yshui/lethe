@@ -11,15 +11,42 @@ class Particle : Decl {
 	private Particle p;
 	private Symbols s;
 	private bool _visited, _visiting;
-	override size_t toHash() {
-		return hashOf(name);
+	override {
+		size_t toHash() {
+			return hashOf(name);
+		}
+		Decl combine(const(Decl) _) const {
+			assert(false);
+		}
+		void parent(Decl p) {
+			assert(false);
+		}
+		string c_code(const(Symbols) xs, bool prototype_only) const {
+			assert(false);
+		}
+		string str() const {
+			auto res = "particle " ~ name;
+			if (component_str.length != 0)
+				res ~= "<<"~component_str.join(", ")~"{\n";
+			else
+				res ~= "{\n";
+			foreach(d; decl)
+				res ~= d.str;
+			res ~= "}";
+			return res;
+		}
+		string symbol() const {
+			return name;
+		}
+
+		Decl dup() const {
+			assert(false);
+		}
+		const(Aggregator) aggregator() const {
+			return new EventAggregator;
+		}
 	}
-	override Decl combine(const(Decl) _) const {
-		assert(false);
-	}
-	override void parent(Decl p) {
-		assert(false);
-	}
+@safe :
 	@property nothrow pure bool visited() const {
 		return _visited;
 	}
@@ -32,9 +59,6 @@ class Particle : Decl {
 		name = xn;
 		component_str = com;
 		tag = t;
-	}
-	override string c_code(const(Symbols) xs, bool prototype_only) const {
-		assert(false);
 	}
 	string c_code(bool prototype_only=false) const {
 		int this_count = 0;
@@ -58,7 +82,7 @@ class Particle : Decl {
 		//Get all dependencies of this particle
 		bool[Particle] dict;
 		foreach(c; component_str) {
-			auto d = glob.lookup(c);
+			auto d = glob.lookup_local(c);
 			assert(d !is null, "Mixin particle "~c~" not found");
 			auto p = cast(Particle)d;
 			assert(d !is null, c~" is not a particle");
@@ -69,22 +93,25 @@ class Particle : Decl {
 		}
 
 		//Generate tags
-		bool[string] tagd;
-		foreach(c; dict.keys) {
-			component ~= c;
-			foreach(t; c.tag)
-				tagd[t] = true;
-		}
-		foreach(t; tag) {
-			auto td = cast(const(Tag))s.lookup_checked(t);
-			assert(td !is null, t~" is not a tag");
+		tag = () @trusted {
+			//trusted function because .keys is not @safe
+			bool[string] tagd;
+			foreach(c; dict.keys) {
+				component ~= c;
+				foreach(t; c.tag)
+					tagd[t] = true;
+			}
+			foreach(t; tag) {
+				auto td = cast(const(Tag))s.lookup_checked(t);
+				assert(td !is null, t~" is not a tag");
 
-			if (t[0] == '-')
-				tagd[t[1..$]] = false;
-			else
-				tagd[t] = true;
-		}
-		tag = tagd.keys;
+				if (t[0] == '-')
+					tagd[t[1..$]] = false;
+				else
+					tagd[t] = true;
+			}
+			return tagd.keys;
+		}();
 
 		//Now generate the symbols, try to combine them when duplicates are found
 		foreach(d; decl) {
@@ -116,17 +143,6 @@ class Particle : Decl {
 		_visited = true;
 		_visiting = false;
 	}
-	override @property nothrow pure string str() const {
-		auto res = "particle " ~ name;
-		if (component_str.length != 0)
-			res ~= "<<"~component_str.join(", ")~"{\n";
-		else
-			res ~= "{\n";
-		foreach(d; decl)
-			res ~= d.str;
-		res ~= "}";
-		return res;
-	}
 	private pure string bare_c_struct(StorageClass sc) const {
 		auto res = "int __id;\n";
 		res ~= s.c_defs(sc);
@@ -136,22 +152,12 @@ class Particle : Decl {
 		auto res = "struct "~name~" {\n"~bare_c_struct(StorageClass.Particle)~"};\n";
 		return res;
 	}
-	override string symbol() const {
-		return name;
-	}
-	
-	override Decl dup() const {
-		assert(false);
-	}
-	override const(Aggregator) aggregator() const {
-		return new EventAggregator;
-	}
 	pure string c_macros() const {
 		import std.conv;
 		auto res = "";
 		int id = 0;
 		foreach(d; s.table) {
-			auto sd = cast(State)d;
+			auto sd = cast(const(State))d;
 			if (sd is null)
 				continue;
 			res ~= "#define PARTICLE_"~name~"_STATE_"~sd.symbol~" "~to!string(id)~"\n";
@@ -205,7 +211,7 @@ class Particle : Decl {
 		}
 		res ~= "\tswitch(state) {\n";
 		foreach(d; s.table) {
-			auto sd = cast(State)d;
+			auto sd = cast(const(State))d;
 			if (sd is null)
 				continue;
 			res ~= "\tcase PARTICLE_"~name~"_STATE_"~sd.symbol~":\n";

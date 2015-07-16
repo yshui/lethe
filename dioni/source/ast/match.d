@@ -3,7 +3,7 @@ import ast.expr;
 class ParticleMatch {
 	VarVal var;
 	string particle;
-	this(VarVal xv, string xp) {
+	@safe this(VarVal xv, string xp) {
 		particle = xp;
 		var = xv;
 	}

@@ -3,6 +3,7 @@ import ast.expr, ast.stmt;
 import sdpc;
 import parser.utils, parser.expr, parser.atom;
 import std.stdio;
+@safe :
 auto parse_assign(Stream i) {
 	auto r = seq!(
 		parse_lvalue,

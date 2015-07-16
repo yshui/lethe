@@ -2,9 +2,9 @@ module ast.symbols;
 import ast.decl;
 import std.typecons;
 class Shadows {
-	const(Symbols) s;
+	Symbols s;
 	@safe nothrow {
-		int opApply(int delegate(ref const(Decl) d) nothrow @safe dg) {
+		private int opApply(int delegate(ref Decl d) nothrow @safe dg) {
 			try {
 				foreach(d; s._shadow) {
 					if ((d.symbol in s.table) !is null)
@@ -18,17 +18,32 @@ class Shadows {
 				assert(false, e.msg);
 			}
 		}
-		this(const(Symbols) xs){
+		this(Symbols xs){
 			s = xs;
 		}
 	}
 }
 class Symbols {
-	Rebindable!(const(Decl))[string] table;
-	private Rebindable!(const(Decl))[string] _shadow;
+	Decl[string] table;
+	private Decl[string] _shadow;
 	const(Symbols) parent;
 	const(int) level;
 	@safe pure nothrow {
+		inout(Decl) lookup_local(string name) inout {
+			if (name is null)
+				return null;
+			if ((name in _shadow) !is null)
+				return _shadow[name];
+			if ((name in table) !is null)
+				return table[name];
+			else
+				return null;
+		}
+		const(Decl) lookup_checked(string name) const {
+			auto d = lookup(name);
+			assert(d !is null, name~" is not defined");
+			return d;
+		}
 		const(Decl) lookup(string name) const {
 			if (name is null)
 				return null;
@@ -40,11 +55,6 @@ class Symbols {
 				return parent.lookup(name);
 			else
 				return null;
-		}
-		const(Decl) lookup_checked(string name) const {
-			auto d = lookup(name);
-			assert(d !is null, name~" is not defined");
-			return d;
 		}
 		this(const(Symbols) p) {
 			parent = p;
@@ -71,19 +81,19 @@ class Symbols {
 		}
 	}
 	@safe nothrow {
-		void insert(const(Decl) d) {
+		void insert(Decl d) {
 			assert((d.symbol in reserved_names) is null, "Reserved name "~d.symbol);
 			assert(lookup(d.symbol) is null, "Duplicated name "~d.symbol);
 			table[d.symbol] = d;
 		}
-		void shadow(const(Decl) d) {
+		void shadow(Decl d) {
 			assert(lookup(d.symbol) !is null, "Cannot shadow a non-existent variable");
 			assert((d.symbol in _shadow) is null, "Can't shadow twice "~d.symbol);
 			if ((d.symbol in table) !is null)
 				table[d.symbol] = d;
 			_shadow[d.symbol] = d;
 		}
-		Shadows shadowed() const {
+		Shadows shadowed() {
 			return new Shadows(this);
 		}
 		void replace(Decl d) {

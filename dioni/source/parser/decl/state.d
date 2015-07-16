@@ -22,6 +22,7 @@ import parser.stmt,
        parser.expr,
        parser.match;
 import sdpc;
+@safe :
 auto parse_event_parameter(Stream i) {
 	auto re = Reason(i, "event parameter");
 
@@ -40,7 +41,7 @@ auto parse_event_parameter(Stream i) {
 	}
 
 	auto cmp = cast(Cmp)r2.result;
-	auto v = cast(Var)cmp.lhs;
+	auto v = cast(VarVal)cmp.lhs;
 	if (v is null) {
 		r2.r.state = "failed";
 		r2.r.msg = "Left-hand size of event parameter matching must be a variable";

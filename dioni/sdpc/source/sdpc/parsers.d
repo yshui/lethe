@@ -4,7 +4,7 @@ import sdpc.combinators,
 import std.traits,
        std.string,
        std.conv;
-
+@safe :
 ///Match a single character, return func(indexOf, character)
 auto ch(alias accept, alias func)(Stream i) {
 	alias ElemTy = ReturnType!func;

@@ -4,6 +4,7 @@ import ast.decl,
        ast.stmt;
 import sdpc;
 import parser.utils, parser.stmt, parser.decl;
+@safe :
 auto parse_type(Stream i) {
 	auto r = choice!(
 		token_ws!"int",

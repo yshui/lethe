@@ -2,6 +2,7 @@ module parser.match;
 import sdpc;
 import parser.utils;
 import ast.match, ast.expr;
+@safe :
 auto parse_particle_match(Stream i) {
 	auto r = seq!(
 		identifier,

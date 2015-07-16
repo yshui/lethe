@@ -3,7 +3,7 @@ import ast.expr, ast.symbols, ast.decl, ast.type;
 import std.format;
 interface Stmt {
 	@property @safe nothrow pure string str() const;
-	string c_code(Symbols s) const;
+	@safe string c_code(Symbols s) const;
 }
 class Assign : Stmt {
 	LValue lhs;
@@ -14,7 +14,7 @@ class Assign : Stmt {
 		Assign
 	};
 	int type;
-	this(LValue xlhs, Expr xrhs, int xtype = Assign) {
+	@safe this(LValue xlhs, Expr xrhs, int xtype = Assign) {
 		lhs = xlhs;
 		rhs = xrhs;
 		type = xtype;
@@ -43,32 +43,34 @@ class Assign : Stmt {
 		}
 	}
 }
-package @safe nothrow pure string str(const(Stmt)[] ss) {
-	string res = "";
-	foreach(s; ss)
-		res ~= s.str;
-	if (res == "")
-		res ~= "\n";
-	return res;
-}
+@safe {
+	package pure nothrow string str(const(Stmt)[] ss) {
+		string res = "";
+		foreach(s; ss)
+			res ~= s.str;
+		if (res == "")
+			res ~= "\n";
+		return res;
+	}
 
-package string c_code(const(Stmt)[] ss, const(Symbols) p, out Shadows os) {
-	string res = "";
-	Symbols c = new Symbols(p);
-	foreach(s; ss)
-		res ~= s.c_code(c);
-	os = c.shadowed;
-	return c.c_defs(StorageClass.Local)~res;
-}
+	package string c_code(const(Stmt)[] ss, const(Symbols) p, out Shadows os) {
+		string res = "";
+		Symbols c = new Symbols(p);
+		foreach(s; ss)
+			res ~= s.c_code(c);
+		os = c.shadowed;
+		return c.c_defs(StorageClass.Local)~res;
+	}
 
-package string c_code(const(Stmt)[] ss, const(Symbols) p) {
-	Shadows _;
-	return c_code(ss, p, _);
+	package string c_code(const(Stmt)[] ss, const(Symbols) p) {
+		Shadows _;
+		return c_code(ss, p, _);
+	}
 }
 class If : Stmt {
 	Expr cond;
 	Stmt[] _then, _else;
-	this(Expr xcond, Stmt[] t, Stmt[] e) {
+	@safe this(Expr xcond, Stmt[] t, Stmt[] e) {
 		cond = xcond;
 		_then = t;
 		_else = e;
@@ -81,7 +83,7 @@ class If : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	override string c_code(Symbols s) const {
+	string c_code(Symbols s) const {
 		TypeBase ty;
 		auto ccode = cond.c_code(s, ty);
 		Shadows sha;
@@ -99,7 +101,7 @@ class If : Stmt {
 class Foreach : Stmt {
 	VarVal var, agg;
 	Stmt[] bdy;
-	this(VarVal xvar, VarVal xagg, Stmt[] b) {
+	@safe this(VarVal xvar, VarVal xagg, Stmt[] b) {
 		var = xvar;
 		agg = xagg;
 		bdy = b;
@@ -110,7 +112,7 @@ class Foreach : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	override string c_code(Symbols s) const {
+	string c_code(Symbols s) const {
 		assert(false, "NIY");
 	}
 }
@@ -118,7 +120,7 @@ class Loop : Stmt {
 	Range rng;
 	VarVal var;
 	Stmt[] bdy;
-	this(VarVal xvar, Range r, Stmt[] xbdy) {
+	@safe this(VarVal xvar, Range r, Stmt[] xbdy) {
 		rng = r;
 		var = xvar;
 		bdy = xbdy;
@@ -129,7 +131,7 @@ class Loop : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	override string c_code(Symbols sym) const {
+	string c_code(Symbols sym) const {
 		Symbols x = new Symbols(sym);
 		TypeBase rt;
 		auto rcode = rng.c_code(sym, rt);

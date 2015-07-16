@@ -3,7 +3,7 @@ import sdpc;
 import ast.expr;
 import std.conv,
        std.stdio;
-
+@safe :
 auto parse_number_nows(Stream i) {
 	auto parse_exp_str(Stream i) {
 		auto r = seq!(

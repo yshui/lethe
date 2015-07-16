@@ -2,6 +2,7 @@ import std.stdio, std.file;
 import parser;
 import ast.symbols, ast.decl, ast.aggregator, ast.type;
 import sdpc;
+@safe :
 string c_particle_handler(const(Decl)[] s) {
 	//XXX this implementation is incomplete, run_particle function must
 	//fetch events by itself, not via argument
@@ -26,12 +27,12 @@ string c_particle_handler(const(Decl)[] s) {
 }
 void main(string[] argv) {
 	if (argv.length < 2) {
-		stderr.writefln("Usage: %s file", argv[0]);
+		writefln("Usage: %s file", argv[0]);
 		throw new Exception("Missing argument");
 	}
 
 	char[] file_content = cast(char[])read(argv[1]);
-	auto i = new BufStream(cast(immutable(char)[])file_content);
+	auto i = new BufStream(file_content.idup);
 	auto r = parse_top(i);
 	auto mainf = File("statefn.c", "w");
 	auto defsf = File("defs.h", "w");

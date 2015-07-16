@@ -49,6 +49,7 @@ struct Reason {
 	int line, col;
 	string state;
 	@disable this();
+@safe :
 	this(Stream i, string xname) {
 		i.get_pos(line, col);
 		state = "failed";
@@ -99,7 +100,7 @@ struct ParseResult(T...) {
 	Result s;
 	size_t consumed;
 	Reason r;
-
+@safe :
 	static if (T.length == 0 || allSatisfy!(isVoid, T))
 		alias T2 = void;
 	else static if (T.length == 1)
@@ -130,41 +131,46 @@ struct ParseResult(T...) {
 		assert(s == Result.OK || consumed == 0);
 	}
 }
+@safe {
+	T ok_result(T: ParseResult!U, U)(U r, size_t consumed, ref Reason re) {
+		return T(Result.OK, consumed, re, r);
+	}
 
-T ok_result(T: ParseResult!U, U)(U r, size_t consumed, ref Reason re) {
-	return T(Result.OK, consumed, re, r);
-}
+	ParseResult!T ok_result(T...)(T r, size_t consumed, ref Reason re) {
+		return ParseResult!T(Result.OK, consumed, re, r);
+	}
 
-ParseResult!T ok_result(T...)(T r, size_t consumed, ref Reason re) {
-	return ParseResult!T(Result.OK, consumed, re, r);
-}
+	T err_result(T: ParseResult!U, U)(ref Reason r) {
+		static if (is(U == void))
+			return T(Result.Err, 0, r);
+		else
+			return T(Result.Err, 0, r, U.init);
+	}
 
-T err_result(T: ParseResult!U, U)(ref Reason r) {
-	static if (is(U == void))
-		return T(Result.Err, 0, r);
-	else
-		return T(Result.Err, 0, r, U.init);
-}
+	ParseResult!T err_result(T)(T def, ref Reason r)
+	    if (!is(T == ParseResult!U, U)) {
+		return ParseResult!T(Result.Err, 0, r, def);
+	}
 
-ParseResult!T err_result(T)(T def, ref Reason r) if (!is(T == ParseResult!U, U)) {
-	return ParseResult!T(Result.Err, 0, r, def);
-}
+	ParseResult!T err_result(T...)(ref Reason r)
+	    if (!is(T == ParseResult!U, U)) {
+		static if (is(T[0] == void))
+			return ParseResult!T(Result.Err, 0, r);
+		else
+			return ParseResult!T(Result.Err, 0, r, T.init);
+	}
 
-ParseResult!T err_result(T...)(ref Reason r) if (!is(T == ParseResult!U, U)) {
-	static if (is(T[0] == void))
-		return ParseResult!T(Result.Err, 0, r);
-	else
-		return ParseResult!T(Result.Err, 0, r, T.init);
-}
-
-ParseResult!T cast_result(T, alias func)(Stream i) if (is(ElemType!(ReturnType!func): T)) {
-	auto r = func(i);
-	if (!r.ok)
-		return err_result!T(r.r);
-	return ok_result(cast(T)r.result, r.consumed, r.r);
+	ParseResult!T cast_result(T, alias func)(Stream i)
+	    if (is(ElemType!(ReturnType!func): T)) {
+		auto r = func(i);
+		if (!r.ok)
+			return err_result!T(r.r);
+		return ok_result(cast(T)r.result, r.consumed, r.r);
+	}
 }
 
 interface Stream {
+@safe :
 	bool starts_with(const char[] prefix);
 	string advance(size_t bytes);
 	void push(string f=__FUNCTION__);
@@ -186,16 +192,21 @@ class BufStream: Stream {
 		Pos now;
 		Pos[] stack;
 	}
-	override @property pure nothrow @nogc string head() {
+	@safe this(string str) {
+		now.pos = str;
+		now.line = now.col = 1;
+	}
+override :
+	@property pure nothrow @nogc string head() {
 		return now.pos;
 	}
-	override bool starts_with(const char[] prefix) {
+	bool starts_with(const char[] prefix) {
 		import std.stdio;
 		if (prefix.length > now.pos.length)
 			return false;
 		return now.pos.startsWith(prefix);
 	}
-	override string advance(size_t bytes) {
+	string advance(size_t bytes) {
 		assert(bytes <= now.pos.length);
 		auto ret = now.pos[0..bytes];
 		foreach(c; ret) {
@@ -208,32 +219,28 @@ class BufStream: Stream {
 		now.pos = now.pos[bytes..$];
 		return ret;
 	}
-	override void push(string f=__FUNCTION__) {
+	void push(string f=__FUNCTION__) {
 		//writefln("Push %s, %s", f, stack.length);
 		stack ~= [now];
 	}
-	override void pop(string f=__FUNCTION__) {
+	void pop(string f=__FUNCTION__) {
 		//writefln("Pop %s, %s", f, stack.length);
 		now = stack[$-1];
 		stack.length--;
 	}
-	override void drop(string f=__FUNCTION__) {
+	void drop(string f=__FUNCTION__) {
 		//writefln("Drop %s, %s", f, stack.length);
 		stack.length--;
 	}
-	override void revert() {
+	void revert() {
 		now = stack[$-1];
 	}
-	override void get_pos(out int line, out int col) {
+	void get_pos(out int line, out int col) {
 		line = now.line;
 		col = now.col;
 	}
-	@property override bool eof() {
+	bool eof() {
 		return now.pos.length == 0;
-	}
-	this(string str) {
-		now.pos = str;
-		now.line = now.col = 1;
 	}
 
 }

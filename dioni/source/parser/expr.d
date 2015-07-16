@@ -5,7 +5,7 @@ import parser.atom, parser.utils;
 import dioni.utils;
 import std.conv: to;
 import std.stdio;
-
+@safe :
 auto parse_range(Stream i) {
 	auto r = seq!(
 		parse_expr,

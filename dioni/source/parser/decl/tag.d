@@ -2,6 +2,7 @@ module parser.decl.tag;
 import parser.utils;
 import ast.decl;
 import sdpc;
+@safe :
 auto parse_tag_name(Stream i) {
 	auto r = identifier(i);
 	r.r.name = "tag def";

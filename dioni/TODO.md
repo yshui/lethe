@@ -5,6 +5,7 @@
 - [x] nextState = StateName
 - [x] Unified matching syntax
 - [x] Particle creation functions
+- [ ] Create events with particle member
 - [ ] Wildcard event match
 - [ ] Event handler forwarding
 - [ ] get_waiting_event(particle_id)

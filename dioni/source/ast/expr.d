@@ -24,7 +24,7 @@ interface LValue : Expr {
 
 class Range : Expr {
 	Expr a, o;
-	this(Expr x, Expr y) {
+	@safe this(Expr x, Expr y) {
 		a = x;
 		o = y;
 	}
@@ -55,46 +55,10 @@ class Range : Expr {
 class BinOP : Expr {
 	Expr lhs, rhs;
 	string op;
-	this(Expr xlhs, string xop, Expr xrhs) {
+	@safe this(Expr xlhs, string xop, Expr xrhs) {
 		lhs = xlhs;
 		rhs = xrhs;
 		op = xop;
-	}
-	override @property pure nothrow string str() const {
-		return "<" ~ lhs.str ~ op ~ rhs.str ~ ">";
-	}
-	override string c_code(const(Symbols) s, out TypeBase ty) const {
-		TypeBase lty, rty;
-		auto lcode = lhs.c_code(s, lty), rcode = rhs.c_code(s, rty);
-		ty = gen_type(lty, rty, op);
-		if (ty.dimension != 1) {
-			string suffix = "";
-			final switch(op) {
-			case "+":
-				suffix = "add";
-				break;
-			case "-":
-				suffix = "sub";
-				break;
-			case "*":
-				if (rty.dimension == 1)
-					suffix = "muln1";
-				else if (lty.dimension == 1)
-					suffix = "mul1n";
-				else
-					suffix = "mul";
-				break;
-			case "/":
-				if (rty.dimension == 1)
-					suffix = "div1";
-				else
-					suffix = "div";
-				break;
-			}
-			return assumeWontThrow(format("vec%s_%s(%s, %s)", ty.dimension, suffix,
-					       lcode, rcode));
-		}
-		return assumeWontThrow(format("(%s%s%s)", lcode, op, rcode));
 	}
 	static pure @safe nothrow TypeBase
 	gen_type(const(TypeBase) lty, const(TypeBase) rty, string op) {
@@ -144,6 +108,43 @@ class BinOP : Expr {
 		}
 		assert(false);
 	}
+override :
+	string str() const {
+		return "<" ~ lhs.str ~ op ~ rhs.str ~ ">";
+	}
+	string c_code(const(Symbols) s, out TypeBase ty) const {
+		TypeBase lty, rty;
+		auto lcode = lhs.c_code(s, lty), rcode = rhs.c_code(s, rty);
+		ty = gen_type(lty, rty, op);
+		if (ty.dimension != 1) {
+			string suffix = "";
+			final switch(op) {
+			case "+":
+				suffix = "add";
+				break;
+			case "-":
+				suffix = "sub";
+				break;
+			case "*":
+				if (rty.dimension == 1)
+					suffix = "muln1";
+				else if (lty.dimension == 1)
+					suffix = "mul1n";
+				else
+					suffix = "mul";
+				break;
+			case "/":
+				if (rty.dimension == 1)
+					suffix = "div1";
+				else
+					suffix = "div";
+				break;
+			}
+			return assumeWontThrow(format("vec%s_%s(%s, %s)", ty.dimension, suffix,
+					       lcode, rcode));
+		}
+		return assumeWontThrow(format("(%s%s%s)", lcode, op, rcode));
+	}
 }
 
 class BoolOP : Expr {
@@ -171,17 +172,18 @@ override :
 class UnOP : Expr {
 	string op;
 	Expr opr; ///Operand
-	this(string xop, Expr xopr) {
+	@safe this(string xop, Expr xopr) {
 		opr = xopr;
 		op = xop;
 	}
 	T opCast(T: string)() {
 		return op ~ to!string(opr);
 	}
-	override @property pure nothrow string str() const {
+override :
+	string str() const {
 		return op ~ opr.str;
 	}
-	override string c_code(const(Symbols) s, out TypeBase ty) const {
+	string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto ocode = opr.c_code(s, ty);
 		if (ty.dimension != 1) {
 			assert(op == "-", "Unsupported '"~op~"' on vector");
@@ -193,7 +195,7 @@ class UnOP : Expr {
 
 class VarVal : LValue {
 	string name;
-	this(string xname) { name = xname; }
+	@safe this(string xname) { name = xname; }
 override :
 	string str() const {
 		return "VarVal(" ~ name ~ ")";
@@ -230,8 +232,9 @@ override :
 			       rty.type_match!ParticleHandle ||
 			       rty.type_match!StateType ||
 			       rty.type_match!AnonymousType, typeid(rty).toString);
-			vd = new Var(rty, null, name);
-			s.insert(vd);
+			auto newv = new Var(rty, null, name);
+			s.insert(newv);
+			vd = newv;
 			if (rty.type_match!(AnonymousType))
 				return "";
 		} else {
@@ -285,14 +288,15 @@ class Index : LValue {
 
 class Field : LValue {
 	string lhs, rhs;
-	this(string xlhs, string xrhs) {
+	@safe this(string xlhs, string xrhs) {
 		lhs = xlhs;
 		rhs = xrhs;
 	}
-	override @property pure nothrow string str() const {
+override :
+	string str() const {
 		return "<" ~ lhs ~ "." ~ rhs ~ ">";
 	}
-	override string c_code(const(Symbols) s, out TypeBase ty) const {
+	string c_code(const(Symbols) s, out TypeBase ty) const {
 		//Lookup left
 		auto d = cast(const(Var))s.lookup_checked(lhs);
 		assert(d !is null, lhs~" is not a variable");
@@ -315,20 +319,21 @@ class Num : Expr {
 		int i;
 	}
 	const(string) _str;
-	this(float a) {
+	@safe this(float a) {
 		_type = 0;
 		f = a;
 		_str = "Float(" ~ to!string(f) ~ ")";
 	}
-	this(int a) {
+	@safe this(int a) {
 		_type = 1;
 		i = a;
 		_str = "Int(" ~ to!string(i) ~ ")";
 	}
-	@property pure nothrow string str() const {
+override :
+	string str() const {
 		return _str;
 	}
-	override string c_code(const(Symbols) s, out TypeBase ty) const {
+	string c_code(const(Symbols) s, out TypeBase ty) const {
 		final switch(_type) {
 		case 0:
 			ty = new Type!float;
@@ -343,20 +348,21 @@ class Num : Expr {
 class Vec(int dim) : Expr if (dim >= 2) {
 	Expr[dim] elem;
 	const(string) _header;
-	this(Expr[] xelem) {
+	@safe this(Expr[] xelem) {
 		_header = "Vec"~to!string(dim)~"(";
 		assert(xelem.length >= dim);
 		foreach(i; StaticRange!(0, dim))
 			elem[i] = xelem[i];
 	}
-	override @property pure nothrow string str() const {
+override :
+	string str() const {
 		auto res = _header.dup;
 		foreach(i; StaticRange!(0, dim-1))
 			res ~= elem[i].str ~ ", ";
 		res ~= elem[dim-1].str ~ ")";
 		return res;
 	}
-	override string c_code(const(Symbols) s, out TypeBase ty) const {
+	string c_code(const(Symbols) s, out TypeBase ty) const {
 		ty = new Type!(float, dim);
 		auto res = assumeWontThrow(format("((struct vec%s){", dim));
 		foreach(e; elem) {
@@ -371,10 +377,11 @@ class Vec(int dim) : Expr if (dim >= 2) {
 }
 
 class QMark : Expr {
-	override string str() const {
+override :
+	string str() const {
 		return "?";
 	}
-	override string c_code(const(Symbols) s, out TypeBase ty) const {
+	string c_code(const(Symbols) s, out TypeBase ty) const {
 		ty = new AnonymousType;
 		return "";
 	}
@@ -433,7 +440,7 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 class Cmp : Expr {
 	Expr lhs, rhs;
 	string op;
-	this(Expr xl, string xo, Expr xr) {
+	@safe this(Expr xl, string xo, Expr xr) {
 		lhs = xl;
 		op = xo;
 		rhs = xr;
@@ -454,14 +461,15 @@ class Cmp : Expr {
 class NewExpr : Expr, Stmt {
 	string name;
 	Expr[] param;
-	this(string n, Expr[] p) {
+	@safe this(string n, Expr[] p) {
 		name = n;
 		param = p;
 	}
-	override string str() const {
+override :
+	string str() const {
 		return "New";
 	}
-	override string c_code(const(Symbols) s, out TypeBase ty) const {
+	string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto d = s.lookup_checked(name);
 		auto pd = cast(const(Particle))d,
 		     sd = cast(const(State))d,
@@ -508,10 +516,10 @@ class NewExpr : Expr, Stmt {
 		} else
 			assert(false);
 	}
-	override string c_code(Symbols s) const {
+	string c_code(Symbols s) const {
 		TypeBase ty;
 		auto code = c_code(s, ty);
-		assert(typeid(ty) == typeid(ParticleHandle),
+		assert(ty.type_match!ParticleHandle,
 		       "Creating "~name~" without assigning it makes no sense.");
 		return code~";\n";
 	}
