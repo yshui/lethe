@@ -2,9 +2,9 @@ module ast.symbols;
 import ast.decl;
 import std.typecons;
 class Shadows {
-	Symbols s;
-	@safe nothrow {
-		private int opApply(int delegate(ref Decl d) nothrow @safe dg) {
+	@safe nothrow private {
+		Symbols s;
+		int opApply(int delegate(ref Decl d) nothrow @safe dg) {
 			try {
 				foreach(d; s._shadow) {
 					if ((d.symbol in s.table) !is null)
