@@ -6,6 +6,7 @@ string c_particle_handler(const(Decl)[] s) {
 	//XXX this implementation is incomplete, run_particle function must
 	//fetch events by itself, not via argument
 	auto res = "int run_particle_with_event(struct actor *a, struct event *e) {\n";
+	res ~= "\tint next_state;\n";
 	res ~= "\tstruct particle *p = a->owner;\n";
 	res ~= "\tswitch(p->type) {\n";
 	foreach(d; s) {
@@ -14,10 +15,13 @@ string c_particle_handler(const(Decl)[] s) {
 			continue;
 		res ~= "\tcase PARTICLE_"~p.symbol~":\n";
 		//Get current and next
-		res ~= "\t\treturn run_particle_"~p.symbol~"(&p->data[p->current]."~
+		res ~= "\t\tnext_state = run_particle_"~p.symbol~"(&p->data[p->current]."~
 			p.symbol~", &p->data[!p->current]."~p.symbol~", e, a->state);\n";
+		res ~= "\t\tbreak;\n";
 	}
-	res ~= "\t}\n\tassert(false);\n}\n";
+	res ~= "\tdefault:\n\t\tassert(false);\n\t}\n";
+	res ~= "\tp->current = !p->current;\n";
+	res ~= "\treturn next_state;\n}";
 	return res;
 }
 void main(string[] argv) {
@@ -67,6 +71,7 @@ void main(string[] argv) {
 	exf.writeln("#pragma once\n");
 	exf.writeln("#include \"runtime/vec.h\"");
 	exf.writeln("#include \"runtime/raw.h\"\n");
+	exf.writeln("#define N_RENDER_QUEUES 1\n"); //XXX Place holder
 	exf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
 	mainf.writeln("#include \"particle_creation.h\"\n");
@@ -104,4 +109,5 @@ void main(string[] argv) {
 	exf.writeln(eunion~"};\n");
 	exf.writeln("#define MAX_TAG_ID "~to!string(tcnt)~"\n");
 	exf.writeln("#define MAX_PARTICLE_ID "~to!string(pcnt)~"\n");
+	exf.writeln("#define RENDER_QUEUE_MEMBER_SIZEZ { VERTEX_Ball_SIZE }");
 }

@@ -33,31 +33,31 @@ override :
 		auto ecode = vv.c_code(s, ety);
 		assert(ety.type_match!EventType, vv.name~" is not an event");
 		//Create an event object
-		auto res = "{\nstruct event *__event = alloc_event();\n";
-		res ~= "__event->e."~vv.name~" = "~ecode~";\n";
+		auto res = "{\nstruct event *__new_event = alloc_event();\n";
+		res ~= "__new_event->e."~vv.name~" = "~ecode~";\n";
 		if (v.symbol == "global")
-			res ~= "__event->tgtt = GLOBAL;\n";
+			res ~= "__new_event->tgtt = GLOBAL;\n";
 		else {
 			auto td = cast(const(Tag))v;
 			auto vd = cast(const(VarDecl))v;
 			auto pd = cast(const(Particle))v;
 			if (td !is null) {
-				res ~= "__event->tgtt = TAG;\n";
-				res ~= "__event->target = TAG_"~td.name~";\n";
+				res ~= "__new_event->tgtt = TAG;\n";
+				res ~= "__new_event->target = TAG_"~td.name~";\n";
 			} else if (vd !is null) {
-				res ~= "__event->tgtt = PARTICLE;\n";
+				res ~= "__new_event->tgtt = PARTICLE;\n";
 				if (vd.ty.type_match!ParticleHandle)
-					res ~= "__event->target = "~vd.c_access~";\n";
+					res ~= "__new_event->target = "~vd.c_access~";\n";
 				else
 					//Real particle
-					res ~= "__event->target = "~vd.c_access~"->__id;\n";
+					res ~= "__new_event->target = "~vd.c_access~"->__id;\n";
 			} else if (pd !is null) {
-				res ~= "__event->tgtt = PARTICLE_TYPE;\n";
-				res ~= "__event->target = PARTICLE_"~pd.name~";\n";
+				res ~= "__new_event->tgtt = PARTICLE_TYPE;\n";
+				res ~= "__new_event->target = PARTICLE_"~pd.name~";\n";
 			} else
 				assert(false);
 		}
-		res ~= "queue_event(__event);\n}\n";
+		res ~= "queue_event(__new_event);\n}\n";
 		return res;
 	}
 }

@@ -13,10 +13,29 @@
 - [ ] A way to delete particle
 - [ ] Vertice definition
 - [ ] An interface to communicate (to D) what event an actor is waiting for
+- [ ] Create particle with tags
+- [x] Define particle with tags
 
 # Useful
-* Particle tag support (partcile Name[Tag1, Tag2, ...] : Parent { ... })
 * Improve codegen error messages
+
+# Vertice definition
+
+//Verbose, consistent with particle definition
+vertex VertexName {
+	type name;
+}
+
+or
+
+//Simpler, consistent with event definition
+//But name: type is not used in particle defintion
+vertex VertexName(name: type, ...);
+
+or
+
+//This
+vertex VertexName(type name, ...);
 
 # Unified matching syntax
 

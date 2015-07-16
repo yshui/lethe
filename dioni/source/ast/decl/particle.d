@@ -176,10 +176,10 @@ class Particle : Decl {
 		res ~= ") {\n";
 		res ~= "struct particle *__p = alloc_particle();\n__p->current = 0;\n";
 		res ~= "__p->type = PARTICLE_"~name~";\n";
+		res ~= q{struct }~name~q{ *__current = (void *)&__p->data[0], };
+		res ~= q{*__next = (void *)&__p->data[1];};
+		res ~= "\n__current->__id = __next->__id = get_particle_id(__p);";
 		if (ctor !is null) {
-			res ~= q{struct }~name~q{ *__current = (void *)&__p->data[0], };
-			res ~= q{*__next = (void *)&__p->data[1];};
-			res ~= "\n__current->__id = __next->__id = get_particle_id(__p);";
 			res ~= "\n"~name~"_ctor(__current, __next";
 			foreach(p; ctor.param)
 				res ~= ", "~p;

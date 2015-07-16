@@ -106,7 +106,8 @@ auto parse_top(Stream i) {
 		re.dep ~= r1.r;
 		auto r = choice!(
 			parse_particle_decl,
-			parse_event
+			parse_event,
+			parse_vertex
 		)(i);
 		re.dep ~= r.r.dep;
 		if (!r.ok)

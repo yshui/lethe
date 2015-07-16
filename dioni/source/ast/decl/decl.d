@@ -439,3 +439,33 @@ class Tag : Decl {
 		return new EventAggregator;
 	}
 }
+class Vertex : Decl {
+	string name;
+	override void parent(Decl p) {
+		assert(false);
+	}
+	this(string x, VarDecl[] vd) {
+		name = x;
+	}
+	override Decl combine(const(Decl) _) const {
+		assert(false);
+	}
+	override string str() const {
+		return "Tag "~name;
+	}
+	override string symbol() const {
+		return name;
+	}
+	override string c_code(const(Symbols) s, bool prototype_only) const {
+		assert(false);
+	}
+	pure nothrow @safe string c_access() const {
+		return "(TAG_"~name~")";
+	}
+	override Decl dup() const {
+		assert(false);
+	}
+	const(Aggregator) aggregator() const {
+		return new EventAggregator;
+	}
+}
