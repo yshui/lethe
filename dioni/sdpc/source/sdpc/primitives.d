@@ -63,7 +63,10 @@ struct Reason {
 		string pos = format("(%s, %s):", line, col);
 		if (depth == 0)
 			depth = pos.length;
-		string prefix = replicate(" ", depth-pos.length);
+		char[] prefix;
+		prefix.length = depth-pos.length;
+		foreach(ref x; prefix)
+			x = ' ';
 		string res;
 		if(dep.length != 0) {
 			res = format("%s%sParsing of %s %s, because:\n", pos, prefix, name, state);

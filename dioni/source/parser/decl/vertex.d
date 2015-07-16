@@ -2,7 +2,7 @@ module parser.decl.vertex;
 import sdpc;
 import parser.decl, parser.utils;
 import ast.decl;
-
+@safe :
 auto parse_vmember(Stream i) {
 	auto r = seq!(
 		parse_type,

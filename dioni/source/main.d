@@ -21,7 +21,6 @@ string c_particle_handler(const(Decl)[] s) {
 		res ~= "\t\tbreak;\n";
 	}
 	res ~= "\tdefault:\n\t\tassert(false);\n\t}\n";
-	res ~= "\tp->current = !p->current;\n";
 	res ~= "\treturn next_state;\n}";
 	return res;
 }

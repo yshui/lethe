@@ -2,6 +2,7 @@ module parser.decl.event;
 import parser.decl, parser.utils;
 import sdpc;
 import ast.expr, ast.decl, ast.type;
+@safe :
 auto parse_type2(Stream i) {
 	auto r = choice!(
 		token_ws!"particle"
