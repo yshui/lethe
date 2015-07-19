@@ -211,10 +211,10 @@ override :
 			ty = vd.ty.dup;
 			return vd.c_access;
 		} else if (sd !is null) {
-			ty = new StateType(sd.symbol);
+			ty = new Type!"State"(sd.symbol);
 			return sd.c_access;
 		} else if (td !is null) {
-			ty = new TagType(td.symbol);
+			ty = new Type!"Tag"(td.symbol);
 			return td.c_access;
 		} else
 			assert(false, name~" is not a variable or state name");
@@ -230,7 +230,7 @@ override :
 			       rty.type_match!(Type!int) ||
 			       rty.type_match!(Type!float) ||
 			       rty.type_match!ParticleHandle ||
-			       rty.type_match!StateType ||
+			       rty.type_match!(Type!"State") ||
 			       rty.type_match!AnonymousType, typeid(rty).toString);
 			auto newv = new Var(rty, null, name);
 			s.insert(newv);
@@ -403,7 +403,7 @@ pure nothrow @safe
 string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 	if (op == "~") {
 		auto rngty = cast(const(RangeType))ty[1];
-		auto tagty = cast(const(TagType))ty[1];
+		auto tagty = cast(const(Type!"Tag"))ty[1];
 		if(rngty !is null) {
 			assert(ty[0].dimension == ty[1].dimension);
 			if (ty[1].dimension > 1)
@@ -473,7 +473,8 @@ override :
 		auto d = s.lookup_checked(name);
 		auto pd = cast(const(Particle))d,
 		     sd = cast(const(State))d,
-		     ed = cast(const(Event))d;
+		     ed = cast(const(Event))d,
+		     vd = cast(const(Vertex))d;
 		if (pd !is null) {
 			auto ctor = pd.ctor;
 			ty = new ParticleHandle;
@@ -495,7 +496,7 @@ override :
 				return res;
 			}
 		} else if (sd !is null) {
-			ty = new StateType(sd.name);
+			ty = new Type!"State"(sd.name);
 			return "(PARTICLE_"~sd.parent.name~"_STATE_"~sd.name~")";
 		} else if (ed !is null) {
 			assert(param.length == ed.member.length,
@@ -507,11 +508,25 @@ override :
 					res ~= ", ";
 				TypeBase pty;
 				auto pcode = p.c_code(s, pty);
-				assert(pty.opEquals(ed.member[i]), "Event member type mismatch");
+				assert(pty.type_compatible(ed.member[i]), "Event member type mismatch");
 				res ~= pcode;
 			}
 			res ~= "})";
-			ty = new EventType(ed.name);
+			ty = new Type!"Event"(ed.name);
+			return res;
+		} else if (vd is null) {
+			assert(param.length == vd.member.length);
+			auto res = "((struct vertex_"~vd.name~"){";
+			foreach(i, p; param) {
+				if (i != 0)
+					res ~= ", ";
+				TypeBase pty;
+				auto pcode = p.c_code(s, pty);
+				assert(pty.type_compatible(vd.member[i].ty));
+				res ~= pcode;
+			}
+			res ~= "})";
+			ty = new Type!"Vertex"(vd.name);
 			return res;
 		} else
 			assert(false);

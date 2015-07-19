@@ -147,7 +147,7 @@ class StateTransition {
 		auto scode = s.c_code(s1, sha);
 		s1.merge_shadowed(sha);
 		auto vd = cast(const(Var))s1.lookup_checked("nextState");
-		assert(vd.ty.type_match!StateType, "nextState is not assigned a state");
+		assert(vd.ty.type_match!(Type!"State"), "nextState is not assigned a state");
 
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
@@ -445,7 +445,11 @@ override :
 }
 class Vertex : Decl {
 	string name;
-	@safe this(string x, Var[] vd) { name = x; }
+	Var[] member;
+	@safe this(string x, Var[] vd) {
+		name = x;
+		member = vd;
+	}
 override :
 	void parent(Decl p) {
 		assert(false);
@@ -454,7 +458,7 @@ override :
 		assert(false);
 	}
 	string str() const {
-		return "Tag "~name;
+		return "Vertex "~name;
 	}
 	string symbol() const {
 		return name;

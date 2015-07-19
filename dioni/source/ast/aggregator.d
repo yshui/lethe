@@ -31,7 +31,7 @@ override :
 		assert(vv !is null, "Only events is allowed to be sent to global");
 		TypeBase ety;
 		auto ecode = vv.c_code(s, ety);
-		assert(ety.type_match!EventType, vv.name~" is not an event");
+		assert(ety.type_match!(Type!"Event"), vv.name~" is not an event");
 		//Create an event object
 		auto res = "{\nstruct event *__new_event = alloc_event();\n";
 		res ~= "__new_event->e."~vv.name~" = "~ecode~";\n";

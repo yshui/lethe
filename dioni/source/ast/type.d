@@ -61,7 +61,7 @@ override :
 	}
 }
 
-mixin template NamedType(T, string n) {
+class Type(string type) : TypeBase {
 	string name;
 	pure nothrow @safe {
 		this(string xname) {
@@ -71,33 +71,21 @@ mixin template NamedType(T, string n) {
 override :
 	string str() const {
 		assert(name !is null);
-		return  n~" "~name;
+		return  type~" "~name;
 	}
 	TypeBase dup() const {
-		return new T(name);
+		return new Type!type(name);
 	}
 	string c_type() const {
 		return "int";
 	}
 	bool opEquals(const(TypeBase) o) const {
-		auto st = cast(const(T))o;
+		auto st = cast(const(Type!type))o;
 		if (st is null)
 			return false;
 		return name == st.name;
 	}
 	string c_copy(string src, string dst) const { assert(false); }
-}
-
-class StateType : TypeBase {
-	mixin NamedType!(typeof(this), "State");
-}
-
-class TagType : TypeBase {
-	mixin NamedType!(typeof(this), "Tag");
-}
-
-class EventType : TypeBase {
-	mixin NamedType!(typeof(this), "Event");
 }
 
 class RangeType : TypeBase {
