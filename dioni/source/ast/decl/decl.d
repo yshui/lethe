@@ -8,21 +8,26 @@ import ast.type,
        ast.aggregator;
 import std.typecons;
 
-interface Decl {
+immutable(Aggregator) eagg = new EventAggregator;
+immutable(Aggregator) rqagg = new RenderAggregator;
+
+class Decl {
 	nothrow pure @safe {
 		@property {
-			void parent(Decl p);
-			string symbol() const;
-			string str() const;
-			const(Aggregator) aggregator() const;
+			void parent(Decl p) { assert(false); }
+			string symbol() const { assert(false); }
+			string str() const { assert(false); }
+			const(Aggregator) aggregator() const { return null; }
 		}
-		final string toString() const {
+		final override string toString() const {
 			return str;
 		}
-		Decl combine(const(Decl) o) const;
-		Decl dup() const;
+		Decl combine(const(Decl) o) const { assert(false); }
+		Decl dup() const { assert(false); }
 	}
-	@safe string c_code(const(Symbols) s, bool prototype_only=false) const;
+	@safe string c_code(const(Symbols) s, bool prototype_only=false) const {
+		assert(false);
+	}
 }
 
 class EventParameter {
@@ -309,10 +314,6 @@ override :
 	string symbol() const {
 		return name;
 	}
-	string c_code(const(Symbols) s, bool prototype_only) const {
-		assert(false);
-		//return "";
-	}
 	Decl dup() const {
 		return new Var(ty, null, name, prot, sc);
 	}
@@ -348,9 +349,6 @@ override :
 	string symbol() const {
 		return "_";
 	}
-	Decl combine(const(Decl) _) const {
-		assert(false);
-	}
 	string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(_parent !is null);
 		auto res = "static inline void "~_parent.symbol~"_ctor("~_parent.symbol.param_list;
@@ -366,12 +364,6 @@ override :
 		//Initialize variables in the param
 		res ~= stmt.c_code(s)~"}";
 		return res;
-	}
-	Decl dup() const {
-		assert(false);
-	}
-	const(Aggregator) aggregator() const {
-		return null;
 	}
 }
 
@@ -391,26 +383,11 @@ class Event : Decl {
 		return res;
 	}
 override :
-	void parent(Decl p) {
-		assert(false);
-	}
-	Decl combine(const(Decl) _) const {
-		assert(false);
-	}
 	string str() const {
 		return "Event "~name;
 	}
 	string symbol() const {
 		return name;
-	}
-	string c_code(const(Symbols) s, bool prototype_only) const {
-		assert(false);
-	}
-	Decl dup() const {
-		assert(false);
-	}
-	const(Aggregator) aggregator() const {
-		return null;
 	}
 }
 
@@ -421,26 +398,14 @@ class Tag : Decl {
 		return "(TAG_"~name~")";
 	}
 override :
-	void parent(Decl p) {
-		assert(false);
-	}
-	Decl combine(const(Decl) _) const {
-		assert(false);
-	}
 	string str() const {
 		return "Tag "~name;
 	}
 	string symbol() const {
 		return name;
 	}
-	string c_code(const(Symbols) s, bool prototype_only) const {
-		assert(false);
-	}
-	Decl dup() const {
-		assert(false);
-	}
 	const(Aggregator) aggregator() const {
-		return new EventAggregator;
+		return eagg;
 	}
 }
 class Vertex : Decl {
@@ -451,25 +416,29 @@ class Vertex : Decl {
 		member = vd;
 	}
 override :
-	void parent(Decl p) {
-		assert(false);
-	}
-	Decl combine(const(Decl) _) const {
-		assert(false);
-	}
 	string str() const {
 		return "Vertex "~name;
 	}
 	string symbol() const {
 		return name;
 	}
-	string c_code(const(Symbols) s, bool prototype_only) const {
-		assert(false);
+}
+
+class RenderQ : Decl {
+	string name;
+	int id;
+	@safe this(string xname, int xid) {
+		id = xid;
+		name = xname;
 	}
-	Decl dup() const {
-		assert(false);
+override :
+	string str() const {
+		return "RenderQ "~name;
+	}
+	string symbol() const {
+		return name;
 	}
 	const(Aggregator) aggregator() const {
-		return new EventAggregator;
+		return rqagg;
 	}
 }

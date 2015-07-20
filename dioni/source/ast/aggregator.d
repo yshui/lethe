@@ -61,3 +61,22 @@ override :
 		return res;
 	}
 }
+
+class RenderAggregator : Aggregator {
+
+override :
+	string c_aggregate(const(Decl) v, const(Expr) e, const(Symbols) s) const {
+		//Renderer only accepts vertex
+		import std.conv : to;
+		auto rd = cast(const(RenderQ))v;
+		assert(rd !is null);
+		TypeBase ty;
+		auto code = e.c_code(s, ty);
+		auto vty = cast(Type!"Vertex")ty;
+		assert(vty !is null);
+		auto rqv = "rndrq["~to!string(rd.id)~"]";
+		auto res = "*(((struct vertex_"~vty.name~")"~rqv~".buf)+"~rqv~".nmemb) = "~code~";\n";
+		res ~= rqv~".nmemb++;\n";
+		return res;
+	}
+}
