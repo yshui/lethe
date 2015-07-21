@@ -421,6 +421,23 @@ class Vertex : Decl {
 		name = x;
 		member = vd;
 	}
+	@safe string c_structs() {
+		import std.conv : to;
+		string res = "struct vertex_"~name~"{\n";
+		foreach(i, v; member)
+			res ~= v.ty.c_type~" "~v.name~";\n";
+		res ~= "}__attribute__((packed));\n";
+		return res;
+	}
+	@safe string d_structs() {
+		import std.conv : to;
+		string res = "struct vertex_"~name~"{\n";
+		res ~= "align(1):\n";
+		foreach(i, v; member)
+			res ~= v.ty.d_type~" "~v.name~";\n";
+		res ~= "}\n";
+		return res;
+	}
 override :
 	string str() const {
 		return "Vertex "~name;
@@ -433,9 +450,12 @@ override :
 class RenderQ : Decl {
 	string name;
 	int id;
-	@safe this(string xname, int xid) {
+	Type!"Vertex" ty;
+	@safe this(string xname, int xid, TypeBase tb) {
 		id = xid;
 		name = xname;
+		ty = cast(Type!"Vertex")tb;
+		assert(ty !is null);
 	}
 override :
 	string str() const {

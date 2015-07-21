@@ -41,6 +41,7 @@ class TypeBase {
 		string str() const { return "void"; }
 		TypeBase arr_of() const { assert(false); }
 		string c_type() const { assert(false); }
+		string d_type() const { assert(false); }
 		TypeBase dup() const { assert(false); }
 		bool opEquals(const(TypeBase) tb) const { return false; }
 		string c_copy(string src, string dst) const {
@@ -186,6 +187,9 @@ override :
 	string c_type() const {
 		return T.stringof;
 	}
+	string d_type() const {
+		return c_type();
+	}
 	TypeBase dup() const {
 		return new Type!T;
 	}
@@ -220,6 +224,10 @@ override :
 		} catch(Exception) {
 			assert(false);
 		}
+	}
+	string d_type() const {
+		import std.conv : to;
+		return "vec"~to!string(dim)~"f";
 	}
 	TypeBase dup() const {
 		return new Type!(T, dim);

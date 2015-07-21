@@ -37,10 +37,14 @@ void main(string[] argv) {
 	auto defsf = File("defs.h", "w");
 	auto pf = File("particle_creation.h", "w");
 	auto exf = File("export.h", "w");
+	auto dinf = File("interface.d", "w");
 	Symbols global = new Symbols(null);
 	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
 				  Protection.Const, StorageClass.Void);
 	global.insert(gevent);
+
+	auto renderer = new RenderQ("render", 0, new Type!"Vertex"("ballv"));
+	global.insert(renderer);
 
 	if (r is null)
 		return;
@@ -68,6 +72,7 @@ void main(string[] argv) {
 	defsf.writeln("#include \"runtime/actor.h\"");
 	defsf.writeln("#include \"runtime/list.h\"");
 	defsf.writeln("#include \"runtime/range.h\"");
+	defsf.writeln("#include \"runtime/render.h\"");
 	exf.writeln("#pragma once\n");
 	exf.writeln("#include \"runtime/vec.h\"");
 	exf.writeln("#include \"runtime/raw.h\"\n");
@@ -80,9 +85,10 @@ void main(string[] argv) {
 	auto punion = "union particle_variants {\n";
 	auto eunion = "union event_variants {\n";
 	foreach(pd; r) {
-		auto p = cast(Particle)pd;
-		auto e = cast(Event)pd;
-		auto td = cast(Tag)pd;
+		auto p  = cast(Particle)pd,
+		     e  = cast(Event)pd,
+		     td = cast(Tag)pd,
+		     vd = cast(Vertex)pd;
 		if (p !is null) {
 			exf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
 			exf.writeln(p.c_macros);
@@ -102,6 +108,9 @@ void main(string[] argv) {
 		} else if (td !is null) {
 			exf.writefln("#define TAG_%s %s\n", td.symbol, tcnt);
 			tcnt++;
+		} else if (vd !is null) {
+			exf.writeln(vd.c_structs);
+			dinf.writeln(vd.d_structs);
 		}
 	}
 	mainf.writeln(c_particle_handler(r));

@@ -514,7 +514,7 @@ override :
 			res ~= "})";
 			ty = new Type!"Event"(ed.name);
 			return res;
-		} else if (vd is null) {
+		} else if (vd !is null) {
 			assert(param.length == vd.member.length);
 			auto res = "((struct vertex_"~vd.name~"){";
 			foreach(i, p; param) {
@@ -529,7 +529,7 @@ override :
 			ty = new Type!"Vertex"(vd.name);
 			return res;
 		} else
-			assert(false);
+			assert(false, typeid(d).toString);
 	}
 	string c_code(Symbols s, ref bool changed) const {
 		changed = false;

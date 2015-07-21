@@ -74,8 +74,9 @@ override :
 		auto code = e.c_code(s, ty);
 		auto vty = cast(Type!"Vertex")ty;
 		assert(vty !is null);
+		assert(vty.name == rd.ty.name);
 		auto rqv = "rndrq["~to!string(rd.id)~"]";
-		auto res = "*(((struct vertex_"~vty.name~")"~rqv~".buf)+"~rqv~".nmemb) = "~code~";\n";
+		auto res = "*(((struct vertex_"~rd.ty.name~" *)"~rqv~".buf)+"~rqv~".nmemb) = "~code~";\n";
 		res ~= rqv~".nmemb++;\n";
 		return res;
 	}

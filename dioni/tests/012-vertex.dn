@@ -1,0 +1,12 @@
+vertex ballv(
+	vec2 position,
+	vec2 translate,
+	vec2 texture_coord,
+	float angle
+);
+particle Ball {
+	>() {
+		render << `ballv(vec2(0, 0), vec2(0,0), vec2(0,0), 0);
+	}
+}
+
