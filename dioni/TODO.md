@@ -8,18 +8,24 @@
 - [ ] Create events with particle member
 - [ ] Wildcard event match
 - [ ] Event handler forwarding
-- [ ] get_waiting_event(particle_id)
 - [x] Event fence, events between fences are sent at the same time
-- [ ] Aggregators
+- [-] Aggregators
+  - [x] Event Aggregators
+  - [x] Render Aggregators
+  - [ ] Collision aggregator (register collision box)
+  - [ ] Actor aggregator (create new actor)
 - [ ] Nil state to stop actor
 - [ ] A way to delete particle
-- [ ] Vertice definition
+- [x] Vertice definition
 - [ ] An interface to communicate (to D) what event an actor is waiting for
 - [ ] Create particle with tags
 - [x] Define particle with tags
 
 # Useful
 * Improve codegen error messages
+
+# Maybe not
+* Entry action of state: Is this really useful?, when should it run (before/after event fence)?
 
 # Vertice definition
 
