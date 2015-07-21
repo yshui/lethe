@@ -9,7 +9,7 @@
 - [ ] Wildcard event match
 - [ ] Event handler forwarding
 - [x] Event fence, events between fences are sent at the same time
-- [-] Aggregators
+- [ ] Aggregators
   - [x] Event Aggregators
   - [x] Render Aggregators
   - [ ] Collision aggregator (register collision box)
