@@ -13,6 +13,8 @@ struct actor {
 	int state;
 	struct list_node q;
 	struct list_node silblings;
+	struct list_node next_changed;
 };
 
 extern struct list_head active_actors;
+extern struct list_head changed_actors;

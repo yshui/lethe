@@ -9,3 +9,9 @@ void queue_event(struct event *e) {
 	assert(e->q.next == e->q.prev && e->q.next == NULL);
 	list_add(&event_queue, &e->q);
 }
+
+void event_fence(void) {
+	struct event *e = alloc_event();
+	e->tgtt = FENCE;
+	list_add(&event_queue, &e->q);
+}

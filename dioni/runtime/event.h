@@ -11,7 +11,8 @@ enum target_type {
 	PARTICLE,
 	PARTICLE_TYPE,
 	TAG,
-	GLOBAL
+	GLOBAL,
+	FENCE
 };
 
 struct event {
@@ -23,5 +24,6 @@ struct event {
 };
 
 void queue_event(struct event *e);
+void event_fence(void);
 
 objpool_proto(struct event, event)

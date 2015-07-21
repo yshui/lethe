@@ -4,7 +4,8 @@ particle A[Test] {
 	int a;
 	state Name {
 	}
-	@ K(b~1..2) { nextState = Name; };
+	@ K(b~1..2) { nextState = Name; },
+	@ K { a <- 2; nextState = Name; };
 	>() {
 		a <- 1;
 	}

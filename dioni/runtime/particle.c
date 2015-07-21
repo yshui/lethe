@@ -3,6 +3,8 @@
 static struct particle p[MAX_PARTICLE];
 static struct particle *freep[MAX_PARTICLE];
 static int nparticle, fparticle;
+
+struct list_head changed_particles;
 struct particle *alloc_particle(void) {
 	if (fparticle)
 		return freep[--fparticle];
@@ -16,4 +18,10 @@ int get_particle_id(struct particle *ip) {
 }
 struct particle *get_particle_by_id(int id) {
 	return p+id;
+}
+void mark_particle_as_changed_by_id(int id) {
+	if (p[id].changed)
+		return;
+	p[id].changed = true;
+	list_add(&changed_particles, &p[id].next_changed);
 }

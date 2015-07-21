@@ -531,7 +531,8 @@ override :
 		} else
 			assert(false);
 	}
-	string c_code(Symbols s) const {
+	string c_code(Symbols s, ref bool changed) const {
+		changed = false;
 		TypeBase ty;
 		auto code = c_code(s, ty);
 		assert(ty.type_match!ParticleHandle,

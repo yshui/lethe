@@ -149,7 +149,8 @@ class StateTransition {
 
 		auto nst = new Var(new AnonymousType, null, "nextState");
 		s1.insert(nst);
-		auto scode = s.c_code(s1, sha);
+		bool changed;
+		auto scode = s.c_code(s1, sha, changed);
 		s1.merge_shadowed(sha);
 		auto vd = cast(const(Var))s1.lookup_checked("nextState");
 		assert(vd.ty.type_match!(Type!"State"), "nextState is not assigned a state");
@@ -157,6 +158,9 @@ class StateTransition {
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
 		res ~= scode;
+
+		if (changed)
+			res ~= "mark_particle_as_changed_by_id(__current->__id);\n";
 
 		res ~= "return nextState;\n";
 		res ~= "}\n";
@@ -234,7 +238,8 @@ override :
 		if (prototype_only)
 			res ~= ";\n";
 		else {
-			res ~= " {\n"~entry.c_code(p);
+			bool changed;
+			res ~= " {\n"~entry.c_code(p, changed);
 			res ~= "}\n";
 		}
 
@@ -362,7 +367,8 @@ override :
 
 		res ~= ") {\n"~init;
 		//Initialize variables in the param
-		res ~= stmt.c_code(s)~"}";
+		bool changed;
+		res ~= stmt.c_code(s, changed)~"}";
 		return res;
 	}
 }
