@@ -9,7 +9,7 @@
 - [ ] Wildcard event match
 - [ ] Event handler forwarding
 - [ ] get_waiting_event(particle_id)
-- [ ] Event fence, events between fences are sent at the same time
+- [x] Event fence, events between fences are sent at the same time
 - [ ] Aggregators
 - [ ] Nil state to stop actor
 - [ ] A way to delete particle

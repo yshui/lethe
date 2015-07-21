@@ -19,6 +19,10 @@ static inline void propagate_particle_data() {
 //Continue handling event until the queue is empty
 //Return the number of events handled (not how many times events are handled)
 int tick_start(void) {
+	if (list_empty(&event_queue))
+		return 0;
+	event_fence();
+
 	struct actor *ai;
 	bool delta = true;
 	int count = 0;
