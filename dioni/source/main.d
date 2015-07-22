@@ -43,8 +43,6 @@ void main(string[] argv) {
 				  Protection.Const, StorageClass.Void);
 	global.insert(gevent);
 
-	auto renderer = new RenderQ("render", 0, new Type!"Vertex"("ballv"));
-	global.insert(renderer);
 
 	if (r is null)
 		return;
@@ -52,6 +50,10 @@ void main(string[] argv) {
 	
 	foreach(p; r)
 		global.insert(p);
+
+	auto renderer = new RenderQ("render", 0, new Type!Vertex("ballv", global));
+	global.insert(renderer);
+
 	foreach(pd; r) {
 		auto p = cast(Particle)pd;
 		if (p is null)

@@ -54,9 +54,9 @@ class EventParameter {
 	}
 	string c_code_match(string emem, const(TypeBase) ty, Symbols s) const {
 		if (pm !is null) {
-			assert(ty.type_match!UDType);
-			auto var = new Var(new UDType(pm.particle, s),
-					       new EventAggregator, pm.var.name);
+			assert(ty.type_match!AnyParticle);
+			auto var = new Var(new Type!Particle(pm.particle, s),
+					   new EventAggregator, pm.var.name);
 			s.insert(var);
 			return "("~emem~".t == PARTICLE_"~pm.particle~")";
 		}
@@ -64,8 +64,8 @@ class EventParameter {
 		auto lv = cast(const(VarVal))cmp.lhs;
 		TypeBase rty;
 		auto rcode = cmp.rhs.c_code(s, rty);
-		const(TypeBase) nty = ty.type_match!UDType ? new ParticleHandle : ty;
-		const(Aggregator) nagg = ty.type_match!UDType ? new EventAggregator : null;
+		const(TypeBase) nty = ty.type_match!AnyParticle ? new ParticleHandle : ty;
+		const(Aggregator) nagg = ty.type_match!AnyParticle ? new EventAggregator : null;
 		auto var = new Var(nty, nagg, lv.name);
 		s.insert(var);
 		return c_match([emem, rcode], [ty, cast(const(TypeBase))rty], cmp.op);
@@ -75,7 +75,7 @@ class EventParameter {
 		if (pm !is null)
 			return pm.var.name~"="~emem~".p"~";\n";
 		auto lv = cast(const(VarVal))cmp.lhs;
-		if (ty.type_match!UDType)
+		if (ty.type_match!AnyParticle)
 			return lv.name~"="~emem~".id"~";\n";
 		return lv.name~"="~emem~";\n";
 	}
@@ -153,7 +153,7 @@ class StateTransition {
 		auto scode = s.c_code(s1, sha, changed);
 		s1.merge_shadowed(sha);
 		auto vd = cast(const(Var))s1.lookup_checked("nextState");
-		assert(vd.ty.type_match!(Type!"State"), "nextState is not assigned a state");
+		assert(vd.ty.type_match!(Type!State), "nextState is not assigned a state");
 
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
@@ -450,11 +450,11 @@ override :
 class RenderQ : Decl {
 	string name;
 	int id;
-	Type!"Vertex" ty;
+	Type!Vertex ty;
 	@safe this(string xname, int xid, TypeBase tb) {
 		id = xid;
 		name = xname;
-		ty = cast(Type!"Vertex")tb;
+		ty = cast(Type!Vertex)tb;
 		assert(ty !is null);
 	}
 override :

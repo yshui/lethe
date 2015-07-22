@@ -211,10 +211,10 @@ override :
 			ty = vd.ty.dup;
 			return vd.c_access;
 		} else if (sd !is null) {
-			ty = new Type!"State"(sd.symbol);
+			ty = new Type!State(sd.symbol, s);
 			return sd.c_access;
 		} else if (td !is null) {
-			ty = new Type!"Tag"(td.symbol);
+			ty = new Type!Tag(td.symbol, s);
 			return td.c_access;
 		} else
 			assert(false, name~" is not a variable or state name");
@@ -230,7 +230,7 @@ override :
 			       rty.type_match!(Type!int) ||
 			       rty.type_match!(Type!float) ||
 			       rty.type_match!ParticleHandle ||
-			       rty.type_match!(Type!"State") ||
+			       rty.type_match!(Type!State) ||
 			       rty.type_match!AnyType, typeid(rty).toString);
 			auto newv = new Var(rty, null, name);
 			s.insert(newv);
@@ -300,9 +300,9 @@ override :
 		//Lookup left
 		auto d = cast(const(Var))s.lookup_checked(lhs);
 		assert(d !is null, lhs~" is not a variable");
-		auto p = cast(const(UDType))d.ty;
+		auto p = cast(const(Type!Particle))d.ty;
 		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
-		auto d2 = cast(const(Var))p.p.sym.lookup_checked(rhs);
+		auto d2 = cast(const(Var))p.instance.sym.lookup_checked(rhs);
 		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
 		ty = d2.ty.dup;
 		return lhs~"->"~rhs;
@@ -403,7 +403,7 @@ pure nothrow @safe
 string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 	if (op == "~") {
 		auto rngty = cast(const(RangeType))ty[1];
-		auto tagty = cast(const(Type!"Tag"))ty[1];
+		auto tagty = cast(const(Type!Tag))ty[1];
 		if(rngty !is null) {
 			assert(ty[0].dimension == ty[1].dimension);
 			if (ty[1].dimension > 1)
@@ -417,15 +417,13 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 		} else if (tagty !is null) {
 			if (ty[0].type_match!ParticleHandle)
 				return "particle_has_tag("~code[0]~", "~code[1]~")";
-			auto udt = cast(const(UDType))ty[0];
-			assert(udt !is null);
-			assert(udt.name is null || udt.p !is null);
-			if (udt.name is null)
-				//If name is null, then lhs is raw_particle
-				return "has_tag("~code[0]~".__tags, "~code[1]~")";
-			else {
-				assert(udt.p !is null, "Trying to match non particle");
+			auto part = cast(const(Type!Particle))ty[0];
+			if (part !is null)
 				return "has_tag("~code[0]~"->__tags, "~code[1]~")";
+			else {
+				auto anyp = cast(const(AnyParticle))ty[0];
+				assert(anyp !is null);
+				return "has_tag("~code[0]~".__tags, "~code[1]~")";
 			}
 		}
 	}
@@ -496,7 +494,7 @@ override :
 				return res;
 			}
 		} else if (sd !is null) {
-			ty = new Type!"State"(sd.name);
+			ty = new Type!State(sd.name, s);
 			return "(PARTICLE_"~sd.parent.name~"_STATE_"~sd.name~")";
 		} else if (ed !is null) {
 			assert(param.length == ed.member.length,
@@ -512,7 +510,7 @@ override :
 				res ~= pcode;
 			}
 			res ~= "})";
-			ty = new Type!"Event"(ed.name);
+			ty = new Type!Event(ed.name, s);
 			return res;
 		} else if (vd !is null) {
 			assert(param.length == vd.member.length);
@@ -526,7 +524,7 @@ override :
 				res ~= pcode;
 			}
 			res ~= "})";
-			ty = new Type!"Vertex"(vd.name);
+			ty = new Type!Vertex(vd.name, s);
 			return res;
 		} else
 			assert(false, typeid(d).toString);

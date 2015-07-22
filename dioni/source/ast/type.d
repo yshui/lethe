@@ -11,6 +11,13 @@ nothrow pure @safe @nogc bool type_match(T, U)(U a) {
 	return (cast(S)a) !is null;
 }
 
+template isPOD(T) {
+	static if (is(T == int) || is(T == float) || is(T == bool))
+		enum isPOD = true;
+	else
+		enum isPOD = false;
+}
+
 nothrow pure @safe TypeBase type_calc(T...)(const(TypeBase)[] ity) {
 	pattern_loop: foreach(tp; T) {
 		static if (is(tp: TypePattern!M, M...)) {
@@ -62,26 +69,42 @@ override :
 	}
 }
 
-class Type(string type) : TypeBase {
+class Type(T) : TypeBase
+    if (!isPOD!T && is(typeof(T.init.name))) {
 	string name;
+	const(T) instance;
 	pure nothrow @safe {
-		this(string xname) {
+		this(string xname, const(Symbols) s) {
+			//Verify xname actually exists
+			auto d = s.lookup_checked(xname);
+			auto xd = cast(const(T))d;
+			assert(xd !is null);
+			instance = xd;
 			name = xname;
+		}
+		this(const(T) i) {
+			name = i.name;
+			instance = i;
 		}
 	}
 override :
 	string str() const {
 		assert(name !is null);
-		return  type~" "~name;
+		return  T.stringof~" "~name;
 	}
 	TypeBase dup() const {
-		return new Type!type(name);
+		return new Type!T(instance);
 	}
 	string c_type() const {
-		return "int";
+		static if (is(T == Particle))
+			return "struct "~name~" *";
+		else static if (is(T == Event))
+			return "struct event_"~name;
+		else
+			return "int";
 	}
 	bool opEquals(const(TypeBase) o) const {
-		auto st = cast(const(Type!type))o;
+		auto st = cast(const(Type!T))o;
 		if (st is null)
 			return false;
 		return name == st.name;
@@ -118,62 +141,14 @@ override :
 	}
 }
 
-class UDType : TypeBase {
-	string name;
-	const(Particle) p;
-	const(Event) e;
-	@safe pure nothrow {
-		this() { name = null; p = null; e = null; }
-		this(string xname, const(Symbols) s) {
-			name = xname;
-			auto d = s.lookup(name);
-			assert(d !is null, "Type "~name~" is not defined");
-			e = cast(const(Event))d;
-			p = cast(const(Particle))d;
-			assert(p !is null || e !is null,
-			       name~" is not a particle or event definition");
-		}
-		this(string xname, const(Particle) xp, const(Event) xe) {
-			name = xname;
-			p = xp;
-			e = xe;
-		}
-	}
+class AnyParticle : TypeBase {
 override :
-	//User defined type
-	int dimension() const {
-		return 1;
-	}
-	string str() const {
-		assert(name !is null);
-		return "UD "~name;
-	}
-	string c_type() const {
-		if (name is null)
-			return "struct raw_particle";
-		if (p !is null)
-			return "struct "~name~"*";
-		if (e !is null)
-			return "struct event_"~name~"*";
-		assert(false);
-	}
-	TypeBase dup() const {
-		if (name !is null)
-			return new UDType(name, p, e);
-		else
-			return new UDType;
-	}
-	bool opEquals(const(TypeBase) o) const {
-		auto pt = cast(const(UDType))o;
-		if (pt is null)
-			return false;
-		return name == pt.name;
-	}
-	string c_copy(string src, string dst) const { assert(false); }
+	string c_type() const { return "struct raw_particle"; }
+	TypeBase dup() const { return new AnyType; }
 }
 
 class Type(T) : TypeBase
-    if (is(T == int) || is(T == float) || is(T == bool)) {
+    if (isPOD!T) {
 override :
 	int dimension() const {
 		return 1;
