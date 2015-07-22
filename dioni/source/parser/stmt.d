@@ -129,37 +129,18 @@ auto parse_clear(Stream i) {
 		r.r
 	);
 }
-auto parse_aggregate_single(Stream i) {
-	auto r = seq!(
-		parse_lvalue,
-		discard!(token_ws!"<<"),
-		choice!(
-			parse_expr,
-			parse_new_expr
-		),
-		token_ws!";"
-	)(i);
-	r.r.name = "aggregate";
-	if (!r.ok)
-		return err_result!Stmt(r.r);
-	return ok_result!Stmt(
-		new Aggregate(r.result!0, [r.result!1]),
-		r.consumed,
-		r.r
-	);
-}
 auto parse_aggregate(Stream i) {
 	auto r = seq!(
 		parse_lvalue,
 		discard!(token_ws!"<<"),
-		between!(token_ws!"{",chain!(
+		chain!(
 			choice!(
 				parse_expr,
 				parse_new_expr
 			),
 			arr_append!Expr,
 			discard!(token_ws!",")
-		), token_ws!"}"),
+		),
 		token_ws!";"
 	)(i);
 	r.r.name = "aggregate many";
@@ -182,7 +163,6 @@ ParseResult!Stmt parse_stmt(Stream i) {
 		parse_loop,
 		parse_clear,
 		parse_aggregate,
-		parse_aggregate_single,
 		parse_new_stmt,
 	)(i);
 }
