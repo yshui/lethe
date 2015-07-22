@@ -231,11 +231,11 @@ override :
 			       rty.type_match!(Type!float) ||
 			       rty.type_match!ParticleHandle ||
 			       rty.type_match!(Type!"State") ||
-			       rty.type_match!AnonymousType, typeid(rty).toString);
+			       rty.type_match!AnyType, typeid(rty).toString);
 			auto newv = new Var(rty, null, name);
 			s.insert(newv);
 			vd = newv;
-			if (rty.type_match!(AnonymousType))
+			if (rty.type_match!AnyType)
 				return "";
 		} else {
 			if (d.aggregator !is null)
@@ -244,8 +244,8 @@ override :
 			assert(vd !is null, name~" is not a variable");
 		}
 
-		if (vd.ty.type_match!AnonymousType) {
-			if (rty.type_match!AnonymousType)
+		if (vd.ty.type_match!AnyType) {
+			if (rty.type_match!AnyType)
 				return "";
 			auto nvd = new Var(rty, null, vd.name);
 			s.shadow(nvd);
@@ -382,7 +382,7 @@ override :
 		return "?";
 	}
 	string c_code(const(Symbols) s, out TypeBase ty) const {
-		ty = new AnonymousType;
+		ty = new AnyType;
 		return "";
 	}
 }

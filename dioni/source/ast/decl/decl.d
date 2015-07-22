@@ -147,7 +147,7 @@ class StateTransition {
 		if (cond[0] != "")
 			res ~= "if ("~cond[0]~") {\n";
 
-		auto nst = new Var(new AnonymousType, null, "nextState");
+		auto nst = new Var(new AnyType, null, "nextState");
 		s1.insert(nst);
 		bool changed;
 		auto scode = s.c_code(s1, sha, changed);

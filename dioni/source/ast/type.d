@@ -50,7 +50,7 @@ class TypeBase {
 	}
 }
 
-class AnonymousType : TypeBase { }
+class AnyType : TypeBase { }
 
 class ParticleHandle : TypeBase {
 override :
