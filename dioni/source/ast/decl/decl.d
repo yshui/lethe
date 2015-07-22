@@ -390,6 +390,14 @@ class Event : Decl {
 		res ~= "};\n";
 		return res;
 	}
+	@safe string d_structs() const {
+		import std.conv : to;
+		string res = "struct dioniEvent_"~name~"{\n";
+		foreach(i, ty; member)
+			res ~= ty.d_type~" m"~to!string(i)~";\n";
+		res ~= "};\n";
+		return res;
+	}
 override :
 	string str() const {
 		return "Event "~name;

@@ -173,6 +173,7 @@ override :
 class AnyParticle : TypeBase {
 override :
 	string c_type() const { return "struct particle *"; }
+	string d_type() const { return "dioniParticle *"; }
 	TypeBase dup() const { return new AnyType; }
 }
 

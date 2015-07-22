@@ -64,6 +64,8 @@ void main(string[] argv) {
 	}
 
 	int pcnt = 0, ecnt = 0, tcnt = 0;
+	dinf.writeln("module dioni.interface;\n");
+	dinf.writeln("import dioni;\n");
 	defsf.writeln("#pragma once\n");
 	defsf.writeln("#include \"export.h\"");
 	defsf.writeln("#include \"runtime/vec.h\"");
@@ -103,6 +105,7 @@ void main(string[] argv) {
 		} else if (e !is null) {
 			exf.writefln("#define EVENT_%s %s\n", e.symbol, ecnt);
 			exf.writeln(e.c_structs);
+			dinf.writeln(e.d_structs);
 			eunion ~= "struct event_"~e.symbol~" "~e.symbol~";\n";
 			ecnt++;
 		} else if (td !is null) {

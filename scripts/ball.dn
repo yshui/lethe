@@ -1,0 +1,17 @@
+vertex ballv(
+	vec2 position,
+	vec2 translate,
+	vec2 texture_coord,
+	float angle
+);
+particle Ball {
+	vec2 position;
+	vec2 velocity;
+	float r;
+	state Update @ nextFrame {
+
+	};
+	state Move @ Collide(Ball(x)) {
+
+	};
+}
