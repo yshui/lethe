@@ -9,41 +9,57 @@ interface Stmt {
 class Assign : Stmt {
 	LValue lhs;
 	Expr rhs;
-	static enum {
-		Delayed,
-		Aggregate,
-		Assign
-	};
-	int type;
-	@safe this(LValue xlhs, Expr xrhs, int xtype = Assign) {
+	bool delayed;
+	@safe this(LValue xlhs, Expr xrhs, bool d) {
 		lhs = xlhs;
 		rhs = xrhs;
-		type = xtype;
+		delayed = d;
 	}
 	string str() const {
-		final switch(type) {
-		case Delayed:
-			if (rhs !is null)
-				return lhs.str ~ " <- " ~ rhs.str ~ "\n";
-			else
-				return "Clear " ~ lhs.str ~ "\n";
-		case Aggregate:
-			return lhs.str ~ " << " ~ rhs.str ~ "\n";
-		case Assign:
+		if (delayed)
+			return lhs.str~" <- "~rhs.str~"\n";
+		else
 			return lhs.str ~ " = " ~ rhs.str ~ "\n";
-		}
 	}
 	string c_code(Symbols s, ref bool changed) const {
-		changed = false;
-		final switch(type) {
-		case Delayed:
-			changed = true;
-			return lhs.c_assign(rhs, s, true);
-		case Assign:
-			return lhs.c_assign(rhs, s, false);
-		case Aggregate:
-			return lhs.c_aggregate(rhs, s);
+		changed = delayed;
+		return lhs.c_assign(rhs, s, delayed);
+	}
+}
+class Clear : Stmt {
+	LValue lhs;
+	@safe this(LValue xlhs) {
+		lhs = xlhs;
+	}
+	string str() const {
+		return lhs.str()~"~\n";
+	}
+	string c_code(Symbols s, ref bool changed) const {
+		assert(false);
+	}
+}
+class Aggregate : Stmt {
+	LValue lhs;
+	Expr[] items;
+	@safe this(LValue xlhs, Expr[] x) {
+		items = x;
+		lhs = xlhs;
+	}
+	string str() const {
+		auto res = lhs.str~" << {";
+		foreach(i, x; items) {
+			if (i!=0)
+				res ~= ", ";
+			res ~= x.str;
 		}
+		return res;
+	}
+	string c_code(Symbols s, ref bool changed) const {
+		auto res = "";
+		foreach(x; items)
+			res ~= lhs.c_aggregate(x, s);
+		changed = false;
+		return res;
 	}
 }
 @safe {

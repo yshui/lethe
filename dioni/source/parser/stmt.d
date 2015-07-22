@@ -7,18 +7,18 @@ import std.stdio;
 auto parse_assign(Stream i) {
 	auto r = seq!(
 		parse_lvalue,
-		token_ws!"=",
+		choice!(token_ws!"=", token_ws!"<-"),
 		choice!(
 			parse_expr,
 			parse_qmark,
 		),
 		token_ws!";",
 	)(i);
-	r.r.promote();
 	r.r.name = "assign";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
-	return ok_result!Stmt(new Assign(r.result!0, r.result!2), r.consumed, r.r);
+	bool delayed = r.result!1 == "<-";
+	return ok_result!Stmt(new Assign(r.result!0, r.result!2, delayed), r.consumed, r.r);
 }
 auto parse_stmt_block(Stream i) {
 	auto re = Reason(i, "statement block");
@@ -27,7 +27,6 @@ auto parse_stmt_block(Stream i) {
 		many!(parse_stmt, true),
 		token_ws!"}"
 	)(i);
-	r.r.promote();
 	r.r.name = "block";
 	if (r.ok) {
 		//writeln("Matched stmt block");
@@ -46,7 +45,6 @@ auto parse_else_block(Stream i) {
 		token_ws!"else",
 		parse_stmt_block
 	)(i);
-	r.r.promote();
 	r.r.name = "else block";
 	if (!r.ok)
 		return ok_result!(Stmt[])([], 0, r.r);
@@ -61,7 +59,6 @@ auto parse_if(Stream i) {
 		parse_stmt_block,
 		parse_else_block,
 	)(i);
-	r.r.promote();
 	r.r.name = "if";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
@@ -79,7 +76,6 @@ auto parse_foreach(Stream i) {
 		token_ws!")",
 		parse_stmt_block
 	)(i);
-	r.r.promote();
 	r.r.name = "foreach";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
@@ -93,7 +89,6 @@ auto parse_loop_var(Stream i) {
 		parse_var,
 		token_ws!"~"
 	)(i);
-	r.r.promote();
 	r.r.name = "loop variable";
 	if (!r.ok)
 		return ok_result!VarVal(null, 0, r.r);
@@ -125,34 +120,53 @@ auto parse_clear(Stream i) {
 		token_ws!"~",
 		token_ws!";"
 	)(i);
-	r.r.promote();
 	r.r.name = "clear";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
 	return ok_result!Stmt(
-		new Assign(r.result!0, null, Assign.Delayed),
+		new Clear(r.result!0),
 		r.consumed,
 		r.r
 	);
 }
-auto parse_delayed_or_aggregate(Stream i) {
+auto parse_aggregate_single(Stream i) {
 	auto r = seq!(
 		parse_lvalue,
-		choice!(token_ws!"<-", token_ws!"<<"),
+		discard!(token_ws!"<<"),
 		choice!(
 			parse_expr,
 			parse_new_expr
 		),
 		token_ws!";"
 	)(i);
-	r.r.name = "delayed assign or aggregate";
+	r.r.name = "aggregate";
 	if (!r.ok)
 		return err_result!Stmt(r.r);
 	return ok_result!Stmt(
-		new Assign(r.result!0, r.result!2,
-			r.result!1 == "<-" ?
-			    Assign.Delayed : Assign.Aggregate
-		),
+		new Aggregate(r.result!0, [r.result!1]),
+		r.consumed,
+		r.r
+	);
+}
+auto parse_aggregate(Stream i) {
+	auto r = seq!(
+		parse_lvalue,
+		discard!(token_ws!"<<"),
+		between!(token_ws!"{",chain!(
+			choice!(
+				parse_expr,
+				parse_new_expr
+			),
+			arr_append!Expr,
+			discard!(token_ws!",")
+		), token_ws!"}"),
+		token_ws!";"
+	)(i);
+	r.r.name = "aggregate many";
+	if (!r.ok)
+		return err_result!Stmt(r.r);
+	return ok_result!Stmt(
+		new Aggregate(r.result!0, r.result!1),
 		r.consumed,
 		r.r
 	);
@@ -167,7 +181,8 @@ ParseResult!Stmt parse_stmt(Stream i) {
 		parse_foreach,
 		parse_loop,
 		parse_clear,
-		parse_delayed_or_aggregate,
+		parse_aggregate,
+		parse_aggregate_single,
 		parse_new_stmt,
 	)(i);
 }

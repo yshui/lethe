@@ -72,12 +72,19 @@ override :
 		assert(rd !is null);
 		TypeBase ty;
 		auto code = e.c_code(s, ty);
-		auto vty = cast(Type!"Vertex")ty;
-		assert(vty !is null);
-		assert(vty.name == rd.ty.name);
 		auto rqv = "rndrq["~to!string(rd.id)~"]";
-		auto res = "*(((struct vertex_"~rd.ty.name~" *)"~rqv~".buf)+"~rqv~".nmemb) = "~code~";\n";
-		res ~= rqv~".nmemb++;\n";
-		return res;
+		if (ty.type_match!(Type!int)) {
+			//Index
+			auto res = "*("~rqv~".indices+"~rqv~".nindex) = "~code~";\n";
+			res ~= rqv~".nindex++;\n";
+			return res;
+		} else {
+			auto vty = cast(Type!"Vertex")ty;
+			assert(vty !is null);
+			assert(vty.name == rd.ty.name);
+			auto res = "*(((struct vertex_"~rd.ty.name~" *)"~rqv~".buf)+"~rqv~".nvert) = "~code~";\n";
+			res ~= rqv~".nvert++;\n";
+			return res;
+		}
 	}
 }
