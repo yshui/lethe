@@ -67,7 +67,6 @@ void main(string[] argv) {
 	defsf.writeln("#pragma once\n");
 	defsf.writeln("#include \"export.h\"");
 	defsf.writeln("#include \"runtime/vec.h\"");
-	defsf.writeln("#include \"runtime/raw.h\"");
 	defsf.writeln("#include \"runtime/event.h\"");
 	defsf.writeln("#include \"runtime/particle.h\"");
 	defsf.writeln("#include \"runtime/tag.h\"");
@@ -77,7 +76,6 @@ void main(string[] argv) {
 	defsf.writeln("#include \"runtime/render.h\"");
 	exf.writeln("#pragma once\n");
 	exf.writeln("#include \"runtime/vec.h\"");
-	exf.writeln("#include \"runtime/raw.h\"\n");
 	exf.writeln("#define N_RENDER_QUEUES 1\n"); //XXX Place holder
 	exf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
