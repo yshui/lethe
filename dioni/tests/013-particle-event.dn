@@ -1,0 +1,12 @@
+event K(particle);
+tag G;
+particle A {
+	state U @ K(A(b)) {
+		A << `K(b);
+		nextState = U;
+	},
+	@ K(b~G) {
+		A << `K(b);
+		nextState = U;
+	};
+}

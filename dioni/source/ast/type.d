@@ -11,6 +11,12 @@ nothrow pure @safe @nogc bool type_match(T, U)(U a) {
 	return (cast(S)a) !is null;
 }
 
+nothrow pure @safe bool typeid_equals(const(TypeInfo_Class) a, const(TypeInfo_Class) b){
+	if (a is b)
+		return true;
+	return a.info.name == b.info.name;
+}
+
 template isPOD(T) {
 	static if (is(T == int) || is(T == float) || is(T == bool))
 		enum isPOD = true;
@@ -38,7 +44,7 @@ nothrow pure @safe TypeBase type_calc(T...)(const(TypeBase)[] ity) {
 }
 
 class TypeBase {
-	@property nothrow pure @safe {
+	nothrow pure @safe {
 		@nogc int dimension() const {
 			return 0;
 		}
@@ -54,6 +60,12 @@ class TypeBase {
 		string c_copy(string src, string dst) const {
 			return dst~" = "~src;
 		}
+		string c_cast(const(TypeBase) target, string code) const {
+			assert(typeid_equals(typeid(target), typeid(this)), "Can't cast"~
+			       " from "~typeid(this).toString~" to "~
+			       typeid(target).toString);
+			return code;
+		}
 	}
 }
 
@@ -66,6 +78,13 @@ override :
 	string str() const { return "ParticleHandle"; }
 	bool opEquals(const(TypeBase) o) const {
 		return o.type_match!ParticleHandle;
+	}
+	string c_cast(const(TypeBase) target, string code) const {
+		if (target.type_match!ParticleHandle)
+			return code;
+		if (target.type_match!AnyParticle)
+			return "get_particle_by_id("~code~")";
+		assert(false);
 	}
 }
 
@@ -88,6 +107,16 @@ class Type(T) : TypeBase
 		}
 	}
 override :
+	string c_cast(const(TypeBase) target, string code) const {
+		static if (is(T == Particle)) {
+			if (target.type_match!AnyParticle)
+				return "get_particle_by_id("~code~"->__id)";
+		}
+		auto x = cast(const(Type!T))target;
+		assert(x !is null);
+		assert(x.name == name);
+		return code;
+	}
 	string str() const {
 		assert(name !is null);
 		return  T.stringof~" "~name;
@@ -143,13 +172,20 @@ override :
 
 class AnyParticle : TypeBase {
 override :
-	string c_type() const { return "struct raw_particle"; }
+	string c_type() const { return "struct particle *"; }
 	TypeBase dup() const { return new AnyType; }
 }
 
 class Type(T) : TypeBase
     if (isPOD!T) {
 override :
+	string c_cast(const(TypeBase) target, string code) const {
+		static if (!is(T == bool))
+			if (target.type_match!(Type!float))
+				return code;
+		assert(target.type_match!(Type!T));
+		return code;
+	}
 	int dimension() const {
 		return 1;
 	}
@@ -243,11 +279,3 @@ override :
 ///Define a type match pattern: if input types match T..., then the output type is Result
 class TypePattern(Result, T...) { }
 
-nothrow pure @safe
-bool type_compatible(const(TypeBase) src, const(TypeBase) tgt) {
-	if (src.opEquals(tgt))
-		return true;
-	if (tgt.type_match!(Type!float))
-		return src.type_match!(Type!int);
-	return false;
-}

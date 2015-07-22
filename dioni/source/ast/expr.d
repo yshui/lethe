@@ -251,7 +251,7 @@ override :
 			s.shadow(nvd);
 			vd = nvd;
 		} else
-			assert(type_compatible(rty, vd.ty), typeid(rty).toString~" "~typeid(vd.ty).toString);
+			rcode = rty.c_cast(vd.ty, rcode);
 		assert(vd.prot != Protection.Const, "Writing to const variable '"~
 		       name~"'");
 		if (vd.sc == StorageClass.Particle)
@@ -409,11 +409,13 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 			if (ty[1].dimension > 1)
 				return "vector_in_range"~to!string(ty[1].dimension)~
 				       "("~code[0]~", "~code[1]~")";
-			assert(type_compatible(ty[0], new Type!float));
-			if (rngty.is_int)
-				return "number_in_rangei("~code[0]~", "~code[1]~")";
-			else
-				return "number_in_rangef("~code[0]~", "~code[1]~")";
+			if (rngty.is_int) {
+				auto c = ty[0].c_cast(new Type!int, code[0]);
+				return "number_in_rangei("~c~", "~code[1]~")";
+			} else {
+				auto c = ty[0].c_cast(new Type!float, code[0]);
+				return "number_in_rangef("~c~", "~code[1]~")";
+			}
 		} else if (tagty !is null) {
 			if (ty[0].type_match!ParticleHandle)
 				return "particle_has_tag("~code[0]~", "~code[1]~")";
@@ -423,7 +425,7 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 			else {
 				auto anyp = cast(const(AnyParticle))ty[0];
 				assert(anyp !is null);
-				return "has_tag("~code[0]~".__tags, "~code[1]~")";
+				return "has_tag(&"~code[0]~"->t, "~code[1]~")";
 			}
 		}
 	}
@@ -431,8 +433,8 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 		assert(ty[0].dimension == ty[1].dimension);
 		return "vec"~to!string(ty[1].dimension)~"_"~op_to_name(op)~"("~code[0]~", "~code[1]~")";
 	}
-	assert(type_compatible(ty[0], new Type!float));
-	return "("~code[0]~op~code[1]~")";
+	auto c = ty[0].c_cast(ty[1], code[0]);
+	return "("~c~op~code[1]~")";
 }
 
 class Cmp : Expr {
@@ -486,9 +488,7 @@ override :
 						res ~= ", ";
 					TypeBase pty;
 					auto pcode = p.c_code(s, pty);
-					assert(type_compatible(pty, ctor.param_def[i].ty),
-					       "Type mismatch with ctor");
-					res ~= pcode;
+					res ~= pty.c_cast(ctor.param_def[i].ty, pcode);
 				}
 				res ~= "))";
 				return res;
@@ -506,8 +506,7 @@ override :
 					res ~= ", ";
 				TypeBase pty;
 				auto pcode = p.c_code(s, pty);
-				assert(pty.type_compatible(ed.member[i]), "Event member type mismatch");
-				res ~= pcode;
+				res ~= pty.c_cast(ed.member[i], pcode);
 			}
 			res ~= "})";
 			ty = new Type!Event(ed.name, s);
@@ -520,8 +519,7 @@ override :
 					res ~= ", ";
 				TypeBase pty;
 				auto pcode = p.c_code(s, pty);
-				assert(pty.type_compatible(vd.member[i].ty));
-				res ~= pcode;
+				res ~= pty.c_cast(vd.member[i].ty, pcode);
 			}
 			res ~= "})";
 			ty = new Type!Vertex(vd.name, s);

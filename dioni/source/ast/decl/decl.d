@@ -58,7 +58,7 @@ class EventParameter {
 			auto var = new Var(new Type!Particle(pm.particle, s),
 					   new EventAggregator, pm.var.name);
 			s.insert(var);
-			return "("~emem~".t == PARTICLE_"~pm.particle~")";
+			return "("~emem~"->type == PARTICLE_"~pm.particle~")";
 		}
 		assert(cmp !is null);
 		auto lv = cast(const(VarVal))cmp.lhs;
@@ -72,11 +72,13 @@ class EventParameter {
 	}
 
 	string c_code_assign(string emem, const(TypeBase) ty) const {
-		if (pm !is null)
-			return pm.var.name~"="~emem~".p"~";\n";
+		if (pm !is null) {
+			auto c = emem~"->data["~emem~"->current"~"]";
+			return pm.var.name~"=&"~c~"."~pm.particle~";\n";
+		}
 		auto lv = cast(const(VarVal))cmp.lhs;
 		if (ty.type_match!AnyParticle)
-			return lv.name~"="~emem~".id"~";\n";
+			return lv.name~"=get_particle_id("~emem~");\n";
 		return lv.name~"="~emem~";\n";
 	}
 }

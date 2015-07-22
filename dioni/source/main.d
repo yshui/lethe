@@ -51,8 +51,8 @@ void main(string[] argv) {
 	foreach(p; r)
 		global.insert(p);
 
-	auto renderer = new RenderQ("render", 0, new Type!Vertex("ballv", global));
-	global.insert(renderer);
+	//auto renderer = new RenderQ("render", 0, new Type!Vertex("ballv", global));
+	//global.insert(renderer);
 
 	foreach(pd; r) {
 		auto p = cast(Particle)pd;
