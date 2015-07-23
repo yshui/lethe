@@ -1,5 +1,5 @@
 module dioni;
-public import dioni.interface;
+public import dioni.d_interface;
 
 struct dioniParticle;
 

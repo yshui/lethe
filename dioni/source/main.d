@@ -84,7 +84,7 @@ import sdpc;
 	auto defsf = File(gen_prefix~"/defs.h", "w");
 	auto pf = File(gen_prefix~"/particle_creation.h", "w");
 	auto exf = File(gen_prefix~"/export.h", "w");
-	auto dinf = File(gen_prefix~"/interface.d", "w");
+	auto dinf = File(gen_prefix~"/d_interface.d", "w");
 	Symbols global = new Symbols(null);
 	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
 				  Protection.Const, StorageClass.Void);
@@ -111,8 +111,8 @@ import sdpc;
 	}
 
 	int pcnt = 0, ecnt = 0, tcnt = 0;
-	dinf.writeln("module dioni.interface;\n");
-	dinf.writeln("import dioni;\n");
+	dinf.writeln("module dioni.d_interface;\n");
+	dinf.writeln("import dioni, gfm.math;\n");
 	defsf.writeln("#pragma once\n");
 	defsf.writeln("#include \"export.h\"");
 	defsf.writeln("#include <vec.h>");

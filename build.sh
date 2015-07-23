@@ -10,7 +10,7 @@ export DIONI_RUNTIME_DIR=dioni/runtime
 dioni/dioni scripts/ball.dn
 
 #Copy interface.d
-cp gen-dioni/interface.d source/dioni/
+cp gen-dioni/d_interface.d source/dioni/
 
 #Build lethe
 dub build
