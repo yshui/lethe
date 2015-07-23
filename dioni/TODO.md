@@ -13,7 +13,6 @@
   - [x] Event Aggregators
   - [x] Render Aggregators
   - [ ] Collision aggregator (register collision box)
-  - [ ] Actor aggregator (create new actor)
 - [ ] Nil state to stop actor
 - [ ] A way to delete particle
 - [x] Vertice definition
