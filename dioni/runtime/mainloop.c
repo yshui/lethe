@@ -1,10 +1,10 @@
-#include "../export.h"
-#include "actor.h"
-#include "list.h"
-#include "event.h"
-#include "actor.h"
-#include "particle.h"
-#include "tag.h"
+#include <export.h>
+#include <actor.h>
+#include <list.h>
+#include <event.h>
+#include <actor.h>
+#include <particle.h>
+#include <tag.h>
 int run_particle_with_event(struct actor *a, struct event *e);
 
 static inline void propagate_particle_data() {

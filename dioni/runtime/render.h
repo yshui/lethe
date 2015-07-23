@@ -1,7 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-#include "../export.h"
+#include <export.h>
 
 struct render_queue {
 	int nvert;

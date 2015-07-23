@@ -1,6 +1,6 @@
 #pragma once
 #include <stdbool.h>
-#include "vec.h"
+#include <vec.h>
 struct range2 {
 	struct vec2 a, o;
 };

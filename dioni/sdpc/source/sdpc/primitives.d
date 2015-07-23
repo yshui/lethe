@@ -64,7 +64,8 @@ struct Reason {
 		if (depth == 0)
 			depth = pos.length;
 		char[] prefix;
-		prefix.length = depth-pos.length;
+		if (depth >= pos.length)
+			prefix.length = depth-pos.length;
 		foreach(ref x; prefix)
 			x = ' ';
 		string res;

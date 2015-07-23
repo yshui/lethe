@@ -1,7 +1,7 @@
 #pragma once
-#include "../export.h"
-#include "objpool.h"
-#include "list.h"
+#include <export.h>
+#include <objpool.h>
+#include <list.h>
 
 #define NOT_HANDLED (-1)
 

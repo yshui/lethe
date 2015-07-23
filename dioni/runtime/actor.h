@@ -1,6 +1,6 @@
 #pragma once
 
-#include "list.h"
+#include <list.h>
 
 enum actor_state {
 	RUNNING,

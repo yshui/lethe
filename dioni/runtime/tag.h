@@ -1,6 +1,8 @@
 #pragma once
-#include "../defs.h"
+#include <export.h>
+#include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 #define TAGS_SIZE (MAX_TAG_ID/32+1)
 struct tag {
 	uint32_t tags[MAX_TAG_ID/32+1];

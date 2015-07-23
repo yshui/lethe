@@ -1,9 +1,9 @@
 import std.stdio, std.file;
+import std.process : environment, execute;
 import parser;
 import ast.symbols, ast.decl, ast.aggregator, ast.type;
 import sdpc;
-@safe :
-string c_particle_handler(const(Decl)[] s) {
+@safe string c_particle_handler(const(Decl)[] s) {
 	//XXX this implementation is incomplete, run_particle function must
 	//fetch events by itself, not via argument
 	auto res = "int run_particle_with_event(struct actor *a, struct event *e) {\n";
@@ -24,20 +24,67 @@ string c_particle_handler(const(Decl)[] s) {
 	res ~= "\treturn next_state;\n}";
 	return res;
 }
-void main(string[] argv) {
+@trusted compile(string gen_dir) {
+	//Compile runtime
+	if (exists("build-dioni") && isDir("build-dioni"))
+		rmdirRecurse("build-dioni");
+	mkdir("build-dioni");
+	auto dioni_rt = environment["DIONI_RUNTIME_DIR"];
+	string[] outputs;
+	foreach(file; dirEntries(dioni_rt, SpanMode.shallow)) {
+		import std.path : baseName;
+		import std.string : endsWith;
+		if (!file.name.endsWith(".c"))
+			continue;
+		auto o = "build-dioni/"~baseName(file)~".o";
+		auto gcc = execute(["gcc", file, "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", o]);
+		write(gcc.output);
+		if (gcc.status != 0)
+			throw new Exception("GCC failed to compile "~file);
+		outputs ~= [o];
+	}
+
+	//Compile statefn.c
+	auto gcc = execute(["gcc", gen_dir~"/statefn.c", "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", "build-dioni/statefn.c.o"]);
+	write(gcc.output);
+	if (gcc.status != 0)
+		throw new Exception("GCC failed to compile statefn.c");
+	outputs ~= ["build-dioni/statefn.c.o"];
+
+	//Create archive
+	auto ar = execute(["ar", "rcs", "libscript.a"]~outputs);
+	writeln(ar.output);
+	if (ar.status != 0)
+		throw new Exception("Failed to create archive");
+
+	auto ranlib = execute(["ranlib", "libscript.a"]);
+	rmdirRecurse("build-dioni");
+}
+@safe void main(string[] argv) {
 	if (argv.length < 2) {
 		writefln("Usage: %s file", argv[0]);
 		throw new Exception("Missing argument");
 	}
 
+	string gen_prefix = environment.get("DIONI_GEN_DIR");
+	if (gen_prefix is null)
+		gen_prefix = "gen-dioni";
+	if (gen_prefix == "")
+		gen_prefix = ".";
+
+	if (!exists(gen_prefix))
+		mkdir(gen_prefix);
+	else if (!isDir(gen_prefix))
+		throw new Exception(gen_prefix~" is not a directory");
+
 	char[] file_content = cast(char[])read(argv[1]);
 	auto i = new BufStream(file_content.idup);
 	auto r = parse_top(i);
-	auto mainf = File("statefn.c", "w");
-	auto defsf = File("defs.h", "w");
-	auto pf = File("particle_creation.h", "w");
-	auto exf = File("export.h", "w");
-	auto dinf = File("interface.d", "w");
+	auto mainf = File(gen_prefix~"/statefn.c", "w");
+	auto defsf = File(gen_prefix~"/defs.h", "w");
+	auto pf = File(gen_prefix~"/particle_creation.h", "w");
+	auto exf = File(gen_prefix~"/export.h", "w");
+	auto dinf = File(gen_prefix~"/interface.d", "w");
 	Symbols global = new Symbols(null);
 	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
 				  Protection.Const, StorageClass.Void);
@@ -68,16 +115,16 @@ void main(string[] argv) {
 	dinf.writeln("import dioni;\n");
 	defsf.writeln("#pragma once\n");
 	defsf.writeln("#include \"export.h\"");
-	defsf.writeln("#include \"runtime/vec.h\"");
-	defsf.writeln("#include \"runtime/event.h\"");
-	defsf.writeln("#include \"runtime/particle.h\"");
-	defsf.writeln("#include \"runtime/tag.h\"");
-	defsf.writeln("#include \"runtime/actor.h\"");
-	defsf.writeln("#include \"runtime/list.h\"");
-	defsf.writeln("#include \"runtime/range.h\"");
-	defsf.writeln("#include \"runtime/render.h\"");
+	defsf.writeln("#include <vec.h>");
+	defsf.writeln("#include <event.h>");
+	defsf.writeln("#include <particle.h>");
+	defsf.writeln("#include <tag.h>");
+	defsf.writeln("#include <actor.h>");
+	defsf.writeln("#include <list.h>");
+	defsf.writeln("#include <range.h>");
+	defsf.writeln("#include <render.h>");
 	exf.writeln("#pragma once\n");
-	exf.writeln("#include \"runtime/vec.h\"");
+	exf.writeln("#include <vec.h>");
 	exf.writeln("#define N_RENDER_QUEUES 1\n"); //XXX Place holder
 	exf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
@@ -113,6 +160,7 @@ void main(string[] argv) {
 			tcnt++;
 		} else if (vd !is null) {
 			exf.writeln(vd.c_structs);
+			exf.writeln("#define VERTEX_"~vd.name~"_SIZE sizeof(struct vertex_"~vd.name~")");
 			dinf.writeln(vd.d_structs);
 		}
 	}
@@ -121,5 +169,12 @@ void main(string[] argv) {
 	exf.writeln(eunion~"};\n");
 	exf.writeln("#define MAX_TAG_ID "~to!string(tcnt)~"\n");
 	exf.writeln("#define MAX_PARTICLE_ID "~to!string(pcnt)~"\n");
-	exf.writeln("#define RENDER_QUEUE_MEMBER_SIZEZ { VERTEX_Ball_SIZE }");
+	exf.writeln("#define RENDER_QUEUE_MEMBER_SIZES { VERTEX_ballv_SIZE }");
+
+	exf.close();
+	mainf.close();
+	defsf.close();
+	dinf.close();
+
+	compile(gen_prefix);
 }

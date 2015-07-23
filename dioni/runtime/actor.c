@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include "actor.h"
-#include "objpool.h"
+#include <actor.h>
+#include <objpool.h>
 
 struct list_head active_actors = LIST_HEAD_INIT(active_actors);
 
