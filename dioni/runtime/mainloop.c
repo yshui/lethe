@@ -36,13 +36,13 @@ int tick_start(void) {
 			struct particle *p = get_particle_by_id(ei->target);
 			struct actor *ai;
 			list_for_each(&p->actors, ai, silblings) {
-				if (ai->astate == RUNNING)
+				if (ai->astate == ACTOR_RUNNING)
 					run_particle_with_event(ai, ei);
 			}
 		} else {
 			struct actor *ai;
 			list_for_each(&active_actors, ai, q) {
-				if (ai->state != RUNNING)
+				if (ai->state != ACTOR_RUNNING)
 					continue;
 				bool matched = false;
 				switch(ei->tgtt) {

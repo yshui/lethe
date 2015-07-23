@@ -13,4 +13,4 @@ dioni/dioni scripts/ball.dn
 cp gen-dioni/d_interface.d source/dioni/
 
 #Build lethe
-dub build
+#dub build

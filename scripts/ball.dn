@@ -18,4 +18,8 @@ particle Ball {
 		nextState = Move;
 
 	};
+	>() {
+		`Update;
+		`Move;
+	}
 }

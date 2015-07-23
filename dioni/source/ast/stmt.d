@@ -52,6 +52,7 @@ class Aggregate : Stmt {
 				res ~= ", ";
 			res ~= x.str;
 		}
+		res ~= "}\n";
 		return res;
 	}
 	string c_code(Symbols s, ref bool changed) const {

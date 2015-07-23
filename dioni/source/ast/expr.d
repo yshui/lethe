@@ -494,8 +494,8 @@ override :
 				return res;
 			}
 		} else if (sd !is null) {
-			ty = new Type!State(sd.name, s);
-			return "(PARTICLE_"~sd.parent.name~"_STATE_"~sd.name~")";
+			ty = new TypeBase;
+			return "create_actor(__current->__id, PARTICLE_"~sd.parent.name~"_STATE_"~sd.name~")";
 		} else if (ed !is null) {
 			assert(param.length == ed.member.length,
 			       "Event "~ed.name~" has "~to!string(ed.member.length)~
@@ -531,7 +531,7 @@ override :
 		changed = false;
 		TypeBase ty;
 		auto code = c_code(s, ty);
-		assert(ty.type_match!ParticleHandle,
+		assert(ty.type_match!ParticleHandle || ty.type_match!TypeBase,
 		       "Creating "~name~" without assigning it makes no sense.");
 		return code~";\n";
 	}
