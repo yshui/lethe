@@ -7,19 +7,29 @@ vertex ballv(
 event Collide(particle);
 event nextFrame(float);
 particle Ball {
-	vec2 position;
+	vec2 center;
 	vec2 velocity;
 	float r;
 	state Update @ nextFrame {
+		center <- center+velocity;
+		render << `ballv(vec2(-1, 1)*r, center, vec2(-1, 1), 0),
+			  `ballv(vec2(-1, -1)*r, center, vec2(-1, -1), 0),
+			  `ballv(vec2(1, -1)*r, center, vec2(1, -1), 0),
+			  `ballv(vec2(1, 1)*r, center, vec2(1, 1), 0);
+		render << -3, -2, -1, -3, -1, 0;
 		nextState = Update;
-
 	};
 	state Move @ Collide(Ball(x)) {
 		nextState = Move;
-
 	};
-	>() {
+	>(center, velocity, r) {
 		`Update;
 		`Move;
+	}
+}
+particle Bootstrap {
+	>() {
+		loop(i~1..100)
+			`Ball(vec2(i*4, i*4), vec2(0.1, 0), 5);
 	}
 }

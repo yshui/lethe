@@ -74,7 +74,8 @@ override :
 		auto code = e.c_code(s, ty);
 		auto rqv = "rndrq["~to!string(rd.id)~"]";
 		if (ty.type_match!(Type!int)) {
-			//Index
+			//Index are offseted by nvert
+			code = "("~rqv~".nvert+"~code~")";
 			auto res = "*("~rqv~".indices+"~rqv~".nindex) = "~code~";\n";
 			res ~= rqv~".nindex++;\n";
 			return res;

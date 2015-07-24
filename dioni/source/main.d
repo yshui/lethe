@@ -90,7 +90,6 @@ import sdpc;
 				  Protection.Const, StorageClass.Void);
 	global.insert(gevent);
 
-
 	if (r is null)
 		return;
 	writeln(r);
@@ -98,8 +97,10 @@ import sdpc;
 	foreach(p; r)
 		global.insert(p);
 
-	//auto renderer = new RenderQ("render", 0, new Type!Vertex("ballv", global));
-	//global.insert(renderer);
+	//Temporary workaround until we have render queue syntax
+	//Let's get a demo done first
+	auto renderer = new RenderQ("render", 0, new Type!Vertex("ballv", global));
+	global.insert(renderer);
 
 	foreach(pd; r) {
 		auto p = cast(Particle)pd;
