@@ -5,7 +5,7 @@
 - [x] nextState = StateName
 - [x] Unified matching syntax
 - [x] Particle creation functions
-- [ ] Create events with particle member
+- [x] Create events with particle member
 - [ ] Wildcard event match
 - [ ] Event handler forwarding
 - [x] Event fence, events between fences are sent at the same time
@@ -19,6 +19,10 @@
 - [ ] An interface to communicate (to D) what event an actor is waiting for
 - [ ] Create particle with tags
 - [x] Define particle with tags
+- [ ] Event/EventMatch syntax tweaks
+  - [ ] Event with zero parameters (Event() or Event should both be valid)
+  - [ ] Take event parameter without match (Event(b) without using match like Event(b==1))
+  - [ ] Ignore event parameter (Event(\_))
 
 # Useful
 * Improve codegen error messages
