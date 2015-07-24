@@ -4,12 +4,13 @@ import std.math;
 import engine;
 import std.typecons;
 import scene.collision;
+import dioni;
 class Particle {
 	pure nothrow @nogc
 	size_t hitbox(Hitbox[] hb) { return 0; }
 	pure nothrow @nogc void update() { }
 	pure nothrow @nogc void collide(Particle other) { }
-	pure nothrow size_t gen_scene(BufferMapping!Vertex vab, BufferMapping!GLuint ib) { return 0; }
+	pure nothrow size_t gen_scene(BufferMapping!vertex_ballv vab, BufferMapping!GLuint ib) { return 0; }
 }
 class Scene(int max_particles, int hitboxes_per_particle) {
 	Particle[max_particles] ps;
@@ -37,7 +38,7 @@ class Scene(int max_particles, int hitboxes_per_particle) {
 				p.collide(xp);
 		}
 	}
-	nothrow size_t gen_scene(BufferMapping!Vertex va, BufferMapping!GLuint ibuf) {
+	nothrow size_t gen_scene(BufferMapping!vertex_ballv va, BufferMapping!GLuint ibuf) {
 		size_t s = 0;
 		foreach(p; ps) {
 			if (p is null)

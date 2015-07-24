@@ -134,6 +134,8 @@ import sdpc;
 
 	auto punion = "union particle_variants {\n";
 	auto eunion = "union event_variants {\n";
+	auto d_eunion = "union dioniEventVariant {\n";
+	auto d_eenum = "enum dioniEventType {\n";
 	foreach(pd; r) {
 		auto p  = cast(Particle)pd,
 		     e  = cast(Event)pd,
@@ -152,9 +154,11 @@ import sdpc;
 			pcnt ++;
 		} else if (e !is null) {
 			exf.writefln("#define EVENT_%s %s\n", e.symbol, ecnt);
+			d_eenum ~= e.symbol~" = "~to!string(ecnt)~",\n";
 			exf.writeln(e.c_structs);
 			dinf.writeln(e.d_structs);
 			eunion ~= "struct event_"~e.symbol~" "~e.symbol~";\n";
+			d_eunion ~= "dioniEvent_"~e.symbol~" "~e.symbol~";\n";
 			ecnt++;
 		} else if (td !is null) {
 			exf.writefln("#define TAG_%s %s\n", td.symbol, tcnt);
@@ -168,6 +172,8 @@ import sdpc;
 	mainf.writeln(c_particle_handler(r));
 	exf.writeln(punion~"};\n");
 	exf.writeln(eunion~"};\n");
+	dinf.writeln(d_eunion~"}\n");
+	dinf.writeln(d_eenum~"}\n");
 	exf.writeln("#define MAX_TAG_ID "~to!string(tcnt)~"\n");
 	exf.writeln("#define MAX_PARTICLE_ID "~to!string(pcnt)~"\n");
 	exf.writeln("#define RENDER_QUEUE_MEMBER_SIZES { VERTEX_ballv_SIZE }");

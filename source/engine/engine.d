@@ -15,6 +15,7 @@ import gfm.math;
 import derelict.sdl2.types;
 import derelict.opengl3.gl,
        derelict.opengl3.gl3;
+import dioni;
 auto event_range(SDL2 sdl2) {
 	struct SDL2EventRange {
 		SDL_Event event;
@@ -31,13 +32,6 @@ auto event_range(SDL2 sdl2) {
 	return er;
 }
 
-struct Vertex {
-	vec2f position;
-	vec2f translate;
-	vec2f texture_coord;
-	float angle;
-}
-
 private void gen_format(uint type, SDL_PixelFormat *x) {
 	x.format = type;
 	int bpp;
@@ -52,7 +46,7 @@ private void gen_format(uint type, SDL_PixelFormat *x) {
 	x.palette = null;
 }
 import core.memory;
-alias VA = VertexArray!Vertex;
+alias VA = VertexArray!vertex_ballv;
 class Engine(int n, int m, Uniforms)
 if (is(Uniforms == struct) || is(Uniforms == class)) {
 	int next_frame() { return 0; };
@@ -95,7 +89,7 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 	}
 	void load_program(string code) {
 		prog = new GLProgram(gl, code);
-		va = new VertexArray!Vertex(gl, prog, n);
+		va = new VertexArray!vertex_ballv(gl, prog, n);
 	}
 	final void assign_uniforms() {
 		static if (is(Uniforms == struct) || is(Uniforms == class)) {
@@ -131,16 +125,26 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 				handle_event(e);
 			if (sdl2.wasQuitRequested() || quitting)
 				break;
-			next_frame();
-			glViewport(0, 0, _width, _height);
-			glClearColor(0,0,0,1.0);
-			glClear(GL_COLOR_BUFFER_BIT);
+
+			auto ev = alloc_event();
+			ev.tgtt = dioniEventTarget.Global;
+			ev.event_type = dioniEventType.nextFrame;
+			queue_event(ev);
+			ev = null; //Prevent GC from collecting malloc memory
+
+			//bind_render_queue(...);
+
+			tick_start();
+
 			size_t scene_size;
 			{
 				auto vab = va.map(GL_WRITE_ONLY);
 				auto ib = ibuf.write_map!GLuint();
 				scene_size = gen_scene(vab, ib);
 			}
+			glViewport(0, 0, _width, _height);
+			glClearColor(0,0,0,1.0);
+			glClear(GL_COLOR_BUFFER_BIT);
 			assign_uniforms();
 			prog.use();
 			ibuf.bind();
@@ -191,10 +195,10 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		int _width, _height;
 		GLProgram prog;
 		SDL_PixelFormat fmt;
-		VertexArray!Vertex va;
+		VertexArray!vertex_ballv va;
 		GLBuffer ibuf;
 	}
 	protected Uniforms u;
-	alias VAMap = BufferMapping!Vertex;
+	alias VAMap = BufferMapping!vertex_ballv;
 	alias IMap = BufferMapping!GLuint;
 }

@@ -8,7 +8,7 @@
 extern struct list_head event_queue;
 
 enum target_type {
-	PARTICLE,
+	PARTICLE = 0,
 	PARTICLE_TYPE,
 	TAG,
 	GLOBAL,
