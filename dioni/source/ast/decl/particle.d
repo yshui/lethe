@@ -186,7 +186,7 @@ class Particle : Decl {
 		res ~= q{, *__next = (void *)&__p->data[1].}~name~";";
 		res ~= "\n__current->__id = __next->__id = get_particle_id(__p);";
 		if (ctor !is null) {
-			res ~= "\n"~name~"_ctor(NULL, __current";
+			res ~= "\n"~name~"_ctor(__next, __current";
 			foreach(p; ctor.param)
 				res ~= ", "~p;
 			res ~= ");";
