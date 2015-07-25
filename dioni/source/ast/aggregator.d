@@ -89,3 +89,7 @@ override :
 		}
 	}
 }
+
+class CollisionAggregator : Aggregator {
+
+}
