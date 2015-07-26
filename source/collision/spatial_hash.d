@@ -1,11 +1,10 @@
-module scene.collision.spatial_hash;
-import scene.collision;
-import scene.scene;
+module collision.spatial_hash;
+import collision;
 import gfm.math;
 import std.stdio;
 import std.conv;
 private struct HitboxPair {
-	Particle p;
+	int id;
 	Hitbox hb;
 	HitboxPair*[] next;
 	box2f aabb;
@@ -21,15 +20,15 @@ class SpatialRange(int w, int h) : CollisionRange{
 		HitboxPair* head;
 		SpatialHash!(w, h) sh;
 		bool[HitboxPair*] _checked;
-		const(Particle) self;
+		int self;
 		//int generation; //Incremented every new query
 	}
 	override pure nothrow @nogc bool empty() {
 		return nowi >= hitbox.length;
 	}
-	override pure nothrow @nogc Particle front() {
+	override pure nothrow @nogc int front() {
 		assert(head !is null);
-		return head.p;
+		return head.id;
 	}
 	pure nothrow @nogc void _popFront() {
 		if (head == null) {
@@ -65,7 +64,7 @@ class SpatialRange(int w, int h) : CollisionRange{
 	private nothrow pure bool qualify() {
 		if (head is null)
 			return false;
-		if (head.p is self)
+		if (head.id == self)
 			return false;
 		if (!head.aabb.intersects(aabbf))
 			return false;
@@ -85,7 +84,7 @@ class SpatialRange(int w, int h) : CollisionRange{
 				break;
 		}
 	}
-	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, const(Particle) iself) {
+	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, int self_id) {
 		self = iself;
 		hitbox = hb;
 		sh = ish;
@@ -141,7 +140,7 @@ class SpatialHash(int w, int h) {
 		hbcnt = 0;
 		hbp.length = 1;
 	}
-	pure nothrow void insert_hitbox(ref const(Hitbox) hb, Particle p) {
+	pure nothrow void insert_hitbox(ref const(Hitbox) hb, int id) {
 		auto aabb = whole.intersection(hb.aabb);
 		if (aabb.empty())
 			return;
@@ -150,7 +149,7 @@ class SpatialHash(int w, int h) {
 			hbp.length *= 2;
 
 		HitboxPair* x = &hbp[hbcnt++];
-		x.p = p;
+		x.id = id;
 		x.hb = hb;
 		x.aabb = aabb;
 		auto aabbi = normalize_aabb(aabb, stepv);

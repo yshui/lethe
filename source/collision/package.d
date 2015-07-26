@@ -1,7 +1,6 @@
-module scene.collision;
-public import scene.collision.collision;
-public import scene.collision.hitbox;
-import scene.scene;
+module collision;
+public import collision.collision;
+public import collision.hitbox;
 import gfm.math;
 package nothrow pure @nogc box2i normalize_aabb(box2f aabb, vec2f stepv) {
 	auto min = aabb.min / stepv;
@@ -13,6 +12,6 @@ package nothrow pure @nogc box2i normalize_aabb(box2f aabb, vec2f stepv) {
 }
 class CollisionRange {
 	bool empty() { return true; }
-	Particle front() { return null; }
+	int front() { return null; }
 	void popFront() { }
 }

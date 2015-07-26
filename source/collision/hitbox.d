@@ -1,4 +1,4 @@
-module scene.collision.hitbox;
+module collision.hitbox;
 import gfm.math;
 import std.math;
 private pure nothrow @nogc
