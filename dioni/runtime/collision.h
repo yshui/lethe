@@ -16,6 +16,7 @@ struct hitbox {
 		struct ball b;
 	};
 	struct list_node next;
+	struct list_node q;
 };
 
 objpool_proto(struct hitbox, hitbox)
