@@ -16,6 +16,7 @@ struct particle {
 	int current;
 
 	struct tag t;
+	struct list_head hitboxes;
 	struct list_head actors;
 	struct list_node next_changed;
 
