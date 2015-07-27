@@ -10,6 +10,7 @@ import std.typecons;
 
 immutable(Aggregator) eagg = new EventAggregator;
 immutable(Aggregator) rqagg = new RenderAggregator;
+immutable(Aggregator) hbagg = new HitboxAggregator;
 
 class Decl {
 	nothrow pure @safe {
@@ -476,5 +477,18 @@ override :
 	}
 	const(Aggregator) aggregator() const {
 		return rqagg;
+	}
+}
+
+class HitboxQ : Decl {
+override :
+	string str() const {
+		return "HitboxQ";
+	}
+	string symbol() const {
+		return "hitboxes";
+	}
+	const(Aggregator) aggregator() const {
+		return hbagg;
 	}
 }

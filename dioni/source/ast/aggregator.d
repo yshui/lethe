@@ -90,6 +90,34 @@ override :
 	}
 }
 
-class CollisionAggregator : Aggregator {
+class HitboxAggregator : Aggregator {
 
+override :
+	string c_aggregate(const(Decl) v, const(Expr) e, const(Symbols) s) const {
+		TypeBase ty;
+		auto code = e.c_code(s, ty);
+		auto vt = cast(const(Type!Vertex))ty;
+		assert(vt !is null);
+		auto vd = vt.instance;
+		auto res = "{\nstruct hitbox *__p = alloc_hitbox();\n";
+		//Make sure the vertex type has the right shape
+		auto typename = "";
+		if (vd.member.length == 3) {
+			//3 members, a triangle
+			foreach(m; vd.member)
+				assert(m.ty.type_match!(Type!(float, 2)));
+			typename = "triangle";
+		} else if (vd.member.length == 2) {
+			//a circle
+			assert(vd.member[0].ty.type_match!(Type!float));
+			assert(vd.member[1].ty.type_match!(Type!(float, 2)));
+			typename = "ball";
+		} else
+			assert(false);
+		res ~= "struct vertex_"~vt.name~" __tmp = "~code~"\n";
+		res ~= "__p->tr = *(struct "~typename~" *)&__tmp;\n";
+		res ~= "list_add(&__current->__p->hitboxes, __p);\n";
+		res ~= "}\n";
+		return res;
+	}
 }

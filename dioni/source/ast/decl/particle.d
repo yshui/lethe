@@ -139,12 +139,13 @@ class Particle : Decl {
 				}
 			}
 		}
+		s.insert(new HitboxQ);
 
 		_visited = true;
 		_visiting = false;
 	}
 	private pure string bare_c_struct(StorageClass sc) const {
-		auto res = "int __id;\n";
+		auto res = "int __id;\nstruct particle *__p;\n";
 		res ~= s.c_defs(sc);
 		return res;
 	}
@@ -185,6 +186,7 @@ class Particle : Decl {
 		res ~= q{struct }~name~q{ *__current = &__p->data[0].}~name;
 		res ~= q{, *__next = (void *)&__p->data[1].}~name~";";
 		res ~= "\n__current->__id = __next->__id = get_particle_id(__p);";
+		res ~= "\n__current->__p = __next->__p = __p;";
 		if (ctor !is null) {
 			res ~= "\n"~name~"_ctor(__next, __current";
 			foreach(p; ctor.param)
