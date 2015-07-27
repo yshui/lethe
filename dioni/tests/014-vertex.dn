@@ -1,0 +1,23 @@
+event K(particle);
+tag G;
+vertex B (
+	float r,
+	vec2 center
+);
+vertex ballv(
+	vec2 position,
+	vec2 translate,
+	vec2 texture_coord,
+	float angle
+);
+particle A {
+	state U @ K(A(b)) {
+		A << `K(b);
+		hitboxes << `B(1,vec2(1,1));
+		nextState = U;
+	},
+	@ K(b~G) {
+		A << `K(b);
+		nextState = U;
+	};
+}

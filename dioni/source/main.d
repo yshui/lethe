@@ -124,6 +124,7 @@ import sdpc;
 	defsf.writeln("#include <list.h>");
 	defsf.writeln("#include <range.h>");
 	defsf.writeln("#include <render.h>");
+	defsf.writeln("#include <collision.h>");
 	exf.writeln("#pragma once\n");
 	exf.writeln("#include <vec.h>");
 	exf.writeln("#define N_RENDER_QUEUES 1\n"); //XXX Place holder
