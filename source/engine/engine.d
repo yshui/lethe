@@ -75,7 +75,7 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		_width = w;
 		_height = h;
 		gl.reload();
-		gl.redirectDebugOutput();
+		//gl.redirectDebugOutput();
 
 		gen_format(SDL_PIXELFORMAT_RGBA8888, &fmt);
 		ibuf = new GLBuffer(gl, GL_ELEMENT_ARRAY_BUFFER, m*GLuint.sizeof);
@@ -134,6 +134,7 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 			ibuf.dioni_indices_bind();
 
 			tick_start();
+			auto scene_size = render_queue_get_nind(0);
 
 			va.dioni_buf_unbind();
 			ibuf.dioni_indices_unbind();
@@ -146,7 +147,6 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 			ibuf.bind();
 			va.bind();
 
-			auto scene_size = render_queue_get_nind(0);
 			glDrawElements(GL_TRIANGLES, cast(int)scene_size, GL_UNSIGNED_INT, cast(const(void *))0);
 			va.unbind();
 			ibuf.unbind();

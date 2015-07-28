@@ -56,20 +56,26 @@ final class GLBuffer {
 			return _buffer;
 		}
 		void dioni_buf_bind(T)() {
+			bind();
 			void *buf = glMapBuffer(_target, GL_WRITE_ONLY);
 			assert(_size % T.sizeof == 0);
 			render_queue_bind_buf(0, buf, _size/T.sizeof);
 		}
 		void dioni_buf_unbind() {
 			render_queue_bind_buf(0, null, 0);
+			bind();
+			glUnmapBuffer(_target);
 		}
 		void dioni_indices_bind() {
+			bind();
 			void *buf = glMapBuffer(_target, GL_WRITE_ONLY);
 			assert(_size % GLuint.sizeof == 0);
 			render_queue_bind_indices(0, cast(uint*)buf, _size/GLuint.sizeof);
 		}
 		void dioni_indices_unbind() {
 			render_queue_bind_indices(0, null, 0);
+			bind();
+			glUnmapBuffer(_target);
 		}
 	}
 
