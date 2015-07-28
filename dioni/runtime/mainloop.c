@@ -31,7 +31,9 @@ int tick_start(void) {
 		list_del(&ei->q);
 		if (ei->tgtt == FENCE) {
 			propagate_particle_data();
-			event_fence();
+			//If there're event been generated, put a fence
+			if (!list_empty(&event_queue))
+				event_fence();
 		} else if (ei->tgtt == PARTICLE) {
 			struct particle *p = get_particle_by_id(ei->target);
 			struct actor *ai;
@@ -56,6 +58,7 @@ int tick_start(void) {
 					break;
 				case GLOBAL:
 					matched = true;
+					break;
 				default:
 					assert(false);
 				}

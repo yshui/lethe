@@ -5,7 +5,7 @@ static struct particle p[MAX_PARTICLE];
 static struct particle *freep[MAX_PARTICLE];
 static int nparticle, fparticle;
 
-struct list_head changed_particles;
+struct list_head changed_particles = LIST_HEAD_INIT(changed_particles);
 struct particle *alloc_particle(void) {
 	if (fparticle)
 		return freep[--fparticle];
