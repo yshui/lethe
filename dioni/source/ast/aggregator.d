@@ -101,24 +101,27 @@ override :
 		auto vd = vt.instance;
 		auto res = "{\nstruct hitbox *__p = alloc_hitbox();\n";
 		//Make sure the vertex type has the right shape
-		auto typename = "", tgt = "";
+		auto typename = "", tgt = "", type = "";
 		if (vd.member.length == 3) {
 			//3 members, a triangle
 			foreach(m; vd.member)
 				assert(m.ty.type_match!(Type!(float, 2)));
 			typename = "triangle";
 			tgt = "tr";
+			type = "HITBOX_TRIANGLE";
 		} else if (vd.member.length == 2) {
 			//a circle
 			assert(vd.member[0].ty.type_match!(Type!float));
 			assert(vd.member[1].ty.type_match!(Type!(float, 2)));
 			typename = "ball";
 			tgt = "b";
+			type = "HITBOX_BALL";
 		} else
 			assert(false);
 		res ~= "struct vertex_"~vt.name~" __tmp = "~code~";\n";
 		res ~= "__p->"~tgt~" = *(struct "~typename~" *)&__tmp;\n";
-		res ~= "list_add(&__current->__p->hitboxes, &__p->next);\n";
+		res ~= "__p->type = "~type~";\n";
+		res ~= "list_add(&__current->__p->hitboxes, &__p->q);\n";
 		res ~= "}\n";
 		return res;
 	}
