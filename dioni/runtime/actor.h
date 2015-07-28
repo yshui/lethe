@@ -37,6 +37,5 @@ static inline void create_actor(int id, int state) {
 	na->owner = get_particle_by_id(id);
 	na->state = state;
 	na->astate = ACTOR_NEW;
-	list_node_init(&na->q);
 	activate_actor(na);
 }

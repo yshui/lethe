@@ -184,6 +184,10 @@ class Particle : Decl {
 
 		res ~= ") {\n";
 		res ~= "struct particle *__p = alloc_particle();\n__p->current = 0;\n";
+		res ~= "list_head_init(&__p->actors);\n";
+		res ~= "list_head_init(&__p->hitboxes);\n";
+		res ~= "list_node_init(&__p->next_changed);\n";
+		res ~= "__p->changed = false;\n";
 		res ~= "__p->type = PARTICLE_"~name~";\n";
 		res ~= q{struct }~name~q{ *__current = &__p->data[0].}~name;
 		res ~= q{, *__next = (void *)&__p->data[1].}~name~";";

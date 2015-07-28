@@ -1,6 +1,6 @@
 #pragma once
 #include <stdlib.h>
-#define objpool_def(type, pool_size, name, field) \
+#define objpool_def(type, pool_size, name, field, ctor) \
 static type *name##_pool = NULL; \
 static int name##_water_mark = 0; \
 static struct list_head name##_free = LIST_HEAD_INIT(name##_free); \
@@ -8,13 +8,16 @@ type *alloc_##name(void) { \
 	if (!list_empty(&name##_free)) { \
 		type *e = list_top(&name##_free, type, field); \
 		list_del(&e->field); \
+		ctor(e); \
 		return e; \
 	} \
 	if (name##_water_mark >= pool_size || name##_pool == NULL) { \
 		name##_pool = malloc(sizeof(type)*pool_size); \
 		name##_water_mark = 0; \
 	} \
-	return &name##_pool[name##_water_mark++]; \
+	type *ret = &name##_pool[name##_water_mark++]; \
+	ctor(ret); \
+	return ret; \
 } \
 void free_##name(type *e) { \
 	assert(e->field.next == e->field.prev && e->field.next == NULL); \

@@ -187,7 +187,7 @@ static inline void list_head_init(struct list_head *h) {
  * safely.
  */
 static inline void list_node_init(struct list_node *n) {
-	n->next = n->prev = n;
+	n->next = n->prev = NULL;
 }
 
 /**

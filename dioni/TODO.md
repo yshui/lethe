@@ -12,7 +12,7 @@
 - [ ] Aggregators
   - [x] Event Aggregators
   - [x] Render Aggregators
-  - [ ] Collision aggregator (register collision box)
+  - [x] Collision aggregator (register collision box)
 - [ ] Nil state to stop actor
 - [ ] A way to delete particle
 - [x] Vertice definition

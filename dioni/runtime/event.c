@@ -3,7 +3,12 @@
 #define EVENT_POOL_SIZE 100
 struct list_head event_queue = {&event_queue.n, &event_queue.n};
 
-objpool_def(struct event, 100, event, q)
+void init_event(struct event *e) {
+	list_node_init(&e->q);
+}
+
+objpool_def(struct event, 100, event, q, init_event)
+
 
 void queue_event(struct event *e) {
 	assert(e->q.next == e->q.prev && e->q.next == NULL);
