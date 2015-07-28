@@ -23,12 +23,19 @@
   - [ ] Event with zero parameters (Event() or Event should both be valid)
   - [ ] Take event parameter without match (Event(b) without using match like Event(b==1))
   - [ ] Ignore event parameter (Event(\_))
+- [ ] Random number syntax
 
 # Useful
 * Improve codegen error messages
 
 # Maybe not
 * Entry action of state: Is this really useful?, when should it run (before/after event fence)?
+
+# Random syntax
+
+```
+$(range), e.g. $(1..20) for random interger >= 1 and < 20. $(0.0..1.0) for random real number
+```
 
 # Vertice definition
 
