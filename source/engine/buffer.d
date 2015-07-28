@@ -5,54 +5,7 @@ import derelict.opengl3.gl3;
 import engine.opengl;
 import core.exception;
 import std.typecons;
-
-class BufferMapping(T) {
-	private {
-		T *buf;
-		size_t size;
-		size_t top;
-		GLBuffer src;
-	}
-	@property pure nothrow @nogc size_t n() {
-		return top;
-	}
-	ref T opIndex(size_t i) pure {
-		if (buf is null || i >= size)
-			throw new RangeError();
-		return *(buf+i);
-	}
-	void opIndexAssign(ref T data, size_t i) {
-		opIndex(i) = data;
-	}
-	this(GLBuffer ibuf, GLenum access) {
-		import std.stdio;
-		ibuf.bind();
-		buf = cast(T*)glMapBuffer(ibuf._target, access);
-		size = ibuf._size/T.sizeof;
-		src = ibuf;
-	}
-	@property nothrow pure ref T last() {
-		import std.conv;
-		assert(top < size, to!string(top));
-		if (top >= size)
-			throw new RangeError();
-		return *(buf+top);
-	}
-	nothrow pure @nogc void bump() {
-		top++;
-	}
-	void unmap() {
-		if (buf is null)
-			return;
-		assert(src !is null);
-		src.bind();
-		glUnmapBuffer(src._target);
-		buf = null;
-	}
-	~this() {
-		unmap();
-	}
-}
+import dioni;
 
 /// OpenGL Buffer wrapper.
 final class GLBuffer {
@@ -102,14 +55,21 @@ final class GLBuffer {
 		@property GLuint handle() pure const nothrow @nogc {
 			return _buffer;
 		}
-		auto map(T)(GLenum access) {
-			return scoped!(BufferMapping!T)(this, access);
+		void dioni_buf_bind(T)() {
+			void *buf = glMapBuffer(_target, GL_WRITE_ONLY);
+			assert(_size % T.sizeof == 0);
+			render_queue_bind_buf(0, buf, _size/T.sizeof);
 		}
-		auto read_map(T)() {
-			return map!T(GL_READ_ONLY);
+		void dioni_buf_unbind() {
+			render_queue_bind_buf(0, null, 0);
 		}
-		auto write_map(T)() {
-			return map!T(GL_WRITE_ONLY);
+		void dioni_indices_bind() {
+			void *buf = glMapBuffer(_target, GL_WRITE_ONLY);
+			assert(_size % GLuint.sizeof == 0);
+			render_queue_bind_indices(0, cast(uint*)buf, _size/GLuint.sizeof);
+		}
+		void dioni_indices_unbind() {
+			render_queue_bind_indices(0, null, 0);
 		}
 	}
 

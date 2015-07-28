@@ -51,6 +51,13 @@ import sdpc;
 		throw new Exception("GCC failed to compile statefn.c");
 	outputs ~= ["build-dioni/statefn.c.o"];
 
+	//Compile particle_interface.c
+	gcc = execute(["gcc", gen_dir~"/particle_interface.c", "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", "build-dioni/particle_interface.c.o"]);
+	write(gcc.output);
+	if (gcc.status != 0)
+		throw new Exception("GCC failed to compile particle_interface.c");
+	outputs ~= ["build-dioni/particle_interface.c.o"];
+
 	//Create archive
 	auto ar = execute(["ar", "rcs", "libscript.a"]~outputs);
 	writeln(ar.output);
@@ -83,6 +90,7 @@ import sdpc;
 	auto mainf = File(gen_prefix~"/statefn.c", "w");
 	auto defsf = File(gen_prefix~"/defs.h", "w");
 	auto pf = File(gen_prefix~"/particle_creation.h", "w");
+	auto pinf = File(gen_prefix~"/particle_interface.c", "w");
 	auto exf = File(gen_prefix~"/export.h", "w");
 	auto dinf = File(gen_prefix~"/d_interface.d", "w");
 	Symbols global = new Symbols(null);
@@ -132,11 +140,13 @@ import sdpc;
 	mainf.writeln("#include \"defs.h\"\n");
 	mainf.writeln("#include \"particle_creation.h\"\n");
 	pf.writeln("#include \"defs.h\"\n");
+	pinf.writeln("#include \"defs.h\"\n");
 
 	auto punion = "union particle_variants {\n";
 	auto eunion = "union event_variants {\n";
 	auto d_eunion = "union dioniEventVariant {\n";
 	auto d_eenum = "enum dioniEventType {\n";
+	auto d_pfn = "extern(C) {\n";
 	foreach(pd; r) {
 		auto p  = cast(Particle)pd,
 		     e  = cast(Event)pd,
@@ -150,7 +160,9 @@ import sdpc;
 			//defsf.writeln(p.c_create(true));
 			mainf.writeln(p.c_code);
 			mainf.writeln(p.c_run);
-			pf.writeln(p.c_create);
+			pf.writeln(p.c_create(true));
+			pinf.writeln(p.c_create(false));
+			d_pfn ~= "\t"~p.d_create_proto;
 			punion ~= "struct "~p.symbol~" "~p.symbol~";\n";
 			pcnt ++;
 		} else if (e !is null) {
@@ -175,6 +187,7 @@ import sdpc;
 	exf.writeln(eunion~"};\n");
 	dinf.writeln(d_eunion~"}\n");
 	dinf.writeln(d_eenum~"}\n");
+	dinf.writeln(d_pfn~"}\n");
 	exf.writeln("#define MAX_TAG_ID "~to!string(tcnt)~"\n");
 	exf.writeln("#define MAX_PARTICLE_ID "~to!string(pcnt)~"\n");
 	exf.writeln("#define RENDER_QUEUE_MEMBER_SIZES { VERTEX_ballv_SIZE }");
@@ -183,6 +196,7 @@ import sdpc;
 	mainf.close();
 	defsf.close();
 	dinf.close();
+	pinf.close();
 
 	compile(gen_prefix);
 }

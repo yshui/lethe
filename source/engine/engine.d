@@ -49,9 +49,7 @@ import core.memory;
 alias VA = VertexArray!vertex_ballv;
 class Engine(int n, int m, Uniforms)
 if (is(Uniforms == struct) || is(Uniforms == class)) {
-	int next_frame() { return 0; };
 	int handle_event(ref SDL_Event) { return 0; };
-	size_t gen_scene(VAMap va, IMap ibuf) { return 0; };
 	bool quitting;
 	@property int width() const {
 		return _width;
@@ -132,16 +130,14 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 			queue_event(ev);
 			ev = null; //Prevent GC from collecting malloc memory
 
-			//bind_render_queue(...);
+			va.dioni_buf_bind();
+			ibuf.dioni_indices_bind();
 
 			tick_start();
 
-			size_t scene_size;
-			{
-				auto vab = va.map(GL_WRITE_ONLY);
-				auto ib = ibuf.write_map!GLuint();
-				scene_size = gen_scene(vab, ib);
-			}
+			va.dioni_buf_unbind();
+			ibuf.dioni_indices_unbind();
+
 			glViewport(0, 0, _width, _height);
 			glClearColor(0,0,0,1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
@@ -149,6 +145,8 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 			prog.use();
 			ibuf.bind();
 			va.bind();
+
+			auto scene_size = render_queue_get_nind(0);
 			glDrawElements(GL_TRIANGLES, cast(int)scene_size, GL_UNSIGNED_INT, cast(const(void *))0);
 			va.unbind();
 			ibuf.unbind();
@@ -199,6 +197,4 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		GLBuffer ibuf;
 	}
 	protected Uniforms u;
-	alias VAMap = BufferMapping!vertex_ballv;
-	alias IMap = BufferMapping!GLuint;
 }

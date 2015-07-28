@@ -1,4 +1,5 @@
 #pragma once
+#include <stdlib.h>
 #define objpool_def(type, pool_size, name, field) \
 static type *name##_pool = NULL; \
 static int name##_water_mark = 0; \

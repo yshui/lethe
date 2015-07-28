@@ -166,11 +166,13 @@ class Particle : Decl {
 		}
 		return res;
 	}
-	string c_create(bool prototype_only=false) const {
+	string c_create(bool inline, bool prototype_only=false) const {
 		string res = "";
 		if (ctor !is null)
 			res ~= ctor.c_code(s, prototype_only)~"\n";
-		res ~= "static inline int new_particle_"~name~"(";
+		if (inline)
+			res ~= "static inline ";
+		res ~= "int new_particle_"~name~"(";
 		if (ctor !is null)
 			foreach(i, p; ctor.param_def) {
 				if (i != 0)
@@ -196,6 +198,16 @@ class Particle : Decl {
 		res ~= "\nreturn get_particle_id(__p);";
 		res ~= "\n}\n";
 		return res;
+	}
+	string d_create_proto() const {
+		string res = "int new_particle_"~name~"(";
+		if (ctor !is null)
+			foreach(i, p; ctor.param_def) {
+				if (i != 0)
+					res ~= ", ";
+				res ~= p.ty.d_type~" "~p.symbol;
+			}
+		return res~");\n";
 	}
 	string c_run(bool prototype_only=false) const {
 		string res = format("int run_particle_%s(struct %s *__current,"~

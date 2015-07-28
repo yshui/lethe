@@ -121,7 +121,10 @@ class VertexArray(Vertex) {
 	~this() {
 		glDeleteVertexArrays(1, &vao);
 	}
-	auto map(GLenum access) {
-		return buf.map!Vertex(access);
+	void dioni_buf_bind() {
+		buf.dioni_buf_bind!Vertex();
+	}
+	void dioni_buf_unbind() {
+		buf.dioni_buf_unbind();
 	}
 }

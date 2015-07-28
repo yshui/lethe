@@ -1,5 +1,6 @@
 module collision.collision;
 import collision;
+import collision.spatial_hash;
 import gfm.math;
 enum hb_threshold = 10;
 struct SimpleHBP {
@@ -37,7 +38,7 @@ class CollisionRangeS : CollisionRange{
 	override pure nothrow @nogc void popFront() {
 		indexloop: do {
 			index++;
-			if (ct.hb[index].p is self)
+			if (ct.hb[index].id == self)
 				continue;
 			foreach(i; 0..aabb.length) {
 				if (!aabb[i].intersects(ct.hb[index].aabb))

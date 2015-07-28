@@ -3,13 +3,12 @@ import gfm.sdl2;
 import gfm.logger;
 import gfm.math;
 import engine;
-import scene.scene,
-       scene.balls;
 //import std.algorithm;
 import std.random;
 import std.math;
 import derelict.opengl3.gl3;
 import std.experimental.logger;
+import dioni;
 
 struct uni {
 	GLTexture2D tex;
@@ -21,8 +20,6 @@ enum np = 4100;
 
 class EngineM : Engine!(np*4, np*6, uni) {
 	private {
-		alias S = Scene!(np, np);
-		S scene;
 		GLTexture tex;
 	}
 	this(Logger logger, int w, int h) {
@@ -33,10 +30,7 @@ class EngineM : Engine!(np*4, np*6, uni) {
 		u.tex.setMagFilter(GL_LINEAR);
 		u.w = w;
 		u.h = h;
-	}
-	override int next_frame() {
-		scene.update();
-		return 0;
+		new_particle_Bootstrap();
 	}
 	override int handle_event(ref SDL_Event e) {
 		switch (e.type) {
@@ -49,9 +43,6 @@ class EngineM : Engine!(np*4, np*6, uni) {
 			break;
 		}
 		return 0;
-	}
-	override size_t gen_scene(VAMap vab, IMap ib) {
-		return scene.gen_scene(vab, ib);
 	}
 
 }

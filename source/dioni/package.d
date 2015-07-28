@@ -24,4 +24,8 @@ extern(C) {
 	int tick_start();
 	void queue_event(dioniEvent *e);
 	dioniEvent *alloc_event();
+	void render_queue_bind_buf(int index, void *buf, size_t cap);
+	void render_queue_bind_indices(int index, uint *buf, size_t cap);
+	int render_queue_get_nvert(int index);
+	int render_queue_get_nind(int index);
 }

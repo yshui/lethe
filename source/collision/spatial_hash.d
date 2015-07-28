@@ -85,7 +85,7 @@ class SpatialRange(int w, int h) : CollisionRange{
 		}
 	}
 	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, int self_id) {
-		self = iself;
+		self = self_id;
 		hitbox = hb;
 		sh = ish;
 		nowi = 0;
