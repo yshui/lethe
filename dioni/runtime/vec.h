@@ -1,7 +1,7 @@
 #pragma once
 #include <stdbool.h>
 struct vec2 {
-	double x, y;
+	float x, y;
 };
 
 static inline struct vec2
