@@ -19,9 +19,8 @@ struct uni {
 enum np = 4100;
 
 class EngineM : Engine!(np*4, np*6, uni) {
-	private {
-		GLTexture tex;
-	}
+	private GLTexture tex;
+
 	this(Logger logger, int w, int h) {
 		super(logger, w, h);
 		//new_particle_Bootstrap();

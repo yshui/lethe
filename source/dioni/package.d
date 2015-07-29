@@ -47,7 +47,6 @@ struct dioniEvent {
 }
 
 extern(C) {
-	dioniParticle *dioni_get_particle_by_id(int);
 	int tick_start();
 	void queue_event(dioniEvent *e);
 	dioniEvent* alloc_event();
@@ -57,4 +56,6 @@ extern(C) {
 	int render_queue_get_nind(int index);
 	dioniHitbox* harvest_hitboxes(dioniParticle*);
 	dioniHitbox* next_hitbox(dioniHitbox*);
+	dioniParticle* first_particle();
+	dioniParticle* next_particle(dioniParticle*);
 }

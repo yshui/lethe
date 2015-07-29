@@ -1,28 +1,32 @@
 #include <particle.h>
 #include <list.h>
-#define MAX_PARTICLE 1000
-static struct particle p[MAX_PARTICLE];
-static struct particle *freep[MAX_PARTICLE];
-static int nparticle, fparticle;
+#include <objpool.h>
 
+struct list_head all_particles = LIST_HEAD_INIT(all_particles);
 struct list_head changed_particles = LIST_HEAD_INIT(changed_particles);
-struct particle *alloc_particle(void) {
-	if (fparticle)
-		return freep[--fparticle];
-	return &p[nparticle++];
+
+void init_particle(struct particle *p) {
+	list_head_init(&p->hitboxes);
+	list_head_init(&p->actors);
+	list_node_init(&p->next_changed);
+	list_node_init(&p->q);
+	p->changed = false;
+	list_add(&all_particles, &p->q);
 }
-void free_particle(struct particle *p) {
-	freep[fparticle++] = p;
-}
-int get_particle_id(struct particle *ip) {
-	return ip-&p[0];
-}
-struct particle *get_particle_by_id(int id) {
-	return p+id;
-}
+
+objpool_def(struct particle, 1000, particle, q, init_particle)
+
 void mark_particle_as_changed(struct particle *p) {
 	if (p->changed)
 		return;
 	p->changed = true;
 	list_add(&changed_particles, &p->next_changed);
+}
+struct particle *next_particle(struct particle *p) {
+	if (p->q.next == (void *)&all_particles)
+		return NULL;
+	return list_entry(p->q.next, struct particle, q);
+}
+struct particle *first_particle(void) {
+	return list_entry(all_particles.n.next, struct particle, q);
 }

@@ -172,7 +172,7 @@ class Particle : Decl {
 			res ~= ctor.c_code(s, prototype_only)~"\n";
 		if (inline)
 			res ~= "static inline ";
-		res ~= "int new_particle_"~name~"(";
+		res ~= "size_t new_particle_"~name~"(";
 		if (ctor !is null)
 			foreach(i, p; ctor.param_def) {
 				if (i != 0)
@@ -184,10 +184,6 @@ class Particle : Decl {
 
 		res ~= ") {\n";
 		res ~= "struct particle *__p = alloc_particle();\n__p->current = 0;\n";
-		res ~= "list_head_init(&__p->actors);\n";
-		res ~= "list_head_init(&__p->hitboxes);\n";
-		res ~= "list_node_init(&__p->next_changed);\n";
-		res ~= "__p->changed = false;\n";
 		res ~= "__p->type = PARTICLE_"~name~";\n";
 		res ~= q{struct }~name~q{ *__current = &__p->data[0].}~name;
 		res ~= q{, *__next = (void *)&__p->data[1].}~name~";";
@@ -198,12 +194,12 @@ class Particle : Decl {
 				res ~= ", "~p;
 			res ~= ");";
 		}
-		res ~= "\nreturn get_particle_id(__p);";
+		res ~= "\nreturn (size_t)__p;";
 		res ~= "\n}\n";
 		return res;
 	}
 	string d_create_proto() const {
-		string res = "int new_particle_"~name~"(";
+		string res = "size_t new_particle_"~name~"(";
 		if (ctor !is null)
 			foreach(i, p; ctor.param_def) {
 				if (i != 0)
