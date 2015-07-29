@@ -25,6 +25,7 @@ particle Ball {
 		nextState = Update;
 	};
 	state Move @ Collide(Ball(x)) {
+		line = x.center - center;
 		nextState = Move;
 	};
 	>(center, velocity, r) {

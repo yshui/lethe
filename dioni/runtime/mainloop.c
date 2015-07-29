@@ -60,8 +60,11 @@ int tick_start(void) {
 				default:
 					assert(false);
 				}
-				if (matched)
-					run_particle_with_event(ai, ei);
+				if (matched) {
+					int nstate = run_particle_with_event(ai, ei);
+					if (nstate != NOT_HANDLED)
+						ai->state = nstate;
+				}
 			}
 		}
 		count++;

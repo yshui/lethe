@@ -23,3 +23,8 @@ static inline struct vec2
 vec2_add(struct vec2 a, struct vec2 b) {
 	return (struct vec2) {a.x+b.x, a.y+b.y};
 }
+
+static inline struct vec2
+vec2_sub(struct vec2 a, struct vec2 b) {
+	return (struct vec2) {a.x-b.x, a.y-b.y};
+}
