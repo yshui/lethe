@@ -47,6 +47,6 @@ vec2_dot(struct vec2 a, struct vec2 b) {
 
 static inline struct vec2
 vec2_div1(struct vec2 a, float b) {
-	return (struct vec2) {a.x*b, a.y*b};
+	return (struct vec2) {a.x/b, a.y/b};
 }
 
