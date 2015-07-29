@@ -78,6 +78,7 @@ private void gen_collision(CollisionTarget ct) {
 		}
 		foreach(ref hb; hbs)
 			ct.insert_hitbox(hb, p);
+		p = next_particle(p);
 	}
 }
 import core.memory;

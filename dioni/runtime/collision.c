@@ -7,11 +7,14 @@ void init_hitbox(struct hitbox *h) {
 objpool_def(struct hitbox, 1000, hitbox, q, init_hitbox)
 
 struct hitbox *harvest_hitboxes(struct particle *p) {
-	struct hitbox *h = list_top(&p->hitboxes, struct hitbox, q);
-	list_head_init(&p->hitboxes);
+	if (list_empty(&p->hitboxes))
+		return NULL;
 
-	struct hitbox *lasth = list_tail(&p->hitboxes, struct hitbox, q);
+	struct hitbox *h = list_top(&p->hitboxes, struct hitbox, q),
+		      *lasth = list_tail(&p->hitboxes, struct hitbox, q);
 	lasth->q.next = NULL;
+
+	list_head_init(&p->hitboxes);
 	return h;
 }
 

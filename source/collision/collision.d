@@ -30,15 +30,18 @@ class CollisionRangeS : CollisionRange{
 	~this() {
 		aabb.length = 0;
 	}
-	override pure nothrow @nogc bool empty() {
-		return index < ct.hbcnt;
+	override nothrow bool empty() {
+		return index >= ct.hbcnt;
 	}
 	override pure nothrow @nogc dioniParticle* front() {
 		return ct.hb[index].p;
 	}
-	override pure nothrow @nogc void popFront() {
+	override nothrow void popFront() {
+		assert(!empty());
 		indexloop: do {
 			index++;
+			if (index >= ct.hbcnt)
+				break;
 			if (ct.hb[index].p is self)
 				continue;
 			foreach(i; 0..aabb.length) {
