@@ -1,4 +1,5 @@
 # Must
+- [ ] Get rid of particle->\_\_id
 - [x] Deferred variable assign (var = ?)
 - [x] Make sure nextState is defined on exit
 - [x] Generate state transition functions
