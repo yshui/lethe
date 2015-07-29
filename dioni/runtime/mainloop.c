@@ -6,9 +6,33 @@
 #include <particle.h>
 #include <tag.h>
 #include <string.h>
+#include <stdio.h>
 int run_particle_with_event(struct actor *a, struct event *e);
 
-static inline void propagate_particle_data() {
+static inline void dump_event_queue(void) {
+	struct event *ei;
+	list_for_each(&event_queue, ei, q) {
+		switch(ei->tgtt) {
+		case GLOBAL:
+			printf("Global\n");
+			break;
+		case FENCE:
+			printf("Fence\n");
+			break;
+		case PARTICLE:
+			printf("Particle\n");
+			break;
+		case PARTICLE_TYPE:
+			printf("Particle type\n");
+			break;
+		case TAG:
+			printf("Tag\n");
+			break;
+		}
+	}
+}
+
+static inline void propagate_particle_data(void) {
 	struct particle *pi, *nxt;
 	list_for_each_safe(&changed_particles, pi, nxt, next_changed) {
 		pi->changed = false;
@@ -24,6 +48,7 @@ int tick_start(void) {
 	if (list_empty(&event_queue))
 		return 0;
 	event_fence();
+	//dump_event_queue();
 
 	int count = 0;
 	while(!list_empty(&event_queue)) {
@@ -32,7 +57,9 @@ int tick_start(void) {
 		if (ei->tgtt == FENCE) {
 			propagate_particle_data();
 			//If there're event been generated, put a fence
-			if (!list_empty(&event_queue))
+			struct event *laste =
+			       list_tail(&event_queue, struct event, q);
+			if (laste && laste->tgtt != FENCE)
 				event_fence();
 		} else if (ei->tgtt == PARTICLE) {
 			struct particle *p = (void *)ei->target;

@@ -49,6 +49,7 @@ struct dioniEvent {
 extern(C) {
 	int tick_start();
 	void queue_event(dioniEvent *e);
+	void event_fence();
 	dioniEvent* alloc_event();
 	void render_queue_bind_buf(int index, void *buf, size_t cap);
 	void render_queue_bind_indices(int index, uint *buf, size_t cap);

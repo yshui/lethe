@@ -74,6 +74,8 @@ private void gen_collision(CollisionTarget ct) {
 			e.v.Collide.m0 = cast(size_t)p;
 			queue_event(e);
 
+			event_fence();
+
 			e = null;
 		}
 		foreach(ref hb; hbs)

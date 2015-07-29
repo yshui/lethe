@@ -42,7 +42,7 @@ particle Ball {
 }
 particle Bootstrap {
 	>() {
-		loop(i~0..2)
+		loop(i~0..15)
 			`Ball(vec2(i*1, i*40+100), vec2(0.1, -i*0.1), 5);
 	}
 }
