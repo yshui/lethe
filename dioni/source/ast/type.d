@@ -73,7 +73,8 @@ class AnyType : TypeBase { }
 
 class ParticleHandle : TypeBase {
 override :
-	string c_type() const { return "int"; }
+	string c_type() const { return "size_t"; }
+	string d_type() const { return "size_t"; }
 	TypeBase dup() const { return new ParticleHandle; }
 	string str() const { return "ParticleHandle"; }
 	bool opEquals(const(TypeBase) o) const {
@@ -82,8 +83,6 @@ override :
 	string c_cast(const(TypeBase) target, string code) const {
 		if (target.type_match!ParticleHandle)
 			return code;
-		if (target.type_match!AnyParticle)
-			return "get_particle_by_id("~code~")";
 		assert(false);
 	}
 }
@@ -109,8 +108,8 @@ class Type(T) : TypeBase
 override :
 	string c_cast(const(TypeBase) target, string code) const {
 		static if (is(T == Particle)) {
-			if (target.type_match!AnyParticle)
-				return "get_particle_by_id("~code~"->__id)";
+			if (target.type_match!ParticleHandle)
+				return "(size_t)("~code~"->__p)";
 		}
 		auto x = cast(const(Type!T))target;
 		assert(x !is null);
@@ -168,13 +167,6 @@ override :
 			return false;
 		return d == rt.d && is_int == rt.is_int;
 	}
-}
-
-class AnyParticle : TypeBase {
-override :
-	string c_type() const { return "struct particle *"; }
-	string d_type() const { return "dioniParticle *"; }
-	TypeBase dup() const { return new AnyType; }
 }
 
 class Type(T) : TypeBase

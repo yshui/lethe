@@ -23,8 +23,6 @@ int tick_start(void) {
 		return 0;
 	event_fence();
 
-	struct actor *ai;
-	bool delta = true;
 	int count = 0;
 	while(!list_empty(&event_queue)) {
 		struct event *ei = list_top(&event_queue, struct event, q);
@@ -35,7 +33,7 @@ int tick_start(void) {
 			if (!list_empty(&event_queue))
 				event_fence();
 		} else if (ei->tgtt == PARTICLE) {
-			struct particle *p = get_particle_by_id(ei->target);
+			struct particle *p = (void *)ei->target;
 			struct actor *ai;
 			list_for_each(&p->actors, ai, silblings) {
 				if (ai->astate == ACTOR_RUNNING)

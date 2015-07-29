@@ -50,7 +50,7 @@ override :
 					res ~= "__new_event->target = "~vd.c_access~";\n";
 				else
 					//Real particle
-					res ~= "__new_event->target = "~vd.c_access~"->__id;\n";
+					res ~= "__new_event->target = (size_t)"~vd.c_access~"->__p;\n";
 			} else if (pd !is null) {
 				res ~= "__new_event->tgtt = PARTICLE_TYPE;\n";
 				res ~= "__new_event->target = PARTICLE_"~pd.name~";\n";

@@ -1,5 +1,6 @@
 module dioni;
 public import dioni.d_interface;
+import gfm.math;
 
 struct dioniParticle;
 
@@ -39,7 +40,7 @@ struct dioniHitbox {
 
 struct dioniEvent {
 	dioniEventTarget tgtt;
-	int target;
+	size_t target;
 	int event_type;
 	dioniEventVariant v;
 	void*[2] padding;

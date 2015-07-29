@@ -26,8 +26,7 @@ struct particle {
 struct particle *alloc_particle(void);
 void free_particle(struct particle *);
 int get_particle_id(struct particle *);
-struct particle *get_particle_by_id(int);
-void mark_particle_as_changed_by_id(int);
+void mark_particle_as_changed(struct particle *);
 
 extern struct list_head changed_particles;
 

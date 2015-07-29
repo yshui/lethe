@@ -417,15 +417,13 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 				return "number_in_rangef("~c~", "~code[1]~")";
 			}
 		} else if (tagty !is null) {
-			if (ty[0].type_match!ParticleHandle)
-				return "particle_has_tag("~code[0]~", "~code[1]~")";
 			auto part = cast(const(Type!Particle))ty[0];
 			if (part !is null)
 				return "has_tag("~code[0]~"->__tags, "~code[1]~")";
 			else {
-				auto anyp = cast(const(AnyParticle))ty[0];
+				auto anyp = cast(const(ParticleHandle))ty[0];
 				assert(anyp !is null);
-				return "has_tag(&"~code[0]~"->t, "~code[1]~")";
+				return "has_tag(&((struct particle *)"~code[0]~")->t, "~code[1]~")";
 			}
 		}
 	}
@@ -495,7 +493,7 @@ override :
 			}
 		} else if (sd !is null) {
 			ty = new TypeBase;
-			return "create_actor(__current->__id, PARTICLE_"~sd.parent.name~"_STATE_"~sd.name~")";
+			return "create_actor(__current->__p, PARTICLE_"~sd.parent.name~"_STATE_"~sd.name~")";
 		} else if (ed !is null) {
 			assert(param.length == ed.member.length,
 			       "Event "~ed.name~" has "~to!string(ed.member.length)~

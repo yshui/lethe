@@ -17,7 +17,7 @@ enum target_type {
 
 struct event {
 	enum target_type tgtt;
-	int target;
+	size_t target;
 	int event_type;
 	union event_variants e;
 	struct list_node q;

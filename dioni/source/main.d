@@ -31,13 +31,14 @@ import sdpc;
 	mkdir("build-dioni");
 	auto dioni_rt = environment["DIONI_RUNTIME_DIR"];
 	string[] outputs;
+	string[] cflags = ["-Wall"];
 	foreach(file; dirEntries(dioni_rt, SpanMode.shallow)) {
 		import std.path : baseName;
 		import std.string : endsWith;
 		if (!file.name.endsWith(".c"))
 			continue;
 		auto o = "build-dioni/"~baseName(file)~".o";
-		auto gcc = execute(["gcc", file, "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", o]);
+		auto gcc = execute(["gcc", file, "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", o]~cflags);
 		write(gcc.output);
 		if (gcc.status != 0)
 			throw new Exception("GCC failed to compile "~file);
@@ -45,14 +46,14 @@ import sdpc;
 	}
 
 	//Compile statefn.c
-	auto gcc = execute(["gcc", gen_dir~"/statefn.c", "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", "build-dioni/statefn.c.o"]);
+	auto gcc = execute(["gcc", gen_dir~"/statefn.c", "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", "build-dioni/statefn.c.o"]~cflags);
 	write(gcc.output);
 	if (gcc.status != 0)
 		throw new Exception("GCC failed to compile statefn.c");
 	outputs ~= ["build-dioni/statefn.c.o"];
 
 	//Compile particle_interface.c
-	gcc = execute(["gcc", gen_dir~"/particle_interface.c", "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", "build-dioni/particle_interface.c.o"]);
+	gcc = execute(["gcc", gen_dir~"/particle_interface.c", "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", "build-dioni/particle_interface.c.o"]~cflags);
 	write(gcc.output);
 	if (gcc.status != 0)
 		throw new Exception("GCC failed to compile particle_interface.c");
@@ -134,6 +135,7 @@ import sdpc;
 	defsf.writeln("#include <render.h>");
 	defsf.writeln("#include <collision.h>");
 	exf.writeln("#pragma once\n");
+	exf.writeln("#include <stddef.h>");
 	exf.writeln("#include <vec.h>");
 	exf.writeln("#define N_RENDER_QUEUES 1\n"); //XXX Place holder
 	exf.writeln("struct event;\nstruct particle;\n");

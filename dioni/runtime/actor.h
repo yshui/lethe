@@ -32,9 +32,9 @@ static inline void activate_actor(struct actor *a) {
 	a->astate = ACTOR_RUNNING;
 }
 
-static inline void create_actor(int id, int state) {
+static inline void create_actor(struct particle *p, int state) {
 	struct actor *na = alloc_actor();
-	na->owner = get_particle_by_id(id);
+	na->owner = p;
 	na->state = state;
 	na->astate = ACTOR_NEW;
 	activate_actor(na);

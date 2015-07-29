@@ -55,31 +55,29 @@ class EventParameter {
 	}
 	string c_code_match(string emem, const(TypeBase) ty, Symbols s) const {
 		if (pm !is null) {
-			assert(ty.type_match!AnyParticle);
+			assert(ty.type_match!ParticleHandle);
 			auto var = new Var(new Type!Particle(pm.particle, s),
 					   new EventAggregator, pm.var.name);
 			s.insert(var);
-			return "("~emem~"->type == PARTICLE_"~pm.particle~")";
+			return "(((struct particle *)"~emem~")->type == PARTICLE_"~pm.particle~")";
 		}
 		assert(cmp !is null);
 		auto lv = cast(const(VarVal))cmp.lhs;
 		TypeBase rty;
 		auto rcode = cmp.rhs.c_code(s, rty);
-		const(TypeBase) nty = ty.type_match!AnyParticle ? new ParticleHandle : ty;
-		const(Aggregator) nagg = ty.type_match!AnyParticle ? new EventAggregator : null;
-		auto var = new Var(nty, nagg, lv.name);
+		const(Aggregator) nagg = ty.type_match!ParticleHandle ? new EventAggregator : null;
+		auto var = new Var(ty, nagg, lv.name);
 		s.insert(var);
 		return c_match([emem, rcode], [ty, cast(const(TypeBase))rty], cmp.op);
 	}
 
 	string c_code_assign(string emem, const(TypeBase) ty) const {
+		auto cemem = "((struct particle *)"~emem~")";
 		if (pm !is null) {
-			auto c = emem~"->data["~emem~"->current"~"]";
+			auto c = cemem~"->data["~cemem~"->current"~"]";
 			return pm.var.name~"=&"~c~"."~pm.particle~";\n";
 		}
 		auto lv = cast(const(VarVal))cmp.lhs;
-		if (ty.type_match!AnyParticle)
-			return lv.name~"=get_particle_id("~emem~");\n";
 		return lv.name~"="~emem~";\n";
 	}
 }
@@ -163,7 +161,7 @@ class StateTransition {
 		res ~= scode;
 
 		if (changed)
-			res ~= "mark_particle_as_changed_by_id(__current->__id);\n";
+			res ~= "mark_particle_as_changed(__current->__p);\n";
 
 		res ~= "return nextState;\n";
 		res ~= "}\n";

@@ -20,9 +20,9 @@ int get_particle_id(struct particle *ip) {
 struct particle *get_particle_by_id(int id) {
 	return p+id;
 }
-void mark_particle_as_changed_by_id(int id) {
-	if (p[id].changed)
+void mark_particle_as_changed(struct particle *p) {
+	if (p->changed)
 		return;
-	p[id].changed = true;
-	list_add(&changed_particles, &p[id].next_changed);
+	p->changed = true;
+	list_add(&changed_particles, &p->next_changed);
 }
