@@ -83,7 +83,7 @@ class BinOP : Expr {
 					assert(0);
 			}
 			switch(resd) {
-				foreach(i; StaticRange!(2, 5)) {
+				foreach(i; Iota!(2, 5)) {
 					case i:
 						return new Type!(float, i); //Vector must be float
 				}
@@ -351,13 +351,13 @@ class Vec(int dim) : Expr if (dim >= 2) {
 	@safe this(Expr[] xelem) {
 		_header = "Vec"~to!string(dim)~"(";
 		assert(xelem.length >= dim);
-		foreach(i; StaticRange!(0, dim))
+		foreach(i; Iota!(0, dim))
 			elem[i] = xelem[i];
 	}
 override :
 	string str() const {
 		auto res = _header.dup;
-		foreach(i; StaticRange!(0, dim-1))
+		foreach(i; Iota!(0, dim-1))
 			res ~= elem[i].str ~ ", ";
 		res ~= elem[dim-1].str ~ ")";
 		return res;

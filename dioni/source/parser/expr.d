@@ -121,7 +121,7 @@ auto parse_vec(Stream i) {
 	Expr a = null;
 	int d = to!int(r.result!1);
 Ld:     switch(d) {
-		foreach(di; StaticRange!(2, 5)) {
+		foreach(di; Iota!(2, 5)) {
 			case di:
 				a = new Vec!di([r.result!3, r.result!5]);
 				break Ld;
