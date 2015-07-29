@@ -26,6 +26,13 @@ particle Ball {
 	};
 	state Move @ Collide(Ball(x)) {
 		line = x.center - center;
+		dist = line *: line;
+		vm = line *. velocity / dist;
+		vo = line *. x.velocity / dist;
+		if (vo-vm <= 0.0) {
+			tmpv = velocity-vm*line/dist;
+			velocity <- tmpv+vo*line/dist;
+		}
 		nextState = Move;
 	};
 	>(center, velocity, r) {
@@ -35,7 +42,7 @@ particle Ball {
 }
 particle Bootstrap {
 	>() {
-		loop(i~1..100)
-			`Ball(vec2(i*4, i*4), vec2(0.1, 0), 5);
+		loop(i~0..2)
+			`Ball(vec2(i*1, i*40+100), vec2(0.1, -i*0.1), 5);
 	}
 }

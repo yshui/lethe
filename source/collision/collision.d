@@ -20,24 +20,24 @@ class CollisionRangeS : CollisionRange{
 
 	pure nothrow this(CollisionTarget xct, const(Hitbox)[] hb, dioniParticle* p) {
 		ct = xct;
-		index = 0;
 		self = p;
 		hitbox = hb;
 		aabb.length = hb.length;
 		foreach(i; 0..hb.length)
 			aabb[i] = hb[i].aabb;
+		index = -1;
+		popFront();
 	}
 	~this() {
 		aabb.length = 0;
 	}
-	override nothrow bool empty() {
+	override pure nothrow bool empty() {
 		return index >= ct.hbcnt;
 	}
 	override pure nothrow @nogc dioniParticle* front() {
 		return ct.hb[index].p;
 	}
-	override nothrow void popFront() {
-		assert(!empty());
+	override pure nothrow void popFront() {
 		indexloop: do {
 			index++;
 			if (index >= ct.hbcnt)

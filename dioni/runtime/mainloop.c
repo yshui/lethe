@@ -5,6 +5,7 @@
 #include <actor.h>
 #include <particle.h>
 #include <tag.h>
+#include <string.h>
 int run_particle_with_event(struct actor *a, struct event *e);
 
 static inline void propagate_particle_data() {
@@ -12,6 +13,7 @@ static inline void propagate_particle_data() {
 	list_for_each_safe(&changed_particles, pi, nxt, next_changed) {
 		pi->changed = false;
 		pi->current = !pi->current;
+		pi->data[!pi->current] = pi->data[pi->current];
 		list_del(&pi->next_changed);
 	}
 }

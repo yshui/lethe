@@ -196,6 +196,7 @@ class Particle : Decl {
 				res ~= ", "~p;
 			res ~= ");";
 		}
+		res ~= "\n*__next = *__current;";
 		if (internal)
 			res ~= "\nreturn (size_t)__p;";
 		else
@@ -219,14 +220,15 @@ class Particle : Decl {
 		    name, name, name);
 		if (prototype_only)
 			return res~";\n";
-		//First, let's propagate data from __current to __next
 		res ~= " {\n";
+		/*
 		foreach(d; s.table) {
+			//First, let's propagate data from __current to __next
 			auto vd = cast(const(Var))d;
 			if (vd is null)
 				continue;
 			res ~= "\t"~vd.ty.c_copy(vd.c_access, vd.c_access(true))~";\n";
-		}
+		}*/
 		res ~= "\tswitch(state) {\n";
 		foreach(d; s.table) {
 			auto sd = cast(const(State))d;

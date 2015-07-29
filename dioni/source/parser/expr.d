@@ -67,7 +67,7 @@ auto parse_term(Stream i){
 	auto r = chain!(
 		parse_primary,
 		build_expr_tree,
-		choice!(token_ws!"*", token_ws!"/")
+		choice!(token_ws!"/", token_ws!"*:", token_ws!"*.", token_ws!"*")
 	)(i);
 	r.r.name = "term";
 	return r;

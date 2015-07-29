@@ -79,9 +79,15 @@ class BinOP : Expr {
 					assert(ld == rd || rd == 1);
 					resd = ld;
 					break;
+				case "*:": case "*.":
+					assert(ld == rd);
+					resd = 1;
+					break;
 				default:
 					assert(0);
 			}
+			if (resd == 1)
+				return new Type!float;
 			switch(resd) {
 				foreach(i; Iota!(2, 5)) {
 					case i:
@@ -115,17 +121,21 @@ override :
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		TypeBase lty, rty;
 		auto lcode = lhs.c_code(s, lty), rcode = rhs.c_code(s, rty);
+		int dim;
 		ty = gen_type(lty, rty, op);
-		if (ty.dimension != 1) {
+		if (lty.dimension > 1 || rty.dimension > 1) {
 			string suffix = "";
 			final switch(op) {
 			case "+":
 				suffix = "add";
+				dim = ty.dimension;
 				break;
 			case "-":
 				suffix = "sub";
+				dim = ty.dimension;
 				break;
 			case "*":
+				dim = ty.dimension;
 				if (rty.dimension == 1)
 					suffix = "muln1";
 				else if (lty.dimension == 1)
@@ -134,13 +144,22 @@ override :
 					suffix = "mul";
 				break;
 			case "/":
+				dim = ty.dimension;
 				if (rty.dimension == 1)
 					suffix = "div1";
 				else
 					suffix = "div";
 				break;
+			case "*:":
+				dim = lty.dimension;
+				suffix = "dotsqrt";
+				break;
+			case "*.":
+				dim = lty.dimension;
+				suffix = "dot";
+				break;
 			}
-			return assumeWontThrow(format("vec%s_%s(%s, %s)", ty.dimension, suffix,
+			return assumeWontThrow(format("vec%s_%s(%s, %s)", dim, suffix,
 					       lcode, rcode));
 		}
 		return assumeWontThrow(format("(%s%s%s)", lcode, op, rcode));

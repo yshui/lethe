@@ -176,7 +176,7 @@ override :
 		static if (!is(T == bool))
 			if (target.type_match!(Type!float))
 				return code;
-		assert(target.type_match!(Type!T));
+		assert(target.type_match!(Type!T), typeid(target).toString~"!="~T.stringof);
 		return code;
 	}
 	int dimension() const {
