@@ -16,6 +16,7 @@ import derelict.sdl2.types;
 import derelict.opengl3.gl,
        derelict.opengl3.gl3;
 import dioni;
+import collision;
 auto event_range(SDL2 sdl2) {
 	struct SDL2EventRange {
 		SDL_Event event;
@@ -45,10 +46,45 @@ private void gen_format(uint type, SDL_PixelFormat *x) {
 	x.BytesPerPixel = x.BitsPerPixel/8;
 	x.palette = null;
 }
+private void gen_collision(CollisionTarget ct) {
+	ct.reinitialize();
+	auto p = first_particle();
+	while(p !is null) {
+		auto dioni_hb = harvest_hitboxes(p);
+		Hitbox[] hbs;
+		while(dioni_hb !is null) {
+			auto hb = Hitbox(dioni_hb);
+			hbs ~= [hb];
+			dioni_hb = next_hitbox(dioni_hb);
+		}
+		dioni_hb = null;
+		auto cr = ct.query(hbs, p);
+		foreach(col; cr) {
+			auto e = alloc_event();
+			e.tgtt = dioniEventTarget.Particle;
+			e.target = cast(size_t)p;
+			e.event_type = dioniEventType.Collide;
+			e.v.Collide.m0 = cast(size_t)col;
+			queue_event(e);
+
+			e = alloc_event();
+			e.tgtt = dioniEventTarget.Particle;
+			e.target = cast(size_t)col;
+			e.event_type = dioniEventType.Collide;
+			e.v.Collide.m0 = cast(size_t)p;
+			queue_event(e);
+
+			e = null;
+		}
+		foreach(ref hb; hbs)
+			ct.insert_hitbox(hb, p);
+	}
+}
 import core.memory;
 alias VA = VertexArray!vertex_ballv;
 class Engine(int n, int m, Uniforms)
 if (is(Uniforms == struct) || is(Uniforms == class)) {
+	private CollisionTarget ct;
 	int handle_event(ref SDL_Event) { return 0; };
 	bool quitting;
 	@property int width() const {
@@ -84,6 +120,8 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glBlendEquation(derelict.opengl3.constants.GL_FUNC_ADD);
 		gl.runtimeCheck();
+
+		ct = new CollisionTarget(w, h);
 	}
 	void load_program(string code) {
 		prog = new GLProgram(gl, code);
@@ -123,6 +161,8 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 				handle_event(e);
 			if (sdl2.wasQuitRequested() || quitting)
 				break;
+
+			gen_collision(ct);
 
 			auto ev = alloc_event();
 			ev.tgtt = dioniEventTarget.Global;

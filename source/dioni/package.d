@@ -29,12 +29,12 @@ struct dioniHitboxBall {
 struct dioniHitbox {
 	dioniHitboxType type;
 
-	private union Hitbox{
+	private union _Hitbox{
 		dioniHitboxTriangle tri;
 		dioniHitboxBall b;
 	};
 
-	Hitbox hb;
+	_Hitbox hb;
 	void *[2] padding;
 }
 

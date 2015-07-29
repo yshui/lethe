@@ -3,8 +3,9 @@ import collision;
 import gfm.math;
 import std.stdio;
 import std.conv;
+import dioni;
 private struct HitboxPair {
-	int id;
+	dioniParticle* p;
 	Hitbox hb;
 	HitboxPair*[] next;
 	box2f aabb;
@@ -20,15 +21,15 @@ class SpatialRange(int w, int h) : CollisionRange{
 		HitboxPair* head;
 		SpatialHash!(w, h) sh;
 		bool[HitboxPair*] _checked;
-		int self;
+		dioniParticle* self;
 		//int generation; //Incremented every new query
 	}
 	override pure nothrow @nogc bool empty() {
 		return nowi >= hitbox.length;
 	}
-	override pure nothrow @nogc int front() {
+	override pure nothrow @nogc dioniParticle* front() {
 		assert(head !is null);
-		return head.id;
+		return head.p;
 	}
 	pure nothrow @nogc void _popFront() {
 		if (head == null) {
@@ -64,7 +65,7 @@ class SpatialRange(int w, int h) : CollisionRange{
 	private nothrow pure bool qualify() {
 		if (head is null)
 			return false;
-		if (head.id == self)
+		if (head.p is self)
 			return false;
 		if (!head.aabb.intersects(aabbf))
 			return false;
@@ -84,8 +85,8 @@ class SpatialRange(int w, int h) : CollisionRange{
 				break;
 		}
 	}
-	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, int self_id) {
-		self = self_id;
+	this(SpatialHash!(w, h) ish, const(Hitbox)[] hb, dioniParticle* s) {
+		self = s;
 		hitbox = hb;
 		sh = ish;
 		nowi = 0;
@@ -140,7 +141,7 @@ class SpatialHash(int w, int h) {
 		hbcnt = 0;
 		hbp.length = 1;
 	}
-	pure nothrow void insert_hitbox(ref const(Hitbox) hb, int id) {
+	pure nothrow void insert_hitbox(ref const(Hitbox) hb, dioniParticle* p) {
 		auto aabb = whole.intersection(hb.aabb);
 		if (aabb.empty())
 			return;
@@ -149,7 +150,7 @@ class SpatialHash(int w, int h) {
 			hbp.length *= 2;
 
 		HitboxPair* x = &hbp[hbcnt++];
-		x.id = id;
+		x.p = p;
 		x.hb = hb;
 		x.aabb = aabb;
 		auto aabbi = normalize_aabb(aabb, stepv);

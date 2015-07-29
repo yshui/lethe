@@ -2,10 +2,11 @@ module collision.collision;
 import collision;
 import collision.spatial_hash;
 import gfm.math;
+import dioni;
 enum hb_threshold = 10;
 struct SimpleHBP {
 	Hitbox hb;
-	int id;
+	dioniParticle* p;
 	box2f aabb;
 }
 class CollisionRangeS : CollisionRange{
@@ -14,13 +15,13 @@ class CollisionRangeS : CollisionRange{
 		ulong index;
 		box2f[] aabb;
 		const(Hitbox)[] hitbox;
-		int self;
+		dioniParticle* self;
 	}
 
-	pure nothrow this(CollisionTarget xct, const(Hitbox)[] hb, int id) {
+	pure nothrow this(CollisionTarget xct, const(Hitbox)[] hb, dioniParticle* p) {
 		ct = xct;
 		index = 0;
-		self = id;
+		self = p;
 		hitbox = hb;
 		aabb.length = hb.length;
 		foreach(i; 0..hb.length)
@@ -32,13 +33,13 @@ class CollisionRangeS : CollisionRange{
 	override pure nothrow @nogc bool empty() {
 		return index < ct.hbcnt;
 	}
-	override pure nothrow @nogc int front() {
-		return ct.hb[index].id;
+	override pure nothrow @nogc dioniParticle* front() {
+		return ct.hb[index].p;
 	}
 	override pure nothrow @nogc void popFront() {
 		indexloop: do {
 			index++;
-			if (ct.hb[index].id == self)
+			if (ct.hb[index].p is self)
 				continue;
 			foreach(i; 0..aabb.length) {
 				if (!aabb[i].intersects(ct.hb[index].aabb))
@@ -68,27 +69,27 @@ class CollisionTarget {
 		w = W;
 		h = H;
 	}
-	nothrow pure void insert_hitbox(in ref Hitbox xhb, int id) {
+	nothrow pure void insert_hitbox(in ref Hitbox xhb, dioniParticle* p) {
 		if (hbcnt == hb_threshold) {
 			if (sh is null)
 				sh = new SH(w, h);
 			else
 				sh.reinitialize();
 			foreach(x; hb)
-				sh.insert_hitbox(x.hb, x.id);
+				sh.insert_hitbox(x.hb, x.p);
 		}
 		if (hbcnt >= hb_threshold)
-			sh.insert_hitbox(xhb, id);
+			sh.insert_hitbox(xhb, p);
 		else {
 			hb[hbcnt].hb = xhb;
-			hb[hbcnt].id = id;
+			hb[hbcnt].p = p;
 		}
 		hbcnt++;
 	}
-	nothrow pure CollisionRange query(const(Hitbox)[] hb, int self_id) {
+	nothrow pure CollisionRange query(const(Hitbox)[] hb, dioniParticle* p) {
 		if (hbcnt <= hb_threshold)
-			return new CollisionRangeS(this, hb, self_id);
+			return new CollisionRangeS(this, hb, p);
 		else
-			return new SpatialRange!(50, 50)(sh, hb, self_id);
+			return new SpatialRange!(50, 50)(sh, hb, p);
 	}
 }

@@ -1,6 +1,7 @@
 module collision.hitbox;
 import gfm.math;
 import std.math;
+import dioni;
 private pure nothrow @nogc
 bool collide_triangle_circle(in ref Circle c, in ref Triangle t) {
 	if (t.contain(c.center))
@@ -155,22 +156,26 @@ struct Hitbox {
 		Con _c;
 		Type _t;
 	}
-	pure nothrow @nogc this(vec2f c, float r) {
+	private pure nothrow @nogc from_ball(vec2f c, float r) {
 		_t = Type.Circle;
 		_c.c.center = c;
 		_c.c.r = r;
 	}
-	pure nothrow @nogc this(vec2f A, vec2f B, vec2f C) {
-		_t = Type.Triangle;
-		_c.t.point[0] = A;
-		_c.t.point[1] = B;
-		_c.t.point[2] = C;
-	}
-	pure nothrow @nogc this(vec2f[] p) {
+	private pure nothrow @nogc from_triangle(vec2f[] p) {
 		_t = Type.Triangle;
 		_c.t.point[0] = p[0];
 		_c.t.point[1] = p[1];
 		_c.t.point[2] = p[2];
+	}
+	pure nothrow @nogc this(dioniHitbox* hb) {
+		final switch(hb.type) {
+		case dioniHitboxType.Ball:
+			from_ball(hb.hb.b.center, hb.hb.b.r);
+			break;
+		case dioniHitboxType.Triangle:
+			from_triangle(hb.hb.tri.point);
+			break;
+		}
 	}
 	pure nothrow @nogc
 	bool collide(T)(in ref T other) const {

@@ -166,13 +166,15 @@ class Particle : Decl {
 		}
 		return res;
 	}
-	string c_create(bool inline, bool prototype_only=false) const {
+	string c_create(bool internal, bool prototype_only=false) const {
 		string res = "";
 		if (ctor !is null)
 			res ~= ctor.c_code(s, prototype_only)~"\n";
-		if (inline)
-			res ~= "static inline ";
-		res ~= "size_t new_particle_"~name~"(";
+		if (internal)
+			res ~= "static inline size_t ";
+		else
+			res ~= "struct particle *";
+		res ~= "new_particle_"~name~"(";
 		if (ctor !is null)
 			foreach(i, p; ctor.param_def) {
 				if (i != 0)
@@ -194,12 +196,15 @@ class Particle : Decl {
 				res ~= ", "~p;
 			res ~= ");";
 		}
-		res ~= "\nreturn (size_t)__p;";
+		if (internal)
+			res ~= "\nreturn (size_t)__p;";
+		else
+			res ~= "\nreturn __p;";
 		res ~= "\n}\n";
 		return res;
 	}
 	string d_create_proto() const {
-		string res = "size_t new_particle_"~name~"(";
+		string res = "dioniParticle* new_particle_"~name~"(";
 		if (ctor !is null)
 			foreach(i, p; ctor.param_def) {
 				if (i != 0)
