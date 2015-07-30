@@ -60,12 +60,11 @@ import sdpc;
 	outputs ~= ["build-dioni/particle_interface.c.o"];
 
 	//Create archive
-	auto ar = execute(["ar", "rcs", "libscript.a"]~outputs);
+	auto ar = execute(["ld", "-r"]~outputs~["-o", "script.o"]);
 	writeln(ar.output);
 	if (ar.status != 0)
 		throw new Exception("Failed to create archive");
 
-	auto ranlib = execute(["ranlib", "libscript.a"]);
 	rmdirRecurse("build-dioni");
 }
 @safe void main(string[] argv) {

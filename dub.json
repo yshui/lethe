@@ -12,7 +12,7 @@
 		"derelict-gl3" : "*"
 	},
 	"stringImportPaths" : [ "source/shader" ],
-	"buildOptions" : [ "inline" ],
 	"libs" : [ "script" ],
-	"lflags" : [ "-L$PACKAGE_DIR" ]
+	"lflags" : [ "-L$PACKAGE_DIR" ],
+	"targetType" : "staticLibrary"
 }
