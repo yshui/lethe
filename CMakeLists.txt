@@ -10,12 +10,12 @@ add_subdirectory(dioni)
 #message(${dioni_binary})
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/script.o
 		   COMMAND dioni -r ${CMAKE_SOURCE_DIR}/dioni/runtime -g ${CMAKE_CURRENT_BINARY_DIR}/gen-dioni ${CMAKE_SOURCE_DIR}/scripts/ball.dn -o ${CMAKE_CURRENT_BINARY_DIR}/script.o
-		   DEPENDS scripts/ball.dn
+		   DEPENDS dioni scripts/ball.dn
 )
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ddioni.d
 		   COMMAND dioni --donly -o${CMAKE_CURRENT_BINARY_DIR}/ddioni.d -D ddioni ${CMAKE_SOURCE_DIR}/scripts/ball.dn
-		   DEPENDS scripts/ball.dn
+		   DEPENDS dioni scripts/ball.dn
 )
 
 add_library(script STATIC script.o)

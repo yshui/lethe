@@ -129,7 +129,7 @@ import std.getopt;
 			ofile = output_file;
 		auto dinf = File(ofile, "w");
 		auto d_eunion = "union dioniEventVariant {\n";
-		auto d_eenum = "enum dioniEventType {\n";
+		auto d_eev = "enum dioniEventType {\n";
 		auto d_etag = "enum dioniTag {\n";
 		auto d_ep = "enum dioniParticleType {\n";
 		auto d_pfn = "extern(C) {\n";
@@ -142,10 +142,10 @@ import std.getopt;
 			     vd = cast(Vertex)pd;
 			if (p !is null) {
 				d_pfn ~= "\t"~p.d_create_proto;
-				d_ep = p.symbol~" = "~to!string(pcnt)~",\n";
+				d_ep ~= p.symbol~" = "~to!string(pcnt)~",\n";
 				pcnt++;
 			} else if (e !is null) {
-				d_eenum ~= e.symbol~" = "~to!string(ecnt)~",\n";
+				d_eev ~= e.symbol~" = "~to!string(ecnt)~",\n";
 				dinf.writeln(e.d_structs);
 				d_eunion ~= "dioniEvent_"~e.symbol~" "~e.symbol~";\n";
 				ecnt++;
@@ -156,8 +156,14 @@ import std.getopt;
 				dinf.writeln(vd.d_structs);
 		}
 		dinf.writeln(d_eunion~"}\n");
-		dinf.writeln(d_eenum~"}\n");
-		dinf.writeln(d_pfn~"}\n");
+		if (ecnt > 0)
+			dinf.writeln(d_eev~"}\n");
+		if (tcnt > 0)
+			dinf.writeln(d_etag~"}\n");
+		if (pcnt > 0) {
+			dinf.writeln(d_ep~"}\n");
+			dinf.writeln(d_pfn~"}\n");
+		}
 		return;
 	}
 
