@@ -9,7 +9,9 @@
 		"gfm:math" : "*",
 		"gfm:logger" : "*",
 		"derelict-sdl2" : "*",
-		"derelict-gl3" : "*"
+		"derelict-gl3" : "*",
+		"derelict-util" : "*",
+		"colorize" : "*"
 	},
 	"stringImportPaths" : [ "source/shader" ],
 	"libs" : [ "script" ],
