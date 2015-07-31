@@ -13,3 +13,9 @@
 [submodule "colorize"]
 	path = colorize
 	url = git@github.com:yamadapc/d-colorize.git
+[submodule "tested"]
+	path = tested
+	url = git@github.com:rejectedsoftware/tested.git
+[submodule "docopt.d"]
+	path = docopt.d
+	url = git@github.com:docopt/docopt.d.git

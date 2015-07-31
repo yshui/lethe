@@ -3,6 +3,7 @@ import std.process : environment, execute;
 import parser;
 import ast.symbols, ast.decl, ast.aggregator, ast.type;
 import sdpc;
+import std.getopt;
 @safe string c_particle_handler(const(Decl)[] s) {
 	//XXX this implementation is incomplete, run_particle function must
 	//fetch events by itself, not via argument
@@ -24,21 +25,20 @@ import sdpc;
 	res ~= "\treturn next_state;\n}";
 	return res;
 }
-@trusted compile(string gen_dir) {
+@trusted compile(string rdir, string gdir, string ofile) {
 	//Compile runtime
 	if (exists("build-dioni") && isDir("build-dioni"))
 		rmdirRecurse("build-dioni");
 	mkdir("build-dioni");
-	auto dioni_rt = environment["DIONI_RUNTIME_DIR"];
 	string[] outputs;
 	string[] cflags = ["-Wall"];
-	foreach(file; dirEntries(dioni_rt, SpanMode.shallow)) {
+	foreach(file; dirEntries(rdir, SpanMode.shallow)) {
 		import std.path : baseName;
 		import std.string : endsWith;
 		if (!file.name.endsWith(".c"))
 			continue;
 		auto o = "build-dioni/"~baseName(file)~".o";
-		auto gcc = execute(["gcc", file, "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", o]~cflags);
+		auto gcc = execute(["gcc", file, "-I"~gdir, "-I"~rdir, "-c", "-g", "-o", o]~cflags);
 		write(gcc.output);
 		if (gcc.status != 0)
 			throw new Exception("GCC failed to compile "~file);
@@ -46,53 +46,61 @@ import sdpc;
 	}
 
 	//Compile statefn.c
-	auto gcc = execute(["gcc", gen_dir~"/statefn.c", "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", "build-dioni/statefn.c.o"]~cflags);
+	auto gcc = execute(["gcc", gdir~"/statefn.c", "-I"~gdir, "-I"~rdir, "-c", "-g", "-o", "build-dioni/statefn.c.o"]~cflags);
 	write(gcc.output);
 	if (gcc.status != 0)
 		throw new Exception("GCC failed to compile statefn.c");
 	outputs ~= ["build-dioni/statefn.c.o"];
 
 	//Compile particle_interface.c
-	gcc = execute(["gcc", gen_dir~"/particle_interface.c", "-I"~gen_dir, "-I"~dioni_rt, "-c", "-g", "-o", "build-dioni/particle_interface.c.o"]~cflags);
+	gcc = execute(["gcc", gdir~"/particle_interface.c", "-I"~gdir, "-I"~rdir, "-c", "-g", "-o", "build-dioni/particle_interface.c.o"]~cflags);
 	write(gcc.output);
 	if (gcc.status != 0)
 		throw new Exception("GCC failed to compile particle_interface.c");
 	outputs ~= ["build-dioni/particle_interface.c.o"];
 
 	//Create archive
-	auto ar = execute(["ld", "-r"]~outputs~["-o", "script.o"]);
+	auto ar = execute(["ld", "-r"]~outputs~["-o", ofile]);
 	writeln(ar.output);
 	if (ar.status != 0)
 		throw new Exception("Failed to create archive");
 
 	rmdirRecurse("build-dioni");
 }
+
 @safe void main(string[] argv) {
-	if (argv.length < 2) {
-		writefln("Usage: %s file", argv[0]);
-		throw new Exception("Missing argument");
-	}
+	string runtime_dir = "runtime",
+	       result_dir = "gen-dioni",
+	       input_file = "",
+	       dmodule_name = "dioni",
+	       output_file = "script.o";
+	() @trusted {
+		auto options = getopt(argv,
+			"runtime|r", &runtime_dir,
+			"result|g", &result_dir,
+			"dmodule|D", &dmodule_name,
+			"output|o", &output_file
+		);
+		if (options.helpWanted)
+			defaultGetoptPrinter("Usage:", options.options);
+		assert(argv.length != 1);
+		input_file = argv[1];
+	}();
 
-	string gen_prefix = environment.get("DIONI_GEN_DIR");
-	if (gen_prefix is null)
-		gen_prefix = "gen-dioni";
-	if (gen_prefix == "")
-		gen_prefix = ".";
+	if (!exists(result_dir))
+		mkdir(result_dir);
+	else if (!isDir(result_dir))
+		throw new Exception(result_dir~" is not a directory");
 
-	if (!exists(gen_prefix))
-		mkdir(gen_prefix);
-	else if (!isDir(gen_prefix))
-		throw new Exception(gen_prefix~" is not a directory");
-
-	char[] file_content = cast(char[])read(argv[1]);
+	char[] file_content = cast(char[])read(input_file);
 	auto i = new BufStream(file_content.idup);
 	auto r = parse_top(i);
-	auto mainf = File(gen_prefix~"/statefn.c", "w");
-	auto defsf = File(gen_prefix~"/defs.h", "w");
-	auto pf = File(gen_prefix~"/particle_creation.h", "w");
-	auto pinf = File(gen_prefix~"/particle_interface.c", "w");
-	auto exf = File(gen_prefix~"/export.h", "w");
-	auto dinf = File(gen_prefix~"/d_interface.d", "w");
+	auto mainf = File(result_dir~"/statefn.c", "w");
+	auto defsf = File(result_dir~"/defs.h", "w");
+	auto pf = File(result_dir~"/particle_creation.h", "w");
+	auto pinf = File(result_dir~"/particle_interface.c", "w");
+	auto exf = File(result_dir~"/export.h", "w");
+	auto dinf = File(result_dir~"/d_interface.d", "w");
 	Symbols global = new Symbols(null);
 	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
 				  Protection.Const, StorageClass.Void);
@@ -120,8 +128,8 @@ import sdpc;
 	}
 
 	int pcnt = 0, ecnt = 0, tcnt = 0;
-	dinf.writeln("module dioni.d_interface;\n");
-	dinf.writeln("import dioni, gfm.math;\n");
+	dinf.writeln("module "~dmodule_name~";\n");
+	dinf.writeln("import dioni.opaque, gfm.math;\n");
 	defsf.writeln("#pragma once\n");
 	defsf.writeln("#include \"export.h\"");
 	defsf.writeln("#include <vec.h>");
@@ -199,5 +207,5 @@ import sdpc;
 	dinf.close();
 	pinf.close();
 
-	compile(gen_prefix);
+	compile(runtime_dir, result_dir, output_file);
 }

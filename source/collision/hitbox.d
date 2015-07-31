@@ -1,7 +1,7 @@
 module collision.hitbox;
 import gfm.math;
 import std.math;
-import dioni;
+import dioni.opaque;
 private pure nothrow @nogc
 bool collide_triangle_circle(in ref Circle c, in ref Triangle t) {
 	if (t.contain(c.center))

@@ -1,4 +1,4 @@
-module dioni.utils;
+module utils;
 private template TupleHelper(T...) {
 	alias TupleHelper = T;
 }

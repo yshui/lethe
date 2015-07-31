@@ -11,7 +11,7 @@ package nothrow pure @nogc box2i normalize_aabb(box2f aabb, vec2f stepv) {
 	);
 }
 class CollisionRange {
-	import dioni;
+	import dioni.opaque;
 	bool empty() { return true; }
 	dioniParticle* front() { return null; }
 	void popFront() { }

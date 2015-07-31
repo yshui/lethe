@@ -6,3 +6,9 @@ __dummy.html
 dub.selections.json
 *.lst
 lethe
+*.a
+ddioni.d
+gen-dioni/
+CMakeFiles/
+CMakeCache.txt
+Makefile

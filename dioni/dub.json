@@ -5,7 +5,8 @@
 	"authors": ["Yuxuan Shui"],
 	"license" : "Custom",
 	"dependencies": {
-		"dioni:sdpc" : "*"
+		"dioni:sdpc" : "*",
+		"docopt" : "*"
 	},
 	"subPackages" : [
 		"./sdpc"

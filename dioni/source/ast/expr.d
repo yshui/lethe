@@ -6,7 +6,7 @@ import std.conv,
        std.traits,
        std.format,
        std.exception;
-import dioni.utils;
+import utils;
 interface Expr {
 	@safe nothrow {
 		pure @property string str() const;

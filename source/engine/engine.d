@@ -15,7 +15,7 @@ import gfm.math;
 import derelict.sdl2.types;
 import derelict.opengl3.gl,
        derelict.opengl3.gl3;
-import dioni;
+import dioni.transparent;
 import collision;
 auto event_range(SDL2 sdl2) {
 	struct SDL2EventRange {
@@ -151,7 +151,8 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		}
 	}
 	~this() {
-		win.close();
+		if (win !is null)
+			win.close();
 	}
 	void run(uint fps) {
 		assert(prog !is null);

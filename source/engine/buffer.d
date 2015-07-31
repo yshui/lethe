@@ -5,7 +5,7 @@ import derelict.opengl3.gl3;
 import engine.opengl;
 import core.exception;
 import std.typecons;
-import dioni;
+import dioni.opaque;
 
 /// OpenGL Buffer wrapper.
 final class GLBuffer {

@@ -2,7 +2,7 @@ module collision.collision;
 import collision;
 import collision.spatial_hash;
 import gfm.math;
-import dioni;
+import dioni.opaque;
 enum hb_threshold = 10;
 struct SimpleHBP {
 	Hitbox hb;

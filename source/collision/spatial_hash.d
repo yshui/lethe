@@ -3,7 +3,7 @@ import collision;
 import gfm.math;
 import std.stdio;
 import std.conv;
-import dioni;
+import dioni.opaque;
 private struct HitboxPair {
 	dioniParticle* p;
 	Hitbox hb;

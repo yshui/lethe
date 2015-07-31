@@ -9,7 +9,7 @@ import std.random;
 import std.math;
 import derelict.opengl3.gl3;
 import std.experimental.logger;
-import dioni;
+import ddioni;
 
 struct uni {
 	GLTexture2D tex;
