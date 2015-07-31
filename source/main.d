@@ -1,3 +1,4 @@
+module main;
 import std.stdio, std.typecons;
 import gfm.sdl2;
 import gfm.logger;

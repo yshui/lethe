@@ -1,0 +1,15 @@
+[submodule "gfm"]
+	path = gfm
+	url = git@github.com:yshui/gfm.git
+[submodule "derelict-sdl2"]
+	path = derelict-sdl2
+	url = git@github.com:DerelictOrg/DerelictSDL2.git
+[submodule "derelict-gl3"]
+	path = derelict-gl3
+	url = git@github.com:DerelictOrg/DerelictGL3.git
+[submodule "derelict-util"]
+	path = derelict-util
+	url = git@github.com:DerelictOrg/DerelictUtil.git
+[submodule "colorize"]
+	path = colorize
+	url = git@github.com:yamadapc/d-colorize.git
