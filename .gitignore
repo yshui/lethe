@@ -12,3 +12,5 @@ gen-dioni/
 CMakeFiles/
 CMakeCache.txt
 Makefile
+cmake_install.cmake
+dioni/source/dioni
