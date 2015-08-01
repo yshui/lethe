@@ -22,7 +22,7 @@ add_library(script STATIC script.o)
 set_target_properties(script PROPERTIES LINKER_LANGUAGE C)
 
 add_library(ddioni ddioni.d)
-set_target_properties(ddioni PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/source)
+set_target_properties(ddioni PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/source;${CMAKE_SOURCE_DIR}")
 
 set(DIONI_INCLUDE ${CMAKE_CURRENT_BINARY_DIR})
 
