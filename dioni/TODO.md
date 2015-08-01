@@ -26,6 +26,11 @@
   - [ ] Ignore event parameter (Event(\_))
 - [ ] Random number syntax
 
+# Future
+
+- [ ] Global static aggregator, loop over it is unrolled at compile time
+- [ ] Static multiple dispatch by duplicate the code at compile time
+
 # Useful
 * Improve codegen error messages
 
