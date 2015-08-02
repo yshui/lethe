@@ -37,17 +37,42 @@ class Range : Expr {
 			auto ac = a.c_code(s, at), oc = o.c_code(s, ot);
 			assert(at.dimension == ot.dimension);
 			if (at.dimension > 1) {
-				ty = new RangeType(at.dimension, false);
+				ty = new_rng_type!float(at.dimension);
 				return "((struct range"~to!string(at.dimension)~
 				       "){"~ac~", "~oc~"})";
 			}
 			if (at.type_match!(Type!int) &&
 			    ot.type_match!(Type!int)) {
-				ty = new RangeType(1, true);
+				ty = new RangeType!int;
 				return "((struct rangei){"~ac~", "~oc~"})";
 			}
-			ty = new RangeType(1, false);
+			ty = new RangeType!float;
 			return "((struct rangef){"~ac~", "~oc~"})";
+		}
+	}
+}
+
+class Random : Expr {
+	Range r;
+	@safe this(Range x) { r = x; }
+override :
+	string str() const {
+		return "rand("~r.str~")";
+	}
+	string c_code(const(Symbols) s, out TypeBase ty) const {
+		TypeBase rty;
+		auto rcode = r.c_code(s, rty);
+		if (rty.type_match!(RangeType!int)) {
+			ty = new Type!int;
+			return "rand_int("~rcode~")";
+		} else if (rty.type_match!(RangeType!float)) {
+			ty = new Type!float;
+			return "rand_float("~rcode~")";
+		} else {
+			auto rb = cast(RangeBase)rty;
+			assert(rb !is null);
+			ty = new_vec_type!float(rb.dimension);
+			return "rand_vec"~to!string(rb.dimension)~"("~rcode~")";
 		}
 	}
 }
@@ -86,16 +111,7 @@ class BinOP : Expr {
 				default:
 					assert(0);
 			}
-			if (resd == 1)
-				return new Type!float;
-			switch(resd) {
-				foreach(i; Iota!(2, 5)) {
-					case i:
-						return new Type!(float, i); //Vector must be float
-				}
-				default:
-				assert(0);
-			}
+			return new_vec_type!float(resd);
 		}
 		if (op == "+" || op == "-" || op == "*") {
 			return type_calc!(
@@ -421,14 +437,14 @@ string op_to_name(string op) {
 pure nothrow @safe
 string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 	if (op == "~") {
-		auto rngty = cast(const(RangeType))ty[1];
+		auto rngty = cast(const(RangeBase))ty[1];
 		auto tagty = cast(const(Type!Tag))ty[1];
 		if(rngty !is null) {
 			assert(ty[0].dimension == ty[1].dimension);
 			if (ty[1].dimension > 1)
 				return "vector_in_range"~to!string(ty[1].dimension)~
 				       "("~code[0]~", "~code[1]~")";
-			if (rngty.is_int) {
+			if (rngty.type_match!(RangeType!int)) {
 				auto c = ty[0].c_cast(new Type!int, code[0]);
 				return "number_in_rangei("~c~", "~code[1]~")";
 			} else {

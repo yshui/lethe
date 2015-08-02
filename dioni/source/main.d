@@ -182,6 +182,7 @@ import std.getopt;
 	defsf.writeln("#include <actor.h>");
 	defsf.writeln("#include <list.h>");
 	defsf.writeln("#include <range.h>");
+	defsf.writeln("#include <rand.h>");
 	defsf.writeln("#include <render.h>");
 	defsf.writeln("#include <collision.h>");
 	exf.writeln("#pragma once\n");

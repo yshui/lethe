@@ -161,9 +161,8 @@ class Loop : Stmt {
 		Symbols x = new Symbols(sym);
 		TypeBase rt;
 		auto rcode = rng.c_code(sym, rt);
-		auto rngt = cast(RangeType)rt;
-		assert(rt.dimension == 1, "Can't use vectors for loop");
-		assert(rngt.is_int, "Loop begin and end must have type 'int'");
+		auto rngt = cast(RangeType!int)rt;
+		assert(rngt !is null, "Loop range must be dimension 1, integer range");
 
 		import std.conv : to;
 		auto level = to!string(x.level);

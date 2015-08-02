@@ -1,5 +1,6 @@
 module ast.type;
 import ast.symbols, ast.decl;
+import utils;
 
 nothrow pure @safe @nogc bool type_match(T, U)(U a) {
 	static if (is(U == const(V), V))
@@ -140,32 +141,28 @@ override :
 	string c_copy(string src, string dst) const { assert(false); }
 }
 
-class RangeType : TypeBase {
-	const(int) d;
-	const(bool) is_int;
-	pure nothrow @safe {
-		this(int dim, bool i) {
-			d = dim;
-			is_int = i;
-		}
-	}
+class RangeBase : TypeBase { }
+
+class RangeType(T, int dim=1) : RangeBase
+  if (dim == 1 || is(T == float)) {
 override :
-	int dimension() const { return d; }
+	int dimension() const { return dim; }
 	string str() const { return "Range"; }
-	TypeBase dup() const { return new RangeType(d, is_int); }
+	TypeBase dup() const { return new RangeType!(T, dim); }
 	string c_type() const {
 		import std.conv : to;
-		if (d > 1)
-			return "struct range"~to!string(d);
-		if (is_int)
+		static if (dim > 1)
+			return "struct range"~to!string(dim);
+		else static if (is(T == int))
 			return "struct rangei";
-		return "struct rangef";
+		else
+			return "struct rangef";
 	}
 	bool opEquals(const(TypeBase) t) const {
-		auto rt = cast(const(RangeType))t;
+		auto rt = cast(typeof(this))t;
 		if (rt is null)
 			return false;
-		return d == rt.d && is_int == rt.is_int;
+		return true;
 	}
 }
 
@@ -272,3 +269,27 @@ override :
 ///Define a type match pattern: if input types match T..., then the output type is Result
 class TypePattern(Result, T...) { }
 
+TypeBase new_vec_type(T)(int dim) {
+	if (dim == 1)
+		return new Type!T;
+	switch(dim) {
+		foreach(i; Iota!(2, 5)) {
+			case i:
+				return new Type!(T, i); //Vector must be float
+		}
+		default:
+		assert(0);
+	}
+}
+TypeBase new_rng_type(T)(int dim) {
+	if (dim == 1)
+		return new RangeType!T;
+	switch(dim) {
+		foreach(i; Iota!(2, 5)) {
+			case i:
+				return new RangeType!(T, i); //Vector must be float
+		}
+		default:
+		assert(0);
+	}
+}

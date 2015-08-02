@@ -1,4 +1,4 @@
 # What to do after demo 0
-- [ ] Random numbers
-- [ ] Build system
+- [x] Random numbers
+- [x] Build system
 - [ ] Use text templates in dioni
