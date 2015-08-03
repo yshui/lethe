@@ -1,5 +1,5 @@
 # Must
-- [ ] Get rid of particle->\_\_id
+- [x] Get rid of particle->\_\_id
 - [x] Deferred variable assign (var = ?)
 - [x] Make sure nextState is defined on exit
 - [x] Generate state transition functions
@@ -15,7 +15,7 @@
   - [x] Render Aggregators
   - [x] Collision aggregator (register collision box)
 - [ ] Nil state to stop actor
-- [ ] A way to delete particle
+- [ ] Deleted state to delete particle
 - [x] Vertice definition
 - [ ] An interface to communicate (to D) what event an actor is waiting for
 - [ ] Create particle with tags
@@ -24,7 +24,8 @@
   - [ ] Event with zero parameters (Event() or Event should both be valid)
   - [ ] Take event parameter without match (Event(b) without using match like Event(b==1))
   - [ ] Ignore event parameter (Event(\_))
-- [ ] Random number syntax
+- [x] Random number syntax
+- [ ] Texture
 
 # Future
 
