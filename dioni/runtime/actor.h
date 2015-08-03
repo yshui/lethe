@@ -15,7 +15,7 @@ struct actor {
 	enum actor_state astate;
 	int state;
 	struct list_node q;
-	struct list_node silblings;
+	struct list_node siblings;
 };
 
 extern struct list_head active_actors;
@@ -25,10 +25,10 @@ objpool_proto(struct actor, actor)
 
 static inline void activate_actor(struct actor *a) {
 	assert(list_node_invalid(&a->q));
-	assert(list_node_invalid(&a->silblings));
+	assert(list_node_invalid(&a->siblings));
 	assert(a->astate != ACTOR_RUNNING);
 	list_add(&active_actors, &a->q);
-	list_add(&a->owner->actors, &a->silblings);
+	list_add(&a->owner->actors, &a->siblings);
 	a->astate = ACTOR_RUNNING;
 }
 

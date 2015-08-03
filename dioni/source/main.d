@@ -103,15 +103,15 @@ import std.getopt;
 	global.insert(gevent);
 
 	if (r is null)
-		return;
+		throw new Exception("Compile failed");
 	writeln(r);
-	
+
 	foreach(p; r)
 		global.insert(p);
 
 	//Temporary workaround until we have render queue syntax
 	//Let's get a demo done first
-	auto renderer = new RenderQ("render", 0, new Type!Vertex("ballv", global));
+	auto renderer = new RenderQ("render", 0, new NamedType!Vertex("ballv", global));
 	global.insert(renderer);
 
 	foreach(pd; r) {
@@ -246,6 +246,7 @@ import std.getopt;
 	mainf.close();
 	defsf.close();
 	pinf.close();
+	pf.close();
 
 	compile(runtime_dir, result_dir, output_file);
 }

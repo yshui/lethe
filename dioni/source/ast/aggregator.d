@@ -78,13 +78,15 @@ override :
 			code = "("~rqv~".nvert+"~code~")";
 			auto res = "*("~rqv~".indices+"~rqv~".nindex) = "~code~";\n";
 			res ~= rqv~".nindex++;\n";
+			res ~= "assert("~rqv~".nindex < "~rqv~".index_capacity);\n";
 			return res;
 		} else {
-			auto vty = cast(Type!Vertex)ty;
+			auto vty = cast(NamedType!Vertex)ty;
 			assert(vty !is null);
 			assert(vty.name == rd.ty.name);
 			auto res = "*(((struct vertex_"~rd.ty.name~" *)"~rqv~".buf)+"~rqv~".nvert) = "~code~";\n";
 			res ~= rqv~".nvert++;\n";
+			res ~= "assert("~rqv~".nvert < "~rqv~".vert_capacity);\n";
 			return res;
 		}
 	}
@@ -96,7 +98,7 @@ override :
 	string c_aggregate(const(Decl) v, const(Expr) e, const(Symbols) s) const {
 		TypeBase ty;
 		auto code = e.c_code(s, ty);
-		auto vt = cast(const(Type!Vertex))ty;
+		auto vt = cast(const(NamedType!Vertex))ty;
 		assert(vt !is null);
 		auto vd = vt.instance;
 		auto res = "{\nstruct hitbox *__p = alloc_hitbox();\n";

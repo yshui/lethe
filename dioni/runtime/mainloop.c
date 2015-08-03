@@ -7,6 +7,7 @@
 #include <tag.h>
 #include <string.h>
 #include <stdio.h>
+#include <collision.h>
 int run_particle_with_event(struct actor *a, struct event *e);
 
 static inline void dump_event_queue(void) {
@@ -30,6 +31,25 @@ static inline void dump_event_queue(void) {
 			break;
 		}
 	}
+}
+
+static inline void destroy_particle(struct particle *p) {
+	struct hitbox *hbi, *hbnxt;
+	list_for_each_safe(&p->hitboxes, hbi, hbnxt, q) {
+		list_del(&hbi->q);
+		free_hitbox(hbi);
+	}
+
+	struct actor *ai, *anxt;
+	list_for_each_safe(&p->actors, ai, anxt, siblings) {
+		list_del(&ai->siblings);
+		list_del(&ai->q);
+		free_actor(ai);
+	}
+
+	list_del(&p->next_changed);
+	list_del(&p->q);
+	free_particle(p);
 }
 
 static inline void propagate_particle_data(void) {
@@ -68,7 +88,7 @@ int tick_start(void) {
 		} else if (ei->tgtt == PARTICLE) {
 			struct particle *p = (void *)ei->target;
 			struct actor *ai;
-			list_for_each(&p->actors, ai, silblings) {
+			list_for_each(&p->actors, ai, siblings) {
 				if (ai->astate == ACTOR_RUNNING)
 					run_particle_with_event(ai, ei);
 			}
@@ -100,7 +120,7 @@ int tick_start(void) {
 					if (nstate == 0) {
 						//Nil, stop actor
 						list_del(&ai->q);
-						list_del(&ai->silblings);
+						list_del(&ai->siblings);
 						free_actor(ai);
 					} else if (nstate == 1) {
 						//Deleted, remove particle

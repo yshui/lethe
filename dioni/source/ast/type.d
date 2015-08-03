@@ -88,8 +88,29 @@ override :
 	}
 }
 
-class Type(T) : TypeBase
+final class Type(T) : TypeBase
     if (!isPOD!T && is(typeof(T.init.name))) {
+override :
+	string c_cast(const(TypeBase) target, string code) const {
+		auto x = cast(const(Type!T))target;
+		assert(x !is null);
+		return code;
+	}
+	string str() const {
+		return T.stringof;
+	}
+	TypeBase dup() const {
+		return new Type!T;
+	}
+	string c_type() const { return "int"; }
+	bool opEquals(const(TypeBase) o) const {
+		auto st = cast(const(Type!T))o;
+		return (st !is null);
+	}
+	string c_copy(string src, string dst) const { assert(false); }
+}
+
+class NamedType(T) : TypeBase {
 	string name;
 	const(T) instance;
 	pure nothrow @safe {
@@ -112,9 +133,9 @@ override :
 			if (target.type_match!ParticleHandle)
 				return "(size_t)("~code~"->__p)";
 		}
-		auto x = cast(const(Type!T))target;
+		auto x = cast(const(NamedType!T))target;
 		assert(x !is null);
-		assert(x.name == name);
+		assert(x.name == name, "Type name mismatch, "~x.name~" != "~name);
 		return code;
 	}
 	string str() const {
@@ -122,18 +143,20 @@ override :
 		return  T.stringof~" "~name;
 	}
 	TypeBase dup() const {
-		return new Type!T(instance);
+		return new NamedType!T(instance);
 	}
 	string c_type() const {
 		static if (is(T == Particle))
 			return "struct "~name~" *";
 		else static if (is(T == Event))
 			return "struct event_"~name;
+		else static if (is(T == Vertex))
+			return "struct vertex_"~name;
 		else
-			return "int";
+			static assert(false);
 	}
 	bool opEquals(const(TypeBase) o) const {
-		auto st = cast(const(Type!T))o;
+		auto st = cast(const(NamedType!T))o;
 		if (st is null)
 			return false;
 		return name == st.name;

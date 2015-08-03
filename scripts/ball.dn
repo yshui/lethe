@@ -10,6 +10,29 @@ vertex hitball(
 );
 event Collide(particle);
 event nextFrame(float);
+particle Spark {
+	vec2 center;
+	float r;
+	vec2 velocity;
+	>(center) {
+		r <- 5.0;
+		velocity <- $(vec2(-1, -1)..vec2(1, 1))*10;
+		`Decay;
+	}
+	state Decay @ nextFrame {
+		center <- center+velocity;
+		r <- r*0.9;
+		render << `ballv(vec2(-1, 1)*r, center, vec2(-1, 1), 0),
+			  `ballv(vec2(-1, -1)*r, center, vec2(-1, -1), 0),
+			  `ballv(vec2(1, -1)*r, center, vec2(1, -1), 0),
+			  `ballv(vec2(1, 1)*r, center, vec2(1, 1), 0);
+		render << -4, -3, -2, -4, -2, -1;
+		if (r < 1e-6)
+			nextState = Deleted;
+		else
+			nextState = Decay;
+	};
+}
 particle Ball {
 	vec2 center;
 	vec2 velocity;
@@ -32,8 +55,12 @@ particle Ball {
 		if (vo-vm <= 0.0) {
 			tmpv = velocity-vm*line/dist;
 			velocity <- tmpv+vo*line/dist;
+			poc = center+line/2.0;
+			loop(i~0..5)
+				`Spark(poc);
 		}
 		nextState = Move;
+
 	};
 	>(center, velocity, r) {
 		`Update;
@@ -42,9 +69,9 @@ particle Ball {
 }
 particle Bootstrap {
 	>() {
-		loop(i~0..15)
+		loop(i~0..150)
 			`Ball($(vec2(100, 100)..vec2(400, 400)),
-			      $(vec2(-0.1, -0.1)..vec2(0.1, 0.1)),
+			      $(vec2(-1, -1)..vec2(1, 1)),
 			      $(2..5));
 	}
 }

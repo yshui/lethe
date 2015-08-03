@@ -34,6 +34,3 @@ struct particle *next_particle(struct particle *);
 
 extern struct list_head changed_particles, all_particles;
 
-static inline void destroy_particle(struct particle *p) {
-
-}

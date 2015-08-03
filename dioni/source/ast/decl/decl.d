@@ -56,7 +56,7 @@ class EventParameter {
 	string c_code_match(string emem, const(TypeBase) ty, Symbols s) const {
 		if (pm !is null) {
 			assert(ty.type_match!ParticleHandle);
-			auto var = new Var(new Type!Particle(pm.particle, s),
+			auto var = new Var(new NamedType!Particle(pm.particle, s),
 					   new EventAggregator, pm.var.name);
 			s.insert(var);
 			return "(((struct particle *)"~emem~")->type == PARTICLE_"~pm.particle~")";
@@ -459,11 +459,11 @@ override :
 class RenderQ : Decl {
 	string name;
 	int id;
-	Type!Vertex ty;
+	NamedType!Vertex ty;
 	@safe this(string xname, int xid, TypeBase tb) {
 		id = xid;
 		name = xname;
-		ty = cast(Type!Vertex)tb;
+		ty = cast(NamedType!Vertex)tb;
 		assert(ty !is null);
 	}
 override :

@@ -246,10 +246,10 @@ override :
 			ty = vd.ty.dup;
 			return vd.c_access;
 		} else if (sd !is null) {
-			ty = new Type!State(sd.symbol, s);
+			ty = new Type!State;
 			return sd.c_access;
 		} else if (td !is null) {
-			ty = new Type!Tag(td.symbol, s);
+			ty = new Type!Tag;
 			return td.c_access;
 		} else
 			assert(false, name~" is not a variable or state name");
@@ -335,7 +335,7 @@ override :
 		//Lookup left
 		auto d = cast(const(Var))s.lookup_checked(lhs);
 		assert(d !is null, lhs~" is not a variable");
-		auto p = cast(const(Type!Particle))d.ty;
+		auto p = cast(const(NamedType!Particle))d.ty;
 		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
 		auto d2 = cast(const(Var))p.instance.sym.lookup_checked(rhs);
 		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
@@ -542,7 +542,7 @@ override :
 				res ~= pty.c_cast(ed.member[i], pcode);
 			}
 			res ~= "})";
-			ty = new Type!Event(ed.name, s);
+			ty = new NamedType!Event(ed.name, s);
 			return res;
 		} else if (vd !is null) {
 			assert(param.length == vd.member.length);
@@ -555,7 +555,7 @@ override :
 				res ~= pty.c_cast(vd.member[i].ty, pcode);
 			}
 			res ~= "})";
-			ty = new Type!Vertex(vd.name, s);
+			ty = new NamedType!Vertex(vd.name, s);
 			return res;
 		} else
 			assert(false, typeid(d).toString);

@@ -38,6 +38,8 @@ class EngineM : Engine!(np*4, np*6, uni) {
 			auto ks = key_state();
 			if (ks.isPressed(SDLK_ESCAPE))
 				quitting = true;
+			else if (ks.isPressed(SDLK_SPACE))
+				step = true;
 			break;
 		default:
 			break;

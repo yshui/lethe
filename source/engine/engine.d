@@ -88,6 +88,7 @@ alias VA = VertexArray!vertex_ballv;
 class Engine(int n, int m, Uniforms)
 if (is(Uniforms == struct) || is(Uniforms == class)) {
 	private CollisionTarget ct;
+	bool step;
 	int handle_event(ref SDL_Event) { return 0; };
 	bool quitting;
 	@property int width() const {
@@ -160,11 +161,14 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		//GC.disable();
 		while(true) {
 			uint frame_start = SDL_GetTicks();
+			step = true;
 			auto es = sdl2.event_range(); //scoped!SDL2EventRange(sdl2);
 			foreach(e; es)
 				handle_event(e);
 			if (sdl2.wasQuitRequested() || quitting)
 				break;
+			if (!step)
+				continue;
 
 			gen_collision(ct);
 
