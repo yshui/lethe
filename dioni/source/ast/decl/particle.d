@@ -124,7 +124,7 @@ class Particle : Decl {
 			s.insert(d);
 		}
 		foreach(c; component) {
-			foreach(od; c.s.table) {
+			foreach(od; c.decl) {
 				auto d = s.lookup(od.symbol);
 				if (d is null) {
 					auto newd = od.dup;
@@ -141,6 +141,14 @@ class Particle : Decl {
 		}
 		s.insert(new HitboxQ);
 
+		auto nil = new State("Nil", [], []);
+		nil.parent = this;
+		s.insert(nil);
+
+		auto del = new State("Deleted", [], []);
+		del.parent = this;
+		s.insert(del);
+
 		_visited = true;
 		_visiting = false;
 	}
@@ -155,11 +163,14 @@ class Particle : Decl {
 	}
 	pure string c_macros() const {
 		import std.conv;
-		auto res = "";
-		int id = 0;
+		auto res = "#define PARTICLE_"~name~"_STATE_Nil 0\n";
+		res ~= "#define PARTICLE_"~name~"_STATE_Deleted 1\n";
+		int id = 2;
 		foreach(d; s.table) {
 			auto sd = cast(const(State))d;
 			if (sd is null)
+				continue;
+			if (sd.symbol == "Nil" || sd.symbol == "Deleted")
 				continue;
 			res ~= "#define PARTICLE_"~name~"_STATE_"~sd.symbol~" "~to!string(id)~"\n";
 			id ++;

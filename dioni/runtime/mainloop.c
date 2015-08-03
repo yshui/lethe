@@ -35,6 +35,10 @@ static inline void dump_event_queue(void) {
 static inline void propagate_particle_data(void) {
 	struct particle *pi, *nxt;
 	list_for_each_safe(&changed_particles, pi, nxt, next_changed) {
+		if (pi->deleted) {
+			destroy_particle(pi);
+			continue;
+		}
 		pi->changed = false;
 		pi->current = !pi->current;
 		pi->data[!pi->current] = pi->data[pi->current];
@@ -93,6 +97,16 @@ int tick_start(void) {
 					int nstate = run_particle_with_event(ai, ei);
 					if (nstate != NOT_HANDLED)
 						ai->state = nstate;
+					if (nstate == 0) {
+						//Nil, stop actor
+						list_del(&ai->q);
+						list_del(&ai->silblings);
+						free_actor(ai);
+					} else if (nstate == 1) {
+						//Deleted, remove particle
+						ai->owner->deleted = true;
+						mark_particle_as_changed(ai->owner);
+					}
 				}
 			}
 		}
