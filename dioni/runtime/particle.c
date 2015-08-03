@@ -11,6 +11,7 @@ void init_particle(struct particle *p) {
 	list_node_init(&p->next_changed);
 	list_node_init(&p->q);
 	p->changed = false;
+	p->deleted = false;
 	list_add(&all_particles, &p->q);
 }
 

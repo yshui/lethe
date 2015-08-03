@@ -16,7 +16,7 @@ particle Spark {
 	vec2 velocity;
 	>(center) {
 		r <- 5.0;
-		velocity <- $(vec2(-1, -1)..vec2(1, 1))*10;
+		velocity <- $(vec2(-1, -1)..vec2(1, 1))*2;
 		`Decay;
 	}
 	state Decay @ nextFrame {
