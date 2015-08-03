@@ -5,6 +5,12 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	set(D_CONDITIONS DEBUG)
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+	set(D_CONDITIONS RELEASE)
+	set(CMAKE_D_FLAGS "-g -O")
+	set(DIONI_FLAGS "--release")
+endif()
+
 set(DIONI_RUNTIME_SRC
 	dioni/runtime/actor.c
 	dioni/runtime/actor.h
@@ -31,7 +37,7 @@ add_subdirectory(dioni)
 #get_property(dioni_binary TARGET dioni PROPERTY LOCATION)
 #message(${dioni_binary})
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/script.o
-		   COMMAND dioni -r ${CMAKE_SOURCE_DIR}/dioni/runtime -g ${CMAKE_CURRENT_BINARY_DIR}/gen-dioni ${CMAKE_SOURCE_DIR}/scripts/ball.dn -o ${CMAKE_CURRENT_BINARY_DIR}/script.o
+		   COMMAND dioni -r ${CMAKE_SOURCE_DIR}/dioni/runtime -g ${CMAKE_CURRENT_BINARY_DIR}/gen-dioni ${CMAKE_SOURCE_DIR}/scripts/ball.dn -o ${CMAKE_CURRENT_BINARY_DIR}/script.o ${DIONI_FLAGS}
 		   DEPENDS dioni scripts/ball.dn ${DIONI_RUNTIME_SRC}
 )
 

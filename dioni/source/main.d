@@ -25,13 +25,15 @@ import std.getopt;
 	res ~= "\treturn next_state;\n}";
 	return res;
 }
-@trusted compile(string rdir, string gdir, string ofile) {
+@trusted compile(string rdir, string gdir, string ofile, bool opt) {
 	//Compile runtime
 	if (exists("build-dioni") && isDir("build-dioni"))
 		rmdirRecurse("build-dioni");
 	mkdir("build-dioni");
 	string[] outputs;
 	string[] cflags = ["-Wall"];
+	if (opt)
+		cflags ~= ["-O2"];
 	foreach(file; dirEntries(rdir, SpanMode.shallow)) {
 		import std.path : baseName;
 		import std.string : endsWith;
@@ -74,14 +76,15 @@ import std.getopt;
 	       input_file = "",
 	       dmodule_name = "dioni",
 	       output_file = "script.o";
-	bool gen_dmodule = false;
+	bool gen_dmodule = false, optimize = false;
 	() @trusted {
 		auto options = getopt(argv,
 			"runtime|r", &runtime_dir,
 			"result|g", &result_dir,
 			"dmodule|D", &dmodule_name,
 			"output|o", &output_file,
-			"donly", &gen_dmodule
+			"donly", &gen_dmodule,
+			"release|O", &optimize
 		);
 		if (options.helpWanted)
 			defaultGetoptPrinter("Usage:", options.options);
@@ -248,5 +251,5 @@ import std.getopt;
 	pinf.close();
 	pf.close();
 
-	compile(runtime_dir, result_dir, output_file);
+	compile(runtime_dir, result_dir, output_file, optimize);
 }

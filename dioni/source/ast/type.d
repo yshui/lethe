@@ -1,6 +1,7 @@
 module ast.type;
 import ast.symbols, ast.decl;
 import utils;
+import std.string : format;
 
 nothrow pure @safe @nogc bool type_match(T, U)(U a) {
 	static if (is(U == const(V), V))
@@ -229,7 +230,6 @@ override :
 		return dim;
 	}
 	string str() const {
-		import std.format : format;
 		string res;
 		try {
 			res = format("%s*%s", T.stringof, dim);
@@ -270,7 +270,6 @@ override :
 		return new ElemType();
 	}
 	string str() const {
-		import std.format : format;
 		try {
 			return format("ArrayOf %s", element_type.str);
 		}catch(Exception) {

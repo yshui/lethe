@@ -58,7 +58,7 @@ struct Reason {
 		dep = [];
 	}
 	private string str(ulong depth) {
-		import std.format : format;
+		import std.string : format;
 		import std.array : replicate;
 		string pos = format("(%s, %s):", line, col);
 		if (depth == 0)

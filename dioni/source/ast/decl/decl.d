@@ -7,6 +7,7 @@ import ast.type,
        ast.match,
        ast.aggregator;
 import std.typecons;
+import std.string : format;
 
 immutable(Aggregator) eagg = new EventAggregator;
 immutable(Aggregator) rqagg = new RenderAggregator;
@@ -233,7 +234,6 @@ override :
 	}
 	string c_code(const(Symbols) p, bool prototype_only) const {
 		assert(_parent !is null);
-		import std.format : format;
 		auto res = format("static inline void %s_state_%s_entry(%s)",
 				  _parent.symbol, name, _parent.symbol.param_list);
 		if (prototype_only)
@@ -284,7 +284,6 @@ class Var : Decl {
 	Particle _parent;
 pure nothrow @safe :
 	string c_access(bool next=false) const {
-		import std.format : format;
 		import std.exception : assumeWontThrow;
 		assert(sc != StorageClass.Void);
 		auto src = next ? "next" : "current";
