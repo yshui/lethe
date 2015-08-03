@@ -23,6 +23,7 @@ struct particle {
 	struct list_node q;
 
 	bool changed;
+	bool deleted;
 };
 
 objpool_proto(struct particle, particle)

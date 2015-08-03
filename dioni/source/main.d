@@ -94,8 +94,8 @@ import std.getopt;
 	else if (!isDir(result_dir))
 		throw new Exception(result_dir~" is not a directory");
 
-	char[] file_content = cast(char[])read(input_file);
-	auto i = new BufStream(file_content.idup);
+	auto file_content = readText(input_file);
+	auto i = new BufStream(file_content);
 	auto r = parse_top(i);
 	Symbols global = new Symbols(null);
 	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
@@ -127,14 +127,17 @@ import std.getopt;
 		string ofile = result_dir~"/d_interface.d";
 		if (output_file != "")
 			ofile = output_file;
-		auto dinf = File(ofile, "w");
+		string old_content = "";
+		if (exists(ofile) && isFile(ofile))
+			old_content = readText(ofile);
+		auto new_content = "";
 		auto d_eunion = "union dioniEventVariant {\n";
 		auto d_eev = "enum dioniEventType {\n";
 		auto d_etag = "enum dioniTag {\n";
 		auto d_ep = "enum dioniParticleType {\n";
 		auto d_pfn = "extern(C) {\n";
-		dinf.writeln("module "~dmodule_name~";\n");
-		dinf.writeln("import dioni.opaque, gfm.math;\n");
+		new_content ~= "module "~dmodule_name~";\n\n";
+		new_content ~= "import dioni.opaque, gfm.math;\n\n";
 		foreach(pd; r) {
 			auto p  = cast(Particle)pd,
 			     e  = cast(Event)pd,
@@ -146,24 +149,29 @@ import std.getopt;
 				pcnt++;
 			} else if (e !is null) {
 				d_eev ~= e.symbol~" = "~to!string(ecnt)~",\n";
-				dinf.writeln(e.d_structs);
+				new_content ~= e.d_structs~"\n";
 				d_eunion ~= "dioniEvent_"~e.symbol~" "~e.symbol~";\n";
 				ecnt++;
 			} else if (td !is null) {
 				d_etag ~= td.symbol~" = "~to!string(tcnt)~",\n";
 				tcnt++;
 			} else if (vd !is null)
-				dinf.writeln(vd.d_structs);
+				new_content ~= vd.d_structs~"\n";
 		}
-		dinf.writeln(d_eunion~"}\n");
+		new_content ~= d_eunion~"}\n\n";
 		if (ecnt > 0)
-			dinf.writeln(d_eev~"}\n");
+			new_content ~= d_eev~"}\n\n";
 		if (tcnt > 0)
-			dinf.writeln(d_etag~"}\n");
+			new_content ~= d_etag~"}\n\n";
 		if (pcnt > 0) {
-			dinf.writeln(d_ep~"}\n");
-			dinf.writeln(d_pfn~"}\n");
+			new_content ~= d_ep~"}\n\n";
+			new_content ~= d_pfn~"}\n\n";
 		}
+		if (new_content != old_content) {
+			auto dinf = File(ofile, "w");
+			dinf.write(new_content);
+		} else
+			writeln("File content is the same, won't touch it.");
 		return;
 	}
 
