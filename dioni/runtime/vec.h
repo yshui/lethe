@@ -4,6 +4,9 @@
 struct vec2 {
 	float x, y;
 };
+struct vec3 {
+	float x, y, z;
+};
 
 static inline struct vec2
 vec2_mul(struct vec2 a, struct vec2 b) {
