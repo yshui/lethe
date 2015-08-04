@@ -3,7 +3,7 @@ import collision;
 import collision.spatial_hash;
 import gfm.math;
 import dioni.opaque;
-enum hb_threshold = 10;
+enum hb_threshold = 15;
 struct SimpleHBP {
 	Hitbox hb;
 	dioniParticle* p;

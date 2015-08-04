@@ -156,6 +156,14 @@ struct Hitbox {
 		Con _c;
 		Type _t;
 	}
+	pure nothrow string str() const {
+		final switch(_t) {
+		case Type.Circle:
+			return "ball";
+		case Type.Triangle:
+			return "triangle";
+		}
+	}
 	private pure nothrow @nogc from_ball(vec2f c, float r) {
 		_t = Type.Circle;
 		_c.c.center = c;

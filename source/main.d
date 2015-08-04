@@ -17,7 +17,7 @@ struct uni {
 }
 
 
-enum np = 4100;
+enum np = 20100;
 
 class EngineM : Engine!(np*4, np*6, uni) {
 	private GLTexture tex;

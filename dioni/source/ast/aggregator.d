@@ -76,17 +76,17 @@ override :
 		if (ty.type_match!(Type!int)) {
 			//Index are offseted by nvert
 			code = "("~rqv~".nvert+"~code~")";
-			auto res = "*("~rqv~".indices+"~rqv~".nindex) = "~code~";\n";
-			res ~= rqv~".nindex++;\n";
-			res ~= "assert("~rqv~".nindex < "~rqv~".index_capacity);\n";
+			auto res = "if("~rqv~".nindex < "~rqv~".index_capacity) {\n";
+			res ~= "*("~rqv~".indices+"~rqv~".nindex) = "~code~";\n";
+			res ~= rqv~".nindex++;\n}\n";
 			return res;
 		} else {
 			auto vty = cast(NamedType!Vertex)ty;
 			assert(vty !is null);
 			assert(vty.name == rd.ty.name);
-			auto res = "*(((struct vertex_"~rd.ty.name~" *)"~rqv~".buf)+"~rqv~".nvert) = "~code~";\n";
-			res ~= rqv~".nvert++;\n";
-			res ~= "assert("~rqv~".nvert < "~rqv~".vert_capacity);\n";
+			auto res = "if("~rqv~".nvert < "~rqv~".vert_capacity) {\n";
+			res ~= "*(((struct vertex_"~rd.ty.name~" *)"~rqv~".buf)+"~rqv~".nvert) = "~code~";\n";
+			res ~= rqv~".nvert++;\n}\n";
 			return res;
 		}
 	}

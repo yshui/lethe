@@ -24,11 +24,13 @@ class SpatialRange(int w, int h) : CollisionRange{
 		dioniParticle* self;
 		//int generation; //Incremented every new query
 	}
-	override pure nothrow @nogc bool empty() {
+	override bool empty() {
 		return nowi >= hitbox.length;
 	}
-	override pure nothrow @nogc dioniParticle* front() {
+	override dioniParticle* front() {
 		assert(head !is null);
+		//import std.stdio;
+		//writeln(head.hb.str~" collide with "~hitbox[nowi].str);
 		return head.p;
 	}
 	pure nothrow @nogc void _popFront() {

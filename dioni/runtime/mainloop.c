@@ -130,6 +130,7 @@ int tick_start(void) {
 				}
 			}
 		}
+		free_event(ei);
 		count++;
 	}
 	return count;
