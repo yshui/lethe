@@ -1,7 +1,6 @@
 module engine.engine;
 import engine.vertex;
-import std.typecons,
-       std.traits,
+import std.traits,
        std.typetuple,
        std.experimental.logger,
        std.range;
@@ -17,21 +16,6 @@ import derelict.opengl3.gl,
        derelict.opengl3.gl3;
 import dioni.transparent;
 import collision;
-auto event_range(SDL2 sdl2) {
-	struct SDL2EventRange {
-		SDL_Event event;
-		bool empty;
-		@property ref SDL_Event front() {
-			return event;
-		}
-		void popFront() {
-			empty = !sdl2.pollEvent(&event);
-		}
-	}
-	SDL2EventRange er;
-	er.popFront();
-	return er;
-}
 
 private void gen_format(uint type, SDL_PixelFormat *x) {
 	x.format = type;
@@ -162,9 +146,9 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 		while(true) {
 			uint frame_start = SDL_GetTicks();
 			step = true;
-			auto es = sdl2.event_range(); //scoped!SDL2EventRange(sdl2);
-			foreach(e; es)
-				handle_event(e);
+			SDL_Event event;
+			while(sdl2.pollEvent(&event))
+				handle_event(event);
 			if (sdl2.wasQuitRequested() || quitting)
 				break;
 			if (!step)

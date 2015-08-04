@@ -51,7 +51,7 @@ class EngineM : Engine!(np*4, np*6, uni) {
 
 void main() {
 	auto logger = new ConsoleLogger();
-	auto eng = scoped!EngineM(logger, 800, 600);
+	auto eng = new EngineM(logger, 800, 600);
 
 	auto prog = "#version 140\n#if VERTEX_SHADER\n" ~ import("vs.glsl") ~
 		    "\n#elif FRAGMENT_SHADER\n" ~ import("frag.glsl") ~ "\n#endif";
