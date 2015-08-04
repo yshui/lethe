@@ -322,7 +322,8 @@ class Index : LValue {
 }*/
 
 class Field : LValue {
-	string lhs, rhs;
+	LValue lhs;
+	string rhs;
 	@safe this(string xlhs, string xrhs) {
 		lhs = xlhs;
 		rhs = xrhs;
@@ -333,14 +334,9 @@ override :
 	}
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		//Lookup left
-		auto d = cast(const(Var))s.lookup_checked(lhs);
-		assert(d !is null, lhs~" is not a variable");
-		auto p = cast(const(NamedType!Particle))d.ty;
-		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
-		auto d2 = cast(const(Var))p.instance.sym.lookup_checked(rhs);
-		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
-		ty = d2.ty.dup;
-		return lhs~"->"~rhs;
+		TypeBase lty;
+		auto lcode = lhs.c_code(s, lty);
+		return ty.c_field(lcode, rhs, ty);
 	}
 	string c_assign(const(Expr) rhs, Symbols s, bool delayed) const { assert(false); }
 	string c_aggregate(const(Expr) rhs, const(Symbols) s) const { assert(false); }

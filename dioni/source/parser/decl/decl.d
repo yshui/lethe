@@ -56,8 +56,7 @@ auto parse_var_decl(Stream i) {
 			parse_arr_type,
 			parse_type
 		),
-		identifier,
-		token_ws!";"
+		identifier
 	)(i);
 	r.r.name = "variable declaration";
 	if (!r.ok)
@@ -67,11 +66,23 @@ auto parse_var_decl(Stream i) {
 	return ok_result!Decl(ret, r.consumed, r.r);
 }
 
+auto parse_untyped_var_decl(Stream i) {
+	auto r = identifier(i);
+	r.r.name = "Untyped var decl";
+	if (!r.ok)
+		return err_result!Decl(r.r);
+	auto ret = new Var(new AnyType, null, r.result);
+	return ok_result!Decl(ret, r.consumed, r.r);
+}
+
 auto parse_ctor(Stream i) {
 	auto r = seq!(
 		discard!(token_ws!">"),
 		between!(token_ws!"(",
-			chain!(identifier, arr_append!string, discard!(token_ws!","), true),
+			chain!(choice!(
+				parse_var_decl,
+				parse_untyped_var_decl
+			), arr_append!Decl, discard!(token_ws!","), true),
 		token_ws!")"),
 		parse_stmt_block
 	)(i);
@@ -84,7 +95,7 @@ auto parse_ctor(Stream i) {
 
 auto parse_decl(Stream i) {
 	auto r = choice!(
-		parse_var_decl,
+		seq!(parse_var_decl, discard!(token_ws!";")),
 		parse_state_decl,
 		parse_ctor
 	)(i);

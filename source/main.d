@@ -30,7 +30,7 @@ class EngineM : Engine!(np*4, np*6, uni) {
 		u.tex.setMagFilter(GL_LINEAR);
 		u.w = w;
 		u.h = h;
-		new_particle_Bootstrap();
+		new_particle_Bootstrap(w, h);
 	}
 	override int handle_event(ref SDL_Event e) {
 		switch (e.type) {

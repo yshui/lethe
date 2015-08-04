@@ -68,6 +68,9 @@ class TypeBase {
 			       typeid(target).toString);
 			return code;
 		}
+		string c_field(string lcode, string rhs, out TypeBase ty) const {
+			assert(false);
+		}
 	}
 }
 
@@ -163,6 +166,16 @@ override :
 		return name == st.name;
 	}
 	string c_copy(string src, string dst) const { assert(false); }
+	string c_field(string lcode, string rhs, out TypeBase ty) {
+		/*
+		auto p = cast(const(NamedType!Particle))d.ty;
+		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
+		auto d2 = cast(const(Var))p.instance.sym.lookup_checked(rhs);
+		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
+		ty = d2.ty.dup;
+		return lhs~"->"~rhs;
+		*/
+	}
 }
 
 class RangeBase : TypeBase { }

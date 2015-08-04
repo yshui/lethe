@@ -329,23 +329,45 @@ override :
 
 class Ctor : Decl {
 	Stmt[] stmt;
+	Decl[] param;
 	const(Var)[] param_def;
-	string[] param;
 	private string _prefix, _particle;
 	Particle _parent;
-	@safe this(string[] p, Stmt[] x) {
+	@safe this(Decl[] p, Stmt[] x) {
 		stmt = x;
 		param = p;
 	}
+	@safe string param_list(bool d)(const(Symbols) s) const {
+		auto res = "";
+		assert(_parent !is null);
+		foreach(i, p; param_def) {
+			if (i != 0)
+				res ~= ", ";
+			static if (d)
+				res ~= p.ty.d_type~" "~p.name;
+			else
+				res ~= p.ty.c_type~" "~p.name;
+		}
+		return res;
+	}
+	alias c_param_list = param_list!false;
+	alias d_param_list = param_list!true;
 override :
 	void parent(Decl prnt) {
 		_parent = cast(Particle)prnt;
 		assert(_parent !is null);
 		auto s = _parent.sym;
 		foreach(p; param) {
-			auto vd = cast(const(Var))s.lookup_checked(p);
-			assert(vd !is null, p~" is not a variable");
-			param_def ~= vd;
+			auto vp = cast(Var)p;
+			if (vp.ty.type_match!AnyType) {
+				auto vd = cast(const(Var))s.lookup_checked(vp.name);
+				assert(vd !is null, vp.name~" is not a variable");
+				assert(vd.sc == StorageClass.Particle);
+				param_def ~= vd;
+			} else {
+				vp.sc = StorageClass.Local;
+				param_def ~= vp;
+			}
 		}
 	}
 	string str() const {
@@ -357,18 +379,22 @@ override :
 	string c_code(const(Symbols) s, bool prototype_only) const {
 		assert(_parent !is null);
 		auto res = "static inline void "~_parent.symbol~"_ctor("~_parent.symbol.param_list;
-		auto init = "";
-		foreach(p; param_def) {
-			res ~= ", "~p.ty.c_type~" "~p.name;
-			init ~= p.c_access(true)~" = "~p.name~";\n";
-		}
+		res ~= ", "~c_param_list(s);
 		if (prototype_only)
 			return res~");";
 
-		res ~= ") {\n"~init;
+		auto ns = new Symbols(s);
+		res ~= ") {\n";
+		foreach(p; param_def) {
+			if (p.sc == StorageClass.Particle) {
+				res ~= p.c_access(false)~" = "~p.name~";\n";
+				res ~= p.c_access(true)~" = "~p.name~";\n";
+			} else
+				ns.insert(new Var(p.ty, null, p.name));
+		}
 		//Initialize variables in the param
 		bool changed;
-		res ~= stmt.c_code(s, changed)~"}";
+		res ~= stmt.c_code(ns, changed)~"}";
 		return res;
 	}
 }

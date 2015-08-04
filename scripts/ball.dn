@@ -8,8 +8,43 @@ vertex hitball(
 	float r,
 	vec2 center
 );
+vertex hittri (
+	vec2 p1, vec2 p2, vec2 p3
+);
 event Collide(particle);
 event nextFrame(float);
+particle Wall {
+	vec2 start;
+	vec2 end;
+	state Update @ nextFrame {
+		hitboxes << `hittri(start, end, (start+end)/2.0);
+		nextState = Update;
+	};
+}
+particle WallN << Wall{
+	>(float w) {
+		start <- vec2(0, 0);
+		end <- vec2(w, 0);
+	}
+}
+particle WallS << Wall{
+	>(float w, float h) {
+		start <- vec2(0, h);
+		end <- vec2(w, h);
+	}
+}
+particle WallW << Wall{
+	>(float h) {
+		start <- vec2(0, 0);
+		end <- vec2(0, h);
+	}
+}
+particle WallE << Wall{
+	>(float w, float h) {
+		start <- vec2(w, 0);
+		end <- vec2(w, h);
+	}
+}
 particle Spark {
 	vec2 center;
 	float r;
@@ -60,18 +95,33 @@ particle Ball {
 				`Spark(poc);
 		}
 		nextState = Move;
+	},
+	@ Collide(WallN(x)) {
 
-	};
+	},
+	@ Collide(WallS(x)) {
+
+	},
+	@ Collide(WallW(x)) {
+
+	},
+	@ Collide(WallE(x)) {
+
+	}
 	>(center, velocity, r) {
 		`Update;
 		`Move;
 	}
 }
 particle Bootstrap {
-	>() {
+	>(float w, float h) {
 		loop(i~0..150)
 			`Ball($(vec2(100, 100)..vec2(400, 400)),
 			      $(vec2(-1, -1)..vec2(1, 1)),
 			      $(2..5));
+		`WallN(w);
+		`WallW(h);
+		`WallE(w, h);
+		`WallS(w, h);
 	}
 }

@@ -187,11 +187,7 @@ class Particle : Decl {
 			res ~= "struct particle *";
 		res ~= "new_particle_"~name~"(";
 		if (ctor !is null)
-			foreach(i, p; ctor.param_def) {
-				if (i != 0)
-					res ~= ", ";
-				res ~= p.ty.c_type~" "~p.symbol;
-			}
+			res ~= ctor.c_param_list(s);
 		if (prototype_only)
 			return res~");\n";
 
@@ -204,7 +200,7 @@ class Particle : Decl {
 		if (ctor !is null) {
 			res ~= "\n"~name~"_ctor(__next, __current";
 			foreach(p; ctor.param)
-				res ~= ", "~p;
+				res ~= ", "~p.symbol;
 			res ~= ");";
 		}
 		res ~= "\n*__next = *__current;";
@@ -218,11 +214,7 @@ class Particle : Decl {
 	string d_create_proto() const {
 		string res = "dioniParticle* new_particle_"~name~"(";
 		if (ctor !is null)
-			foreach(i, p; ctor.param_def) {
-				if (i != 0)
-					res ~= ", ";
-				res ~= p.ty.d_type~" "~p.symbol;
-			}
+			res ~= ctor.d_param_list(s);
 		return res~");\n";
 	}
 	string c_run(bool prototype_only=false) const {
