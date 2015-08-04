@@ -451,9 +451,12 @@ override :
 class Vertex : Decl {
 	string name;
 	Var[] member;
+	Var[string] map;
 	@safe this(string x, Var[] vd) {
 		name = x;
 		member = vd;
+		foreach(v; member)
+			map[v.name] = v;
 	}
 	@safe string c_structs() {
 		import std.conv : to;

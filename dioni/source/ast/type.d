@@ -166,15 +166,19 @@ override :
 		return name == st.name;
 	}
 	string c_copy(string src, string dst) const { assert(false); }
-	string c_field(string lcode, string rhs, out TypeBase ty) {
-		/*
-		auto p = cast(const(NamedType!Particle))d.ty;
-		assert(p !is null, lhs~" is not a particle, can't use it in field expr");
-		auto d2 = cast(const(Var))p.instance.sym.lookup_checked(rhs);
-		assert(d2 !is null, rhs~" field in "~lhs~" is not a variable");
-		ty = d2.ty.dup;
-		return lhs~"->"~rhs;
-		*/
+	string c_field(string lcode, string rhs, out TypeBase ty) const {
+		static if (is(T == Particle)) {
+			auto d = cast(const(Var))instance.sym.lookup_checked(rhs);
+			assert(d !is null, rhs~" field in "~name~" is not a variable");
+			ty = d.ty.dup;
+			return lcode~"->"~rhs;
+		} else static if (is(T == Vertex)) {
+			auto d = rhs in instance.map;
+			assert(d !is null, rhs~" field doesn't exist in vertex "~name);
+			ty = instance.map[rhs].ty.dup;
+			return lcode~"."~rhs;
+		} else
+			assert(false);
 	}
 }
 

@@ -321,23 +321,27 @@ class Index : LValue {
 	mixin GetTy;
 }*/
 
-class Field : LValue {
-	LValue lhs;
+class Field : Expr {
+	Expr lhs;
 	string rhs;
-	@safe this(string xlhs, string xrhs) {
+	@safe this(Expr xlhs, string xrhs) {
 		lhs = xlhs;
 		rhs = xrhs;
 	}
 override :
 	string str() const {
-		return "<" ~ lhs ~ "." ~ rhs ~ ">";
+		return "<" ~ lhs.str ~ "." ~ rhs ~ ">";
 	}
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		//Lookup left
 		TypeBase lty;
 		auto lcode = lhs.c_code(s, lty);
-		return ty.c_field(lcode, rhs, ty);
+		return lty.c_field(lcode, rhs, ty);
 	}
+}
+class LField : LValue {
+	string str() const { return ""; }
+	string c_code(const(Symbols) s, out TypeBase ty) const { return ""; }
 	string c_assign(const(Expr) rhs, Symbols s, bool delayed) const { assert(false); }
 	string c_aggregate(const(Expr) rhs, const(Symbols) s) const { assert(false); }
 	string c_clear(const(Symbols) s) const { assert(false); }

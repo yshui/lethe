@@ -97,17 +97,17 @@ particle Ball {
 		nextState = Move;
 	},
 	@ Collide(WallN(x)) {
-
+		nextState = Move;
 	},
 	@ Collide(WallS(x)) {
-
+		nextState = Move;
 	},
 	@ Collide(WallW(x)) {
-
+		nextState = Move;
 	},
 	@ Collide(WallE(x)) {
-
-	}
+		nextState = Move;
+	};
 	>(center, velocity, r) {
 		`Update;
 		`Move;

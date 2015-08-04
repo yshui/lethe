@@ -92,7 +92,7 @@ ParseResult!Expr parse_primary(Stream i) {
 		parse_unop,
 		parse_paren,
 		parse_vec,
-		parse_field_expr,
+		parse_field,
 		parse_var_expr,
 		parse_random
 	)(i);
@@ -101,7 +101,7 @@ ParseResult!Expr parse_primary(Stream i) {
 }
 
 auto parse_lvalue(Stream i) {
-	auto r = choice!(parse_field, parse_var)(i);
+	auto r = choice!(parse_var)(i);
 	r.r.name = "lvalue";
 	return r;
 }
@@ -148,16 +148,26 @@ Ld:     switch(d) {
 }
 
 auto parse_field(Stream i) {
+	alias field_left = choice!(
+		parse_vec,
+		parse_var_expr,
+		parse_paren,
+		parse_unop,
+		parse_random
+	);
 	auto r = seq!(
-		identifier,
-		token_ws!".",
-		identifier
+		field_left,
+		discard!(token_ws!"."),
+		chain!(identifier, arr_append!string, discard!(token_ws!"."))
 	)(i);
 	auto re = r.r;
 	re.name = "field";
 	if (!r.ok)
-		return err_result!LValue(re);
-	return ok_result!LValue(new Field(r.result!0, r.result!2), r.consumed, re);
+		return err_result!Expr(re);
+	Expr ret = r.result!0;
+	foreach(rhs; r.result!1)
+		ret = new Field(ret, rhs);
+	return ok_result!Expr(ret, r.consumed, re);
 }
 alias parse_range_expr = cast_result!(Expr, parse_range);
 alias parse_expr_and_range = choice!(parse_range_expr, parse_expr);
@@ -222,7 +232,6 @@ auto parse_bool_neg(Stream i) {
 }
 
 alias parse_bool_expr = parse_conj;
-alias parse_field_expr = cast_result!(Expr, parse_field);
 
 Expr build_expr_tree(Expr a, string op, Expr b) {
 	return new BinOP(a, op, b);
