@@ -242,6 +242,20 @@ override :
 
 class Type(T, int dim) : TypeBase
     if (is(T == float) && dim > 1) {
+	static int field_name_to_index(char n) {
+		switch(n) {
+		case 'x':
+			return 0;
+		case 'y':
+			return 1;
+		case 'z':
+			return 2;
+		case 'w':
+			return 3;
+		default:
+			assert(false);
+		}
+	}
 override :
 	int dimension() const {
 		return dim;
@@ -269,6 +283,24 @@ override :
 	string d_type() const {
 		import std.conv : to;
 		return "vec"~to!string(dim)~"f";
+	}
+	string c_field(string lcode, string rhs, out TypeBase type) const {
+		if (rhs.length == 1) {
+			type = new Type!float;
+			return lcode~"."~rhs;
+		}
+		type = new_vec_type!float(cast(int)rhs.length);
+		auto res = "({"; //We are using the gcc extension
+		res ~= c_type~" __tmp = "~lcode~";\n";
+		res ~= "("~type.c_type~"){";
+		foreach(i, x; rhs) {
+			int index = field_name_to_index(x);
+			if (i != 0)
+				res ~=",";
+			res ~= "__tmp."~x;
+		}
+		res ~= "};\n})";
+		return res;
 	}
 	TypeBase dup() const {
 		return new Type!(T, dim);

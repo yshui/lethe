@@ -25,24 +25,28 @@ particle WallN << Wall{
 	>(float w) {
 		start <- vec2(0, 0);
 		end <- vec2(w, 0);
+		`Update;
 	}
 }
 particle WallS << Wall{
 	>(float w, float h) {
 		start <- vec2(0, h);
 		end <- vec2(w, h);
+		`Update;
 	}
 }
 particle WallW << Wall{
 	>(float h) {
 		start <- vec2(0, 0);
 		end <- vec2(0, h);
+		`Update;
 	}
 }
 particle WallE << Wall{
 	>(float w, float h) {
 		start <- vec2(w, 0);
 		end <- vec2(w, h);
+		`Update;
 	}
 }
 particle Spark {
@@ -97,15 +101,23 @@ particle Ball {
 		nextState = Move;
 	},
 	@ Collide(WallN(x)) {
+		if (velocity.y < 0.0)
+			velocity <- vec2(velocity.x, -velocity.y);
 		nextState = Move;
 	},
 	@ Collide(WallS(x)) {
+		if (velocity.y > 0.0)
+			velocity <- vec2(velocity.x, -velocity.y);
 		nextState = Move;
 	},
 	@ Collide(WallW(x)) {
+		if (velocity.x < 0.0)
+			velocity <- vec2(-velocity.x, velocity.y);
 		nextState = Move;
 	},
 	@ Collide(WallE(x)) {
+		if (velocity.x > 0.0)
+			velocity <- vec2(-velocity.x, velocity.y);
 		nextState = Move;
 	};
 	>(center, velocity, r) {
