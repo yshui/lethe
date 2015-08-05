@@ -56,24 +56,28 @@ auto parse_var_decl(Stream i) {
 			parse_arr_type,
 			parse_type
 		),
-		identifier
+		id_ws
 	)(i);
 	r.r.name = "variable declaration";
 	if (!r.ok)
-		return err_result!Decl(r.r);
+		return err_result!Var(r.r);
 	StorageClass sc = StorageClass.Particle;
 	auto ret = new Var(r.result!0, null, r.result!1, Protection.ReadWrite, sc);
-	return ok_result!Decl(ret, r.consumed, r.r);
+	return ok_result(ret, r.consumed, r.r);
 }
 
+alias parse_var_decl_decl = cast_result!(Decl, parse_var_decl);
+
 auto parse_untyped_var_decl(Stream i) {
-	auto r = identifier(i);
+	auto r = id_ws(i);
 	r.r.name = "Untyped var decl";
 	if (!r.ok)
-		return err_result!Decl(r.r);
+		return err_result!Var(r.r);
 	auto ret = new Var(new AnyType, null, r.result);
-	return ok_result!Decl(ret, r.consumed, r.r);
+	return ok_result!Var(ret, r.consumed, r.r);
 }
+
+alias parse_untyped_var_decl_decl = cast_result!(Decl, parse_untyped_var_decl);
 
 auto parse_ctor(Stream i) {
 	auto r = seq!(
@@ -82,7 +86,7 @@ auto parse_ctor(Stream i) {
 			chain!(choice!(
 				parse_var_decl,
 				parse_untyped_var_decl
-			), arr_append!Decl, discard!(token_ws!","), true),
+			), arr_append!Var, discard!(token_ws!","), true),
 		token_ws!")"),
 		parse_stmt_block
 	)(i);
@@ -95,7 +99,7 @@ auto parse_ctor(Stream i) {
 
 auto parse_decl(Stream i) {
 	auto r = choice!(
-		seq!(parse_var_decl, discard!(token_ws!";")),
+		seq!(parse_var_decl_decl, discard!(token_ws!";")),
 		parse_state_decl,
 		parse_ctor
 	)(i);
@@ -106,9 +110,9 @@ auto parse_decl(Stream i) {
 }
 auto parse_fn(Stream i) {
 	auto r = seq!(
-		identifier,
+		id_ws,
 		between!(token_ws!"(",
-			chain!(parse_var_decl, arr_append!Decl, discard!(token_ws!","), true),
+			chain!(parse_var_decl, arr_append!Var, discard!(token_ws!","), true),
 		token_ws!")"),
 		discard!(token_ws!"->"),
 		parse_type,

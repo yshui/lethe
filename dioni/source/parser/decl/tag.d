@@ -4,7 +4,7 @@ import ast.decl;
 import sdpc;
 @safe :
 auto parse_tag_name(Stream i) {
-	auto r = identifier(i);
+	auto r = id_ws(i);
 	r.r.name = "tag def";
 	if (!r.ok)
 		return err_result!Decl(r.r);

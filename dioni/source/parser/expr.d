@@ -91,7 +91,7 @@ ParseResult!Expr parse_primary(Stream i) {
 		parse_number,
 		parse_unop,
 		parse_paren,
-		parse_vec,
+		parse_call,
 		parse_field,
 		parse_var_expr,
 		parse_random
@@ -117,10 +117,9 @@ auto parse_unop(Stream i) {
 	return ok_result!Expr(new UnOP(r.result!0, r.result!1), r.consumed, r.r);
 }
 
-auto parse_vec(Stream i) {
+auto parse_call(Stream i) {
 	auto r = seq!(
-		skip_whitespace,
-		token!"vec",
+		token_ws!"vec",
 		choice!(token!"2", token!"3", token!"4"),
 		token_ws!"(",
 		parse_expr,
@@ -149,7 +148,7 @@ Ld:     switch(d) {
 
 auto parse_field(Stream i) {
 	alias field_left = choice!(
-		parse_vec,
+		parse_call,
 		parse_var_expr,
 		parse_paren,
 		parse_unop,

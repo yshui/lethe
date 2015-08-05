@@ -107,6 +107,7 @@ private alias enforce = enforceEx!CompileError;
 	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
 				  Protection.Const, StorageClass.Void);
 	global.insert(gevent);
+	initBuiltin(global);
 
 	if (r is null)
 		throw new Exception("Compile failed");
@@ -124,9 +125,7 @@ private alias enforce = enforceEx!CompileError;
 				no.fn = [fn, nfn];
 				global.replace(no);
 			} else if (o !is null) {
-				auto no = new Overloaded;
-				no.fn = o.fn~nfn;
-				global.replace(no);
+				o.fn ~= nfn;
 			} else
 				enforce(false, "Duplicate symbol "~p.symbol);
 		} else
@@ -237,8 +236,7 @@ private alias enforce = enforceEx!CompileError;
 		     e  = cast(Event)pd,
 		     td = cast(Tag)pd,
 		     vd = cast(Vertex)pd,
-		     ol = cast(Overloaded)pd,
-		     fn = cast(Func)pd;
+		     fn = cast(Callable)pd;
 		if (p !is null) {
 			exf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
 			exf.writeln(p.c_macros);
@@ -262,8 +260,8 @@ private alias enforce = enforceEx!CompileError;
 		} else if (vd !is null) {
 			exf.writeln(vd.c_structs);
 			exf.writeln("#define VERTEX_"~vd.name~"_SIZE sizeof(struct vertex_"~vd.name~")");
-		} else if (ol !is null || fn !is null) {
-			fnf.writeln(pd.c_code(global, false));
+		} else if (fn !is null) {
+			fnf.writeln(fn.c_code(global, false));
 		}
 	}
 	mainf.writeln(c_particle_handler(r));

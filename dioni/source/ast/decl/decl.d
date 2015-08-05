@@ -11,8 +11,12 @@ import std.algorithm : map;
 import std.array : join;
 import std.string : format;
 import mustache;
+import error;
+import std.exception;
 
 alias MustacheEngine!string Mustache;
+
+alias enforce = std.exception.enforceEx!CompileError;
 
 immutable(Aggregator) eagg = new EventAggregator;
 immutable(Aggregator) rqagg = new RenderAggregator;
@@ -37,20 +41,37 @@ class Decl {
 	}
 }
 
-class Overloaded : Decl {
+class Callable : Decl {
+	@safe string c_call(string[] param, const(TypeBase)[] ity, out TypeBase oty) const {
+		assert(false);
+	}
+}
+
+class Overloaded : Callable {
 	string name;
-	const(Func)[] fn;
+	const(Callable)[] fn;
+	this(string x) { name = x; }
+	void insert(const(Callable) nfn) {
+		assert(nfn.symbol == name);
+		fn = fn~[nfn];
+	}
+override :
 	string c_call(string[] pcode, const(TypeBase)[] ty, out TypeBase oty) const {
 		//Find the right function to call
 		TypeBase rty;
-		fnloop: foreach(f; fn) {
+		string res = "";
+		foreach(f; fn) {
+			string tmp;
 			try {
-				return f.c_call(pcode, ty, rty);
-			} catch (Error) { }
+				tmp = f.c_call(pcode, ty, rty);
+			} catch (Error) {
+				continue;
+			}
+			enforce(res == "", "Call to "~name~" has multiple matches");
+			res = tmp;
 		}
 		assert(false);
 	}
-override :
 	string symbol() const { return name; }
 	string str() const {
 		return fn.map!(a => a.str).join("\n");
@@ -60,23 +81,28 @@ override :
 	}
 }
 
-class Func : Decl {
+class Func : Callable {
 	string name;
 	Var[] param;
 	Stmt[] bdy;
 	const(TypeBase) retty;
-	@safe this(string n, Decl[] d,
+	@safe this(string n, Var[] d,
 		   TypeBase ret, Stmt[] b) {
 		name = n;
 		param.length = d.length;
 		retty = ret;
-		foreach(i, x; d) {
-			auto tmp = cast(Var)x;
-			assert(tmp !is null);
-			param[i] = tmp;
-		}
+		param = d;
 		bdy = b;
 	}
+	private @safe string mangle() const {
+		//Mangling
+		auto res = name~to!string(param.length);
+		foreach(p; param) {
+			res ~= "_"~p.ty.mangle;
+		}
+		return res;
+	}
+override :
 	string c_call(string[] pcode, const(TypeBase)[] ty, out TypeBase oty) const {
 		auto list = "";
 		foreach(i, p; param) {
@@ -87,15 +113,6 @@ class Func : Decl {
 		oty = retty.dup;
 		return symbol~"("~list~")";
 	}
-	@safe string mangle() const {
-		//Mangling
-		auto res = name~to!string(param.length);
-		foreach(p; param) {
-			res ~= "_"~p.ty.mangle;
-		}
-		return res;
-	}
-override :
 	string str() const {
 		return "Func "~name~bdy.str;
 	}
@@ -427,11 +444,11 @@ override :
 
 class Ctor : Decl {
 	Stmt[] stmt;
-	Decl[] param;
+	Var[] param;
 	const(Var)[] param_def;
 	private string _prefix, _particle;
 	Particle _parent;
-	@safe this(Decl[] p, Stmt[] x) {
+	@safe this(Var[] p, Stmt[] x) {
 		stmt = x;
 		param = p;
 	}
@@ -455,8 +472,7 @@ override :
 		_parent = cast(Particle)prnt;
 		assert(_parent !is null);
 		auto s = _parent.sym;
-		foreach(p; param) {
-			auto vp = cast(Var)p;
+		foreach(vp; param) {
 			if (vp.ty.type_match!AnyType) {
 				auto vd = cast(const(Var))s.lookup_checked(vp.name);
 				assert(vd !is null, vp.name~" is not a variable");

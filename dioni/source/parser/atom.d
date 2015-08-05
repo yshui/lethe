@@ -3,6 +3,7 @@ import sdpc;
 import ast.expr;
 import std.conv,
        std.stdio;
+import parser.utils;
 @safe :
 auto parse_number_nows(Stream i) {
 	auto parse_exp_str(Stream i) {
@@ -57,8 +58,8 @@ auto parse_number_nows(Stream i) {
 	return ok_result!Expr(new Num(to!float(float_string)), r.consumed, re);
 }
 
-auto parse_var_nows(Stream i) {
-	auto r = identifier(i);
+auto parse_var(Stream i) {
+	auto r = id_ws(i);
 	r.r.name = "variable";
 	if (!r.ok)
 		return err_result!LValue(r.r);
@@ -69,11 +70,6 @@ auto parse_var_nows(Stream i) {
 
 auto parse_number(Stream i) {
 	auto r = between!(skip_whitespace, parse_number_nows, skip_whitespace)(i);
-	r.r.promote();
-	return r;
-}
-auto parse_var(Stream i) {
-	auto r = between!(skip_whitespace, parse_var_nows, skip_whitespace)(i);
 	r.r.promote();
 	return r;
 }

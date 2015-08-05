@@ -4,7 +4,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../sdpc/source/)
 include_directories(${CMAKE_SOURCE_DIR}/tested/source/)
 include_directories(${CMAKE_SOURCE_DIR}/docopt.d/source/)
-add_executable(dioni 
+add_executable(dioni
     ast/aggregator.d
     ast/decl/decl.d
     ast/decl/package.d
@@ -14,6 +14,7 @@ add_executable(dioni
     ast/stmt.d
     ast/symbols.d
     ast/type.d
+    ast/builtin.d
     main.d
     parser/atom.d
     parser/decl/decl.d

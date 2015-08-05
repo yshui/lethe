@@ -3,6 +3,9 @@ import ast.symbols, ast.decl;
 import utils;
 import std.string : format;
 import std.conv : to;
+import error;
+
+alias enforce = enforceEx!CompileError;
 
 nothrow pure @safe @nogc bool type_match(T, U)(U a) {
 	static if (is(U == const(V), V))
@@ -64,7 +67,7 @@ class TypeBase {
 			return dst~" = "~src;
 		}
 		string c_cast(const(TypeBase) target, string code) const {
-			assert(typeid_equals(typeid(target), typeid(this)), "Can't cast"~
+			enforce(typeid_equals(typeid(target), typeid(this)), "Can't cast"~
 			       " from "~typeid(this).toString~" to "~
 			       typeid(target).toString);
 			return code;
@@ -90,9 +93,8 @@ override :
 		return o.type_match!ParticleHandle;
 	}
 	string c_cast(const(TypeBase) target, string code) const {
-		if (target.type_match!ParticleHandle)
-			return code;
-		assert(false);
+		enforce(target.type_match!ParticleHandle, "Can't cast ")
+		return code;
 	}
 	string mangle() const {
 		return "P";

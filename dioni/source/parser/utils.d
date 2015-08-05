@@ -1,10 +1,7 @@
 module parser.utils;
 import sdpc;
-auto token_ws(string t)(Stream i) {
-	auto r = between!(skip_whitespace, token!t, skip_whitespace)(i);
-	r.r.promote();
-	return r;
-}
+alias token_ws(string t) = between!(skip_whitespace, token!t, skip_whitespace);
+alias id_ws = between!(skip_whitespace, identifier, skip_whitespace);
 
 template arr_append(T) {
 	T[] arr_append(T[] a, T[] b) {
