@@ -109,8 +109,24 @@ import std.getopt;
 		throw new Exception("Compile failed");
 	writeln(r);
 
-	foreach(p; r)
-		global.insert(p);
+	foreach(p; r) {
+		auto old = global.lookup(p.symbol);
+		if (old !is null) {
+			auto fn = cast(Func)old;
+			auto o = cast(Overloaded)old;
+			auto nfn = cast(Func)p;
+			assert(nfn !is null);
+			if (fn !is null) {
+				o = new Overloaded;
+				o.fn = [fn, nfn];
+				global.replace(o);
+			} else if (o !is null)
+				o.fn ~= nfn;
+			else
+				assert(false);
+		} else
+			global.insert(p);
+	}
 
 	//Temporary workaround until we have render queue syntax
 	//Let's get a demo done first

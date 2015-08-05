@@ -153,6 +153,18 @@ auto parse_aggregate(Stream i) {
 	);
 }
 
+auto parse_return(Stream i) {
+	auto r = seq!(
+		discard!(token_ws!"=>"),
+		parse_expr,
+		discard!(token_ws!";")
+	)(i);
+	r.r.name = "return";
+	if (!r.ok)
+		return err_result!Stmt(r.r);
+	return ok_result!Stmt(new Ret(r.result), r.consumed, r.r);
+}
+
 alias parse_new_stmt = cast_result!(Stmt, seq!(parse_new, discard!(token_ws!";")));
 
 ParseResult!Stmt parse_stmt(Stream i) {

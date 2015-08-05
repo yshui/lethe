@@ -4,7 +4,29 @@ import std.format;
 interface Stmt {
 	@property @safe nothrow pure string str() const;
 	///changed: Whether this statement change a member of the particle
-	@safe string c_code(Symbols s, ref bool changed) const;
+	@safe string c_code(Symbols s, ref bool changed, const(Decl) parent) const;
+}
+class Ret : Stmt {
+	Expr val;
+	@safe this(Expr v) {
+		val = v;
+	}
+	string str() const {
+		return "=> "~val.str;
+	}
+	string c_code(Symbols s, ref bool changed, const(Decl) parent) const {
+		changed = false;
+		TypeBase ty;
+		auto code = lhs.c_code(s, ty);
+		auto fn = cast(const(Func))parent,
+		     s = cast(const(State))parent;
+		if (fn !is null)
+			return "return "~ty.c_cast(fn.retty, code)~";\n";
+		else {
+			enforce(ty.type_match!(Type!State), "next state is not state");
+			return "return "~code~";\n";
+		}
+	}
 }
 class Assign : Stmt {
 	LValue lhs;
@@ -21,7 +43,7 @@ class Assign : Stmt {
 		else
 			return lhs.str ~ " = " ~ rhs.str ~ "\n";
 	}
-	string c_code(Symbols s, ref bool changed) const {
+	string c_code(Symbols s, ref bool changed, const(Decl) parent) const {
 		changed = delayed;
 		return lhs.c_assign(rhs, s, delayed);
 	}
@@ -34,7 +56,7 @@ class Clear : Stmt {
 	string str() const {
 		return lhs.str()~"~\n";
 	}
-	string c_code(Symbols s, ref bool changed) const {
+	string c_code(Symbols s, ref bool changed, const(Decl) parent) const {
 		assert(false);
 	}
 }
@@ -55,10 +77,9 @@ class Aggregate : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	string c_code(Symbols s, ref bool changed) const {
+	string c_code(Symbols s, ref bool changed, const(Decl) parent) const {
 		auto res = "";
-		foreach(x; items)
-			res ~= lhs.c_aggregate(x, s);
+		res ~= items.map!(x => lhs.c_aggregate(x, s)).join("");
 		changed = false;
 		return res;
 	}
@@ -73,22 +94,22 @@ class Aggregate : Stmt {
 		return res;
 	}
 
-	package string c_code(const(Stmt)[] ss, const(Symbols) p, out Shadows os, ref bool changed) {
+	package string c_code(const(Stmt)[] ss, const(Decl) parent, const(Symbols) p, out Shadows os, ref bool changed) {
 		string res = "";
 		Symbols c = new Symbols(p);
 		changed = false;
 		foreach(s; ss) {
 			bool c2;
-			res ~= s.c_code(c, c2);
+			res ~= s.c_code(c, c2, parent);
 			changed = changed || c2;
 		}
 		os = c.shadowed;
 		return c.c_defs(StorageClass.Local)~res;
 	}
 
-	package string c_code(const(Stmt)[] ss, const(Symbols) p, ref bool changed) {
+	package string c_code(const(Stmt)[] ss, const(Decl) parent, const(Symbols) p, ref bool changed) {
 		Shadows _;
-		return c_code(ss, p, _, changed);
+		return c_code(ss, parent, p, _, changed);
 	}
 }
 class If : Stmt {
@@ -107,17 +128,17 @@ class If : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	string c_code(Symbols s, ref bool changed) const {
+	string c_code(Symbols s, ref bool changed, const(Decl) parent) const {
 		TypeBase ty;
 		auto ccode = cond.c_code(s, ty);
 		Shadows sha;
 		assert(ty.dimension == 1, "if statement doesn't take vectors");
 		auto res = "if ("~ccode~") {\n";
-		res ~= _then.c_code(s, sha, changed)~"}\n";
+		res ~= _then.c_code(s, parent, sha, changed)~"}\n";
 		s.merge_shadowed(sha);
 		bool changed2 = false;
 		if (_else.length != 0) {
-			res ~= "else {\n"~_else.c_code(s, sha, changed2)~"}\n";
+			res ~= "else {\n"~_else.c_code(s, parent, sha, changed2)~"}\n";
 			s.merge_shadowed(sha);
 		}
 		changed = changed || changed2;
@@ -157,7 +178,7 @@ class Loop : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	string c_code(Symbols sym, ref bool changed) const {
+	string c_code(Symbols sym, ref bool changed, const(Decl) parent) const {
 		Symbols x = new Symbols(sym);
 		TypeBase rt;
 		auto rcode = rng.c_code(sym, rt);
@@ -179,7 +200,7 @@ class Loop : Stmt {
 		res ~= x.c_defs(StorageClass.Local);
 		res ~= rname~" = "~rcode~";\n";
 		res ~= "for("~lname~" = "~rname~".a; "~lname~" < "~rname~".o; "~lname~"++) {\n";
-		res ~= bdy.c_code(x, sha, changed);
+		res ~= bdy.c_code(x, parent, sha, changed);
 		res ~= "}\n}\n";
 
 		sym.merge_shadowed(sha);

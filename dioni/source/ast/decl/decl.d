@@ -7,6 +7,8 @@ import ast.type,
        ast.match,
        ast.aggregator;
 import std.typecons;
+import std.algorithm : map;
+import std.array : join;
 import std.string : format;
 import mustache;
 
@@ -35,13 +37,54 @@ class Decl {
 	}
 }
 
+class Overloaded : Decl {
+	string name;
+	Func[] fn;
+override :
+	string symbol() const { return name; }
+	string str() const {
+		return fn.map!(a => a.str).join("\n");
+	}
+	string c_code(const(Symbols) s, bool prototype_only) const {
+		return fn.map!(a => a.c_code(s, prototype_only)).join("\n");
+	}
+	string c_call(string[] pcode, const(TypeBase)[] ty, out TypeBase oty) const {
+		//Find the right function to call
+		TypeBase rty;
+		fnloop: foreach(f; fn) {
+			try {
+				return f.c_call(pcode, ty, rty);
+			} catch (Error) { }
+		}
+	}
+}
+
 class Func : Decl {
 	string name;
 	Var[] param;
 	Stmt[] bdy;
 	const(TypeBase) retty;
-override :
-	string symbol() const {
+	this(string n, Decl[] d, Stmt[] b) {
+		name = n;
+		param.length = d.length;
+		foreach(i, x; d) {
+			auto tmp = cast(Var)x;
+			assert(tmp !is null);
+			param[i] = tmp;
+		}
+		bdy = b;
+	}
+	string c_call(string[] pcode, const(TypeBase)[] ty, out TypeBase oty) const {
+		auto list = "";
+		foreach(i, p; param) {
+			if (i != 0)
+				list ~= ", ";
+			list ~= ty[i].c_cast(p.ty, pcode[i]);
+		}
+		oty = retty.dup;
+		return symbol~"("~list~")";
+	}
+	string mangle() const {
 		//Mangling
 		auto res = name~to!string(param.length);
 		foreach(p; param) {
@@ -49,9 +92,11 @@ override :
 		}
 		return res;
 	}
+override :
 	string str() const {
 		return "Func "~name~bdy.str;
 	}
+	string symbol() const { return name~to!string(param.length); }
 	string c_code(const(Symbols) s, bool prototype_only) const {
 		if (prototype_only)
 			return "";
@@ -59,7 +104,7 @@ override :
 		Mustache r;
 		auto ctx = new Mustache.Context;
 
-		ctx["name"] = symbol;
+		ctx["name"] = mangle;
 
 		auto plist = "";
 		auto ns = new Symbols(s);
@@ -74,16 +119,6 @@ override :
 		bool changed;
 		auto code = bdy.c_code(ns, changed);
 		return r.renderString(func_template, ctx);
-	}
-	string c_call(string[] pcode, const(TypeBase)[] ty, out TypeBase oty) const {
-		auto list = "";
-		foreach(i, p; param) {
-			if (i != 0)
-				list ~= ", ";
-			list ~= ty[i].c_cast(p.ty, pcode[i]);
-		}
-		oty = retty.dup;
-		return symbol~"("~list~")";
 	}
 }
 
@@ -195,7 +230,7 @@ class StateTransition {
 			return res;
 		}
 	}
-	string c_code(const(Symbols) p) const {
+	string c_code(const(Symbols) p, const(State) parent) const {
 		auto s1 = new Symbols(p);
 		Shadows sha;
 		string[2] cond = e.c_code(s1);
@@ -204,13 +239,10 @@ class StateTransition {
 		if (cond[0] != "")
 			res ~= "if ("~cond[0]~") {\n";
 
-		auto nst = new Var(new AnyType, null, "nextState");
 		s1.insert(nst);
 		bool changed;
-		auto scode = s.c_code(s1, sha, changed);
+		auto scode = s.c_code(s1, parent, sha, changed);
 		s1.merge_shadowed(sha);
-		auto vd = cast(const(Var))s1.lookup_checked("nextState");
-		assert(vd.ty.type_match!(Type!State), "nextState is not assigned a state");
 
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
@@ -219,7 +251,9 @@ class StateTransition {
 		if (changed)
 			res ~= "mark_particle_as_changed(__current->__p);\n";
 
-		res ~= "return nextState;\n";
+		//If we reach this point, the user code hasn't
+		//returned a state yet, assume state unchanged
+		res ~= "return "~parent.c_access~";\n";
 		res ~= "}\n";
 		if (cond[0] != "")
 			res ~= "}\n";
@@ -305,8 +339,7 @@ override :
 			res ~= ";\n";
 		else {
 			res ~= " {\n";
-			foreach(x; st)
-				res ~= x.c_code(p);
+			res ~= st.map!(x => x.c_code(p, c_access)).join("\n");
 			res ~= "return NOT_HANDLED;\n";
 			res ~= "}\n";
 		}

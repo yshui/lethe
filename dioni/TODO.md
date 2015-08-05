@@ -26,6 +26,8 @@
   - [ ] Ignore event parameter (Event(\_))
 - [x] Random number syntax
 - [ ] Texture
+- [ ] Use proper exception rather than assert
+- [ ] Function support
 
 # Future
 

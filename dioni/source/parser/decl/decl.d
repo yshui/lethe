@@ -104,6 +104,17 @@ auto parse_decl(Stream i) {
 		return err_result!Decl(r.r);
 	return ok_result(r.result, r.consumed, r.r);
 }
+auto parse_fn(Stream i) {
+	auto r = seq!(
+		identifier,
+		between!(token_ws!"(",
+			chain!(parse_var_decl, arr_append!Decl, discard!(token_ws!","), true),
+		token_ws!")"),
+		token_ws!"->",
+		parse_type,
+		parse_stmt_block
+	)(i);
+}
 alias parse_particle_decl = cast_result!(Decl, parse_particle);
 auto parse_top(Stream i) {
 	Decl[] result = [];
