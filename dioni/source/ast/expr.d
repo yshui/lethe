@@ -560,7 +560,7 @@ override :
 		} else
 			assert(false, typeid(d).toString);
 	}
-	string c_code(Symbols s, ref bool changed) const {
+	string c_code(Symbols s, ref bool changed, const(Decl) parent) const {
 		changed = false;
 		TypeBase ty;
 		auto code = c_code(s, ty);

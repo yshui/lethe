@@ -4,6 +4,9 @@ import parser;
 import ast.symbols, ast.decl, ast.aggregator, ast.type;
 import sdpc;
 import std.getopt;
+import error;
+import std.exception : enforceEx;
+private alias enforce = enforceEx!CompileError;
 @safe string c_particle_handler(const(Decl)[] s) {
 	//XXX this implementation is incomplete, run_particle function must
 	//fetch events by itself, not via argument
@@ -112,18 +115,20 @@ import std.getopt;
 	foreach(p; r) {
 		auto old = global.lookup(p.symbol);
 		if (old !is null) {
-			auto fn = cast(Func)old;
-			auto o = cast(Overloaded)old;
-			auto nfn = cast(Func)p;
-			assert(nfn !is null);
+			auto fn = cast(const(Func))old;
+			auto o = cast(const(Overloaded))old;
+			auto nfn = cast(const(Func))p;
+			enforce(nfn !is null, "Duplicated symbol "~p.symbol);
 			if (fn !is null) {
-				o = new Overloaded;
-				o.fn = [fn, nfn];
-				global.replace(o);
-			} else if (o !is null)
-				o.fn ~= nfn;
-			else
-				assert(false);
+				auto no = new Overloaded;
+				no.fn = [fn, nfn];
+				global.replace(no);
+			} else if (o !is null) {
+				auto no = new Overloaded;
+				no.fn = o.fn~nfn;
+				global.replace(no);
+			} else
+				enforce(false, "Duplicate symbol "~p.symbol);
 		} else
 			global.insert(p);
 	}
@@ -199,7 +204,9 @@ import std.getopt;
 	auto pf = File(result_dir~"/particle_creation.h", "w");
 	auto pinf = File(result_dir~"/particle_interface.c", "w");
 	auto exf = File(result_dir~"/export.h", "w");
+	auto fnf = File(result_dir~"/functions.h", "w");
 
+	fnf.writeln("#pragma once\n");
 	defsf.writeln("#pragma once\n");
 	defsf.writeln("#include \"export.h\"");
 	defsf.writeln("#include <vec.h>");
@@ -218,6 +225,7 @@ import std.getopt;
 	exf.writeln("#define N_RENDER_QUEUES 1\n"); //XXX Place holder
 	exf.writeln("struct event;\nstruct particle;\n");
 	mainf.writeln("#include \"defs.h\"\n");
+	mainf.writeln("#include \"functions.h\"\n");
 	mainf.writeln("#include \"particle_creation.h\"\n");
 	pf.writeln("#include \"defs.h\"\n");
 	pinf.writeln("#include \"defs.h\"\n");
@@ -228,7 +236,9 @@ import std.getopt;
 		auto p  = cast(Particle)pd,
 		     e  = cast(Event)pd,
 		     td = cast(Tag)pd,
-		     vd = cast(Vertex)pd;
+		     vd = cast(Vertex)pd,
+		     ol = cast(Overloaded)pd,
+		     fn = cast(Func)pd;
 		if (p !is null) {
 			exf.writefln("#define PARTICLE_%s %s\n", p.symbol, pcnt);
 			exf.writeln(p.c_macros);
@@ -252,6 +262,8 @@ import std.getopt;
 		} else if (vd !is null) {
 			exf.writeln(vd.c_structs);
 			exf.writeln("#define VERTEX_"~vd.name~"_SIZE sizeof(struct vertex_"~vd.name~")");
+		} else if (ol !is null || fn !is null) {
+			fnf.writeln(pd.c_code(global, false));
 		}
 	}
 	mainf.writeln(c_particle_handler(r));
@@ -266,6 +278,7 @@ import std.getopt;
 	defsf.close();
 	pinf.close();
 	pf.close();
+	fnf.close();
 
 	compile(runtime_dir, result_dir, output_file, optimize);
 }

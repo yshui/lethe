@@ -111,6 +111,7 @@ immutable bool[string] reserved_names;
 
 static this() {
 	string[] ns = ["__current", "__next", "__event", "__new_event", "__p", "__tags", "__tmp"];
-	foreach(n; ns)
+	string[] type_name = ["vec2", "vec3", "vec4", "int", "float", "void", "bool"];
+	foreach(n; ns~type_name)
 		reserved_names[n] = true;
 }

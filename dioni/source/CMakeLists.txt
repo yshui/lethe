@@ -30,6 +30,7 @@ add_executable(dioni
     parser/utils.d
     utils.d
     mustache.d
+    error.d
 )
 target_link_libraries(dioni sdpc)
 set_target_properties(dioni PROPERTIES TEXT_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../template")

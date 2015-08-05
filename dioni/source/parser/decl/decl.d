@@ -110,10 +110,16 @@ auto parse_fn(Stream i) {
 		between!(token_ws!"(",
 			chain!(parse_var_decl, arr_append!Decl, discard!(token_ws!","), true),
 		token_ws!")"),
-		token_ws!"->",
+		discard!(token_ws!"->"),
 		parse_type,
 		parse_stmt_block
 	)(i);
+	r.r.name = "function";
+	if (!r.ok)
+		return err_result!Decl(r.r);
+	return ok_result!Decl(new Func(r.result!0, r.result!1, r.result!2, r.result!3),
+	    r.consumed, r.r
+	);
 }
 alias parse_particle_decl = cast_result!(Decl, parse_particle);
 auto parse_top(Stream i) {
@@ -130,7 +136,8 @@ auto parse_top(Stream i) {
 		auto r = choice!(
 			parse_particle_decl,
 			parse_event,
-			parse_vertex
+			parse_vertex,
+			parse_fn
 		)(i);
 		re.dep ~= r.r.dep;
 		if (!r.ok)

@@ -39,15 +39,7 @@ class Decl {
 
 class Overloaded : Decl {
 	string name;
-	Func[] fn;
-override :
-	string symbol() const { return name; }
-	string str() const {
-		return fn.map!(a => a.str).join("\n");
-	}
-	string c_code(const(Symbols) s, bool prototype_only) const {
-		return fn.map!(a => a.c_code(s, prototype_only)).join("\n");
-	}
+	const(Func)[] fn;
 	string c_call(string[] pcode, const(TypeBase)[] ty, out TypeBase oty) const {
 		//Find the right function to call
 		TypeBase rty;
@@ -56,6 +48,15 @@ override :
 				return f.c_call(pcode, ty, rty);
 			} catch (Error) { }
 		}
+		assert(false);
+	}
+override :
+	string symbol() const { return name; }
+	string str() const {
+		return fn.map!(a => a.str).join("\n");
+	}
+	string c_code(const(Symbols) s, bool prototype_only) const {
+		return fn.map!(a => a.c_code(s, prototype_only)).join("\n");
 	}
 }
 
@@ -64,9 +65,11 @@ class Func : Decl {
 	Var[] param;
 	Stmt[] bdy;
 	const(TypeBase) retty;
-	this(string n, Decl[] d, Stmt[] b) {
+	@safe this(string n, Decl[] d,
+		   TypeBase ret, Stmt[] b) {
 		name = n;
 		param.length = d.length;
+		retty = ret;
 		foreach(i, x; d) {
 			auto tmp = cast(Var)x;
 			assert(tmp !is null);
@@ -84,7 +87,7 @@ class Func : Decl {
 		oty = retty.dup;
 		return symbol~"("~list~")";
 	}
-	string mangle() const {
+	@safe string mangle() const {
 		//Mangling
 		auto res = name~to!string(param.length);
 		foreach(p; param) {
@@ -98,9 +101,11 @@ override :
 	}
 	string symbol() const { return name~to!string(param.length); }
 	string c_code(const(Symbols) s, bool prototype_only) const {
+		string tmpl;
 		if (prototype_only)
-			return "";
-		auto func_template = import("funcdecl.mustache");
+			tmpl = import("funcproto.mustache");
+		else
+			tmpl = import("funcdecl.mustache");
 		Mustache r;
 		auto ctx = new Mustache.Context;
 
@@ -116,9 +121,14 @@ override :
 		}
 		ctx["param"] = plist;
 
-		bool changed;
-		auto code = bdy.c_code(ns, changed);
-		return r.renderString(func_template, ctx);
+		ctx["retty"] = retty.c_type;
+
+		if (!prototype_only) {
+			bool changed;
+			auto code = bdy.c_code(this, ns, changed);
+			ctx["body"] = code;
+		}
+		return r.renderString(tmpl, ctx);
 	}
 }
 
@@ -239,17 +249,16 @@ class StateTransition {
 		if (cond[0] != "")
 			res ~= "if ("~cond[0]~") {\n";
 
-		s1.insert(nst);
 		bool changed;
-		auto scode = s.c_code(s1, parent, sha, changed);
+		auto scode = s.c_code(parent, s1, sha, changed);
 		s1.merge_shadowed(sha);
+
+		if (changed)
+			res ~= "mark_particle_as_changed(__current->__p);\n";
 
 		res ~= s1.c_defs(StorageClass.Local);
 		res ~= cond[1];
 		res ~= scode;
-
-		if (changed)
-			res ~= "mark_particle_as_changed(__current->__p);\n";
 
 		//If we reach this point, the user code hasn't
 		//returned a state yet, assume state unchanged
@@ -323,6 +332,7 @@ override :
 	}
 	string c_code(const(Symbols) p, bool prototype_only) const {
 		assert(_parent !is null);
+		/*
 		auto res = format("static inline void %s_state_%s_entry(%s)",
 				  _parent.symbol, name, _parent.symbol.param_list);
 		if (prototype_only)
@@ -331,15 +341,15 @@ override :
 			bool changed;
 			res ~= " {\n"~entry.c_code(p, changed);
 			res ~= "}\n";
-		}
+		}*/
 
-		res ~= format("static inline int %s_state_%s(%s, struct event* __raw_event)",
+		auto res = format("static inline int %s_state_%s(%s, struct event* __raw_event)",
 			      _parent.symbol, name, _parent.symbol.param_list);
 		if (prototype_only)
 			res ~= ";\n";
 		else {
 			res ~= " {\n";
-			res ~= st.map!(x => x.c_code(p, c_access)).join("\n");
+			res ~= st.map!(x => x.c_code(p, this)).join("\n");
 			res ~= "return NOT_HANDLED;\n";
 			res ~= "}\n";
 		}
@@ -482,7 +492,7 @@ override :
 		}
 		//Initialize variables in the param
 		bool changed;
-		res ~= stmt.c_code(ns, changed)~"}";
+		res ~= stmt.c_code(this, ns, changed)~"}";
 		return res;
 	}
 }

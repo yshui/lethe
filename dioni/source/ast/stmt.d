@@ -1,6 +1,9 @@
 module ast.stmt;
 import ast.expr, ast.symbols, ast.decl, ast.type;
 import std.format;
+import std.exception : enforceEx;
+import error;
+private alias enforce = std.exception.enforceEx!CompileError;
 interface Stmt {
 	@property @safe nothrow pure string str() const;
 	///changed: Whether this statement change a member of the particle
@@ -12,20 +15,27 @@ class Ret : Stmt {
 		val = v;
 	}
 	string str() const {
-		return "=> "~val.str;
+		return "=> "~(val is null ? "void" : val.str);
 	}
 	string c_code(Symbols s, ref bool changed, const(Decl) parent) const {
 		changed = false;
 		TypeBase ty;
-		auto code = lhs.c_code(s, ty);
 		auto fn = cast(const(Func))parent,
-		     s = cast(const(State))parent;
+		     st = cast(const(State))parent,
+		     ctor = cast(const(Ctor))parent;
+		if (ctor !is null) {
+			enforce(val is null, "Can't return value in ctor");
+			return "return;";
+		}
+
+		auto code = val.c_code(s, ty);
 		if (fn !is null)
 			return "return "~ty.c_cast(fn.retty, code)~";\n";
-		else {
+		else if (st !is null){
 			enforce(ty.type_match!(Type!State), "next state is not state");
 			return "return "~code~";\n";
-		}
+		} else
+			assert(false, "Impossible parent");
 	}
 }
 class Assign : Stmt {
@@ -134,11 +144,11 @@ class If : Stmt {
 		Shadows sha;
 		assert(ty.dimension == 1, "if statement doesn't take vectors");
 		auto res = "if ("~ccode~") {\n";
-		res ~= _then.c_code(s, parent, sha, changed)~"}\n";
+		res ~= _then.c_code(parent, s, sha, changed)~"}\n";
 		s.merge_shadowed(sha);
 		bool changed2 = false;
 		if (_else.length != 0) {
-			res ~= "else {\n"~_else.c_code(s, parent, sha, changed2)~"}\n";
+			res ~= "else {\n"~_else.c_code(parent, s, sha, changed2)~"}\n";
 			s.merge_shadowed(sha);
 		}
 		changed = changed || changed2;
@@ -159,7 +169,7 @@ class Foreach : Stmt {
 		res ~= "}\n";
 		return res;
 	}
-	string c_code(Symbols s, ref bool changed) const {
+	string c_code(Symbols s, ref bool changed, const(Decl) parent) const {
 		assert(false, "NIY");
 	}
 }
@@ -200,7 +210,7 @@ class Loop : Stmt {
 		res ~= x.c_defs(StorageClass.Local);
 		res ~= rname~" = "~rcode~";\n";
 		res ~= "for("~lname~" = "~rname~".a; "~lname~" < "~rname~".o; "~lname~"++) {\n";
-		res ~= bdy.c_code(x, parent, sha, changed);
+		res ~= bdy.c_code(parent, x, sha, changed);
 		res ~= "}\n}\n";
 
 		sym.merge_shadowed(sha);

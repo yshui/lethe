@@ -165,6 +165,18 @@ auto parse_return(Stream i) {
 	return ok_result!Stmt(new Ret(r.result), r.consumed, r.r);
 }
 
+auto parse_return_void(Stream i) {
+	auto r = seq!(
+		token_ws!"=>",
+		token_ws!"void",
+		token_ws!";"
+	)(i);
+	r.r.name = "return void";
+	if (!r.ok)
+		return err_result!Stmt(r.r);
+	return ok_result!Stmt(new Ret(null), r.consumed, r.r);
+}
+
 alias parse_new_stmt = cast_result!(Stmt, seq!(parse_new, discard!(token_ws!";")));
 
 ParseResult!Stmt parse_stmt(Stream i) {
@@ -176,5 +188,7 @@ ParseResult!Stmt parse_stmt(Stream i) {
 		parse_clear,
 		parse_aggregate,
 		parse_new_stmt,
+		parse_return_void,
+		parse_return
 	)(i);
 }
