@@ -2,6 +2,7 @@ module ast.type;
 import ast.symbols, ast.decl;
 import utils;
 import std.string : format;
+import std.conv : to;
 
 nothrow pure @safe @nogc bool type_match(T, U)(U a) {
 	static if (is(U == const(V), V))
@@ -71,6 +72,9 @@ class TypeBase {
 		string c_field(string lcode, string rhs, out TypeBase ty) const {
 			assert(false);
 		}
+		string mangle() const {
+			assert(false);
+		}
 	}
 }
 
@@ -89,6 +93,9 @@ override :
 		if (target.type_match!ParticleHandle)
 			return code;
 		assert(false);
+	}
+	string mangle() const {
+		return "P";
 	}
 }
 
@@ -112,6 +119,9 @@ override :
 		return (st !is null);
 	}
 	string c_copy(string src, string dst) const { assert(false); }
+	string mangle() const {
+		return T.stringof;
+	}
 }
 
 class NamedType(T) : TypeBase {
@@ -180,6 +190,9 @@ override :
 		} else
 			assert(false);
 	}
+	string mangle() const {
+		return T.stringof~name;
+	}
 }
 
 class RangeBase : TypeBase { }
@@ -237,6 +250,9 @@ override :
 	}
 	bool opEquals(const(TypeBase) o) const {
 		return o.type_match!(Type!T);
+	}
+	string mangle() const {
+		return T.stringof;
 	}
 }
 
@@ -307,6 +323,9 @@ override :
 	}
 	bool opEquals(const(TypeBase) o) const {
 		return o.type_match!(Type!(T, dim));
+	}
+	string mangle() const {
+		return "v"~to!string(dim);
 	}
 }
 

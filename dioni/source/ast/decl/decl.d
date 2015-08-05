@@ -8,6 +8,9 @@ import ast.type,
        ast.aggregator;
 import std.typecons;
 import std.string : format;
+import mustache;
+
+alias MustacheEngine!string Mustache;
 
 immutable(Aggregator) eagg = new EventAggregator;
 immutable(Aggregator) rqagg = new RenderAggregator;
@@ -29,6 +32,47 @@ class Decl {
 	}
 	@safe string c_code(const(Symbols) s, bool prototype_only=false) const {
 		assert(false);
+	}
+}
+
+class Func : Decl {
+	string name;
+	Var[] param;
+	Stmt[] bdy;
+override :
+	string symbol() const {
+		//Mangling
+		auto res = name~to!string(param.length);
+		foreach(p; param) {
+			res ~= "_"~p.ty.mangle;
+		}
+		return res;
+	}
+	string str() const {
+		return "Func "~name~bdy.str;
+	}
+	string c_code(const(Symbols) s, bool prototype_only) const {
+		if (prototype_only)
+			return "";
+		auto func_template = import("funcdecl.mustache");
+		Mustache r;
+		auto ctx = new Mustache.Context;
+
+		ctx["name"] = symbol;
+
+		auto plist = "";
+		auto ns = new Symbols(s);
+		foreach(i, p; param) {
+			if (i != 0)
+				plist ~= ", ";
+			plist ~= p.ty.c_type~" "~p.name;
+			ns.insert(new Var(p.ty, p.aggregator, p.name));
+		}
+		ctx["param"] = plist;
+
+		bool changed;
+		auto code = bdy.c_code(ns, changed);
+		return r.renderString(func_template, ctx);
 	}
 }
 
