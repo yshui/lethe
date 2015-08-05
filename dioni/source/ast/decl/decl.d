@@ -39,6 +39,7 @@ class Func : Decl {
 	string name;
 	Var[] param;
 	Stmt[] bdy;
+	const(TypeBase) retty;
 override :
 	string symbol() const {
 		//Mangling
@@ -73,6 +74,16 @@ override :
 		bool changed;
 		auto code = bdy.c_code(ns, changed);
 		return r.renderString(func_template, ctx);
+	}
+	string c_call(string[] pcode, const(TypeBase)[] ty, out TypeBase oty) const {
+		auto list = "";
+		foreach(i, p; param) {
+			if (i != 0)
+				list ~= ", ";
+			list ~= ty[i].c_cast(p.ty, pcode[i]);
+		}
+		oty = retty.dup;
+		return symbol~"("~list~")";
 	}
 }
 
