@@ -63,14 +63,11 @@ override :
 		string res = "";
 		bool matched = false;
 		import std.stdio : writeln;
-		writeln(fn);
 		foreach(f; fn) {
 			string tmp;
 			try {
-				writeln("Trying "~f.str);
 				tmp = f.c_call(pcode, ty, rty);
 			} catch (CompileError ce) {
-				writeln(ce.msg);
 				continue;
 			}
 			enforce(!matched, "Call to "~name~" has multiple matches");
@@ -78,6 +75,7 @@ override :
 			res = tmp;
 		}
 		enforce(matched, "No matched call found for "~name);
+		oty = rty;
 		return res;
 	}
 	string symbol() const { return name; }

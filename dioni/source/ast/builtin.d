@@ -63,7 +63,15 @@ template FilterByName(string name, T...) {
 }
 
 alias builtins = TypeTuple!(
-	Builtin!("vec", "{{=<% %>=}}((struct vec2){<%first%><%#rest%>,<%param%><%/rest%>})", Type!(float, 2), Type!float, Type!float),
+	Builtin!("vec", "{{=<% %>=}}((struct vec2){<%&first%><%#rest%>,<%&param%><%/rest%>})", Type!(float, 2), Type!float, Type!float),
+	Builtin!("vec", "{{=<% %>=}}((struct vec3){<%&first%><%#rest%>,<%&param%><%/rest%>})", Type!(float, 3), Type!float, Type!float, Type!float),
+	Builtin!("vec", "{{=<% %>=}}((struct vec3){<%&first%><%#rest%>,<%&param%><%/rest%>})", Type!(float, 4), Type!float, Type!float, Type!float, Type!float),
+	Builtin!("cos", "cosf({{&first}})", Type!float, Type!float),
+	Builtin!("sin", "sinf({{&first}})", Type!float, Type!float),
+	Builtin!("tan", "tanf({{&first}})", Type!float, Type!float),
+	Builtin!("asin", "asinf({{&first}})", Type!float, Type!float),
+	Builtin!("acos", "acosf({{&first}})", Type!float, Type!float),
+	Builtin!("atan", "atanf({{&first}})", Type!float, Type!float),
 );
 
 class BuiltinFn(B) : Callable {
