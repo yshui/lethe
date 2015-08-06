@@ -1,3 +1,8 @@
+# High priority
+- [ ] Texture
+  - [ ] Texture packer
+  - [ ] Syntax for getting texture coord from texture pack, at both runtime and compile-time
+  - [ ] Generate texture at runtime and use them (Probably would be used for text)
 # Must
 - [x] Get rid of particle->\_\_id
 - [x] Deferred variable assign (var = ?)
@@ -14,8 +19,8 @@
   - [x] Event Aggregators
   - [x] Render Aggregators
   - [x] Collision aggregator (register collision box)
-- [ ] Nil state to stop actor
-- [ ] Deleted state to delete particle
+- [x] Nil state to stop actor
+- [x] Deleted state to delete particle
 - [x] Vertice definition
 - [ ] An interface to communicate (to D) what event an actor is waiting for
 - [ ] Create particle with tags
@@ -24,15 +29,15 @@
   - [ ] Event with zero parameters (Event() or Event should both be valid)
   - [ ] Take event parameter without match (Event(b) without using match like Event(b==1))
   - [ ] Ignore event parameter (Event(\_))
-- [x] Random number syntax
-- [ ] Texture
+- [x] Random number syntax (Deprecated)
 - [ ] Use proper exception rather than assert
-- [ ] Function support
+- [x] Function support
 
 # Future
 
 - [ ] Global static aggregator, loop over it is unrolled at compile time
 - [ ] Static multiple dispatch by duplicate the code at compile time
+- [ ] Array support, see Details
 
 # Useful
 * Improve codegen error messages
@@ -40,13 +45,28 @@
 # Maybe not
 * Entry action of state: Is this really useful?, when should it run (before/after event fence)?
 
-# Random syntax
+# Details
+
+## Array
+
+struct array {
+	const struct array *base;
+	struct array *new;
+	bool cleared;
+}
+
+On event fence, new and base in \_\_next are merge to form a new base, if cleared == true, new base is empty
+
+On <<, stuffs are put into new
+On ~, new is cleared and cleared is set to true
+
+## Random syntax (Deprecated)
 
 ```
 $(range), e.g. $(1..20) for random interger >= 1 and < 20. $(0.0..1.0) for random real number
 ```
 
-# Vertice definition
+## Vertice definition
 
 //Verbose, consistent with particle definition
 vertex VertexName {
@@ -64,9 +84,9 @@ or
 //This
 vertex VertexName(type name, ...);
 
-# Unified matching syntax
+## Unified matching syntax
 
-## In condition
+### In condition
 
 Condition => EventName "(" Matcher ("," Matcher)\* ")"
 
@@ -76,13 +96,13 @@ ParticleMatcher => ParticleName "(" ("\_" / Variable) ")"
 
 MatchExpression => Variable ("~"/"=="/"<="/">="/"<"/">") Expression
 
-## In if statement
+### In if statement
 
 IfLet => "if" "let" ParticleMatcher = Variable
 
 If => "if" BooleanExpresion
 
-# Event handler forwarding
+## Event handler forwarding
 
 The old next state syntax is repurposed for forwarding
 
@@ -90,9 +110,9 @@ state ExtState @ _ => State, ...;
 
 The next state is thus determined by the corresponding handler in State.
 
-#Particle redesign
+## Particle redesign
 
-## Composition over inhertiance.
+### Composition over inhertiance.
 
 Syntax:
 
@@ -116,7 +136,7 @@ A mixin will also pull in all its tags as well, prevent pull in specific tags by
 
 particle Particle[Tag1, -Tag2] << ...
 
-# Shared storage class (Abandoned)
+## Shared storage class (Abandoned)
 
 Particles of the same exact type is allowed to share data. At particle creation time, 'sharing group' is defined, and particles with the same type and are in the same 'sharing group' will share some of their data.
 
