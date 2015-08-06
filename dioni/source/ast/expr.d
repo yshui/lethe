@@ -56,31 +56,6 @@ class Range : Expr {
 	}
 }
 
-class Random : Expr {
-	Range r;
-	@safe this(Range x) { r = x; }
-override :
-	string str() const {
-		return "rand("~r.str~")";
-	}
-	string c_code(const(Symbols) s, out TypeBase ty) const {
-		TypeBase rty;
-		auto rcode = r.c_code(s, rty);
-		if (rty.type_match!(RangeType!int)) {
-			ty = new Type!int;
-			return "rand_int("~rcode~")";
-		} else if (rty.type_match!(RangeType!float)) {
-			ty = new Type!float;
-			return "rand_float("~rcode~")";
-		} else {
-			auto rb = cast(RangeBase)rty;
-			assert(rb !is null);
-			ty = new_vec_type!float(rb.dimension);
-			return "rand_vec"~to!string(rb.dimension)~"("~rcode~")";
-		}
-	}
-}
-
 class BinOP : Expr {
 	Expr lhs, rhs;
 	string op;
@@ -384,35 +359,6 @@ override :
 	}
 }
 
-class Vec(int dim) : Expr if (dim >= 2) {
-	Expr[dim] elem;
-	@safe this(Expr[] xelem) {
-		assert(xelem.length >= dim);
-		foreach(i; Iota!(0, dim))
-			elem[i] = xelem[i];
-	}
-override :
-	string str() const {
-		auto res = "Vec"~to!string(dim)~"(";
-		foreach(i; Iota!(0, dim-1))
-			res ~= elem[i].str ~ ", ";
-		res ~= elem[dim-1].str ~ ")";
-		return res;
-	}
-	string c_code(const(Symbols) s, out TypeBase ty) const {
-		ty = new Type!(float, dim);
-		auto res = assumeWontThrow(format("((struct vec%s){", dim));
-		foreach(e; elem) {
-			TypeBase tmpty;
-			res ~= e.c_code(s, tmpty)~",";
-			assert(tmpty.type_match!(Type!int) ||
-			       tmpty.type_match!(Type!float));
-		}
-		res ~= "})";
-		return res;
-	}
-}
-
 class Call : Expr {
 	string name;
 	Expr[] param;
@@ -424,7 +370,7 @@ override :
 	string str() const {
 		auto res = "Call(";
 		res ~= param.map!(a => a.str).join(",");
-		return res;
+		return res~")";
 	}
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		TypeBase[] pty;
@@ -528,7 +474,7 @@ class NewExpr : Expr, Stmt {
 	}
 override :
 	string str() const {
-		return "New";
+		return "New("~name~", "~param.map!(a => a.str).join(",")~")";
 	}
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto d = s.lookup_checked(name);

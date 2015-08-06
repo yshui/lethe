@@ -59,7 +59,9 @@ particle Spark {
 	float alpha;
 	>(center) {
 		r <- 5.0;
-		velocity <- $(vec(-1, -1)..vec(1, 1))*2;
+		angle = rand(0..6.28);
+		v = rand(0.0..2);
+		velocity <- vec(v*cos(angle), v*sin(angle));
 		alpha<- 1.0;
 		`Decay;
 	}
@@ -127,9 +129,9 @@ particle Ball {
 particle Bootstrap {
 	>(float w, float h) {
 		loop(i~0..150)
-			`Ball($(vec(10, 10)..vec(w, h)),
-			      $(vec(-1, -1)..vec(1, 1)),
-			      $(2..5));
+			`Ball(rand(vec(10, 10)..vec(w, h)),
+			      rand(vec(-1, -1)..vec(1, 1)),
+			      rand(2..5));
 		`WallN(w);
 		`WallW(h);
 		`WallE(w, h);

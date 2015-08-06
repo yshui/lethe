@@ -18,19 +18,6 @@ auto parse_range(Stream i) {
 	return ok_result(new Range(r.result!0, r.result!1), r.consumed, r.r);
 }
 
-auto parse_random(Stream i) {
-	auto r = seq!(
-		discard!(token_ws!"$"),
-		between!(token_ws!"(",
-			parse_range,
-		token_ws!")")
-	)(i);
-	r.r.name = "random";
-	if (!r.ok)
-		return err_result!Expr(r.r);
-	return ok_result!Expr(new Random(r.result), r.consumed, r.r);
-}
-
 auto parse_paren(Stream i) {
 	auto r = between!(token_ws!"(", parse_expr, token_ws!")")(i);
 	r.r.name = "parentheses";
@@ -94,7 +81,6 @@ ParseResult!Expr parse_primary(Stream i) {
 		parse_call,
 		parse_field,
 		parse_var_expr,
-		parse_random
 	)(i);
 	r.r.name = "primary";
 	return r;
@@ -121,7 +107,8 @@ auto parse_call(Stream i) {
 	auto r = seq!(
 		id_ws,
 		between!(token_ws!"(",
-			chain!(parse_expr, arr_append!Expr, discard!(token_ws!",")),
+			chain!(choice!(parse_range_expr, parse_expr),
+			       arr_append!Expr, discard!(token_ws!",")),
 		token_ws!")")
 	)(i);
 	r.r.name = "call";
@@ -136,7 +123,6 @@ auto parse_field(Stream i) {
 		parse_var_expr,
 		parse_paren,
 		parse_unop,
-		parse_random
 	);
 	auto r = seq!(
 		field_left,

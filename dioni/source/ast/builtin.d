@@ -72,6 +72,11 @@ alias builtins = TypeTuple!(
 	Builtin!("asin", "asinf({{&first}})", Type!float, Type!float),
 	Builtin!("acos", "acosf({{&first}})", Type!float, Type!float),
 	Builtin!("atan", "atanf({{&first}})", Type!float, Type!float),
+	Builtin!("rand", "rand_vec2({{&first}})", Type!(float, 2), RangeType!(float, 2)),
+	Builtin!("rand", "rand_vec3({{&first}})", Type!(float, 3), RangeType!(float, 3)),
+	Builtin!("rand", "rand_vec4({{&first}})", Type!(float, 4), RangeType!(float, 4)),
+	Builtin!("rand", "rand_float({{&first}})", Type!float, RangeType!float),
+	Builtin!("rand", "rand_int({{&first}})", Type!int, RangeType!int),
 );
 
 class BuiltinFn(B) : Callable {

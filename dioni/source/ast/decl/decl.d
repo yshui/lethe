@@ -73,9 +73,10 @@ override :
 			enforce(!matched, "Call to "~name~" has multiple matches");
 			matched = true;
 			res = tmp;
+			oty = rty;
+			writeln("Using "~f.str);
 		}
 		enforce(matched, "No matched call found for "~name);
-		oty = rty;
 		return res;
 	}
 	string symbol() const { return name; }
