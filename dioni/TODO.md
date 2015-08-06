@@ -3,6 +3,7 @@
   - [ ] Texture packer
   - [ ] Syntax for getting texture coord from texture pack, at both runtime and compile-time
   - [ ] Generate texture at runtime and use them (Probably would be used for text)
+
 # Must
 - [x] Get rid of particle->\_\_id
 - [x] Deferred variable assign (var = ?)
@@ -32,6 +33,7 @@
 - [x] Random number syntax (Deprecated)
 - [ ] Use proper exception rather than assert
 - [x] Function support
+- [ ] Migrate to use text template (mustache)
 
 # Future
 
