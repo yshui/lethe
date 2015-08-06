@@ -1,0 +1,6 @@
+[package]
+name = "xu"
+version = "0.1.0"
+authors = ["Yuxuan Shui <yshuiv7@gmail.com>"]
+[dependencies]
+image = "*"
