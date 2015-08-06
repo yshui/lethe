@@ -4,7 +4,7 @@ import std.typetuple;
 import mustache;
 import error;
 import std.exception : enforceEx;
-private :
+private @safe :
 template Builtin(string name, string tmpl, R, T...) if (is(R: TypeBase)){
 	struct Builtin {
 		import std.conv : to;
@@ -13,20 +13,21 @@ template Builtin(string name, string tmpl, R, T...) if (is(R: TypeBase)){
 			retty = new R;
 			string[] p;
 			string first_p;
+			auto ctx = new MustacheEngine!string.Context;
 			//Check type match
 			foreach(i, t; T) {
-				auto code = ty.c_cast(new t, param[i]);
+				auto code = ty[i].c_cast(new t, param[i]);
 				static if (i == 0)
 					first_p = code;
-				else
-					p ~= [code];
+				else {
+					auto sub = ctx.addSubContext("rest");
+					sub["param"] = code;
+				}
 			}
 
-			MustacheEngine r;
-			auto ctx = new MustacheEngine.Context;
+			MustacheEngine!string r;
 			ctx["name"] = name;
-			ctx["retty"] = ret.c_type;
-			ctx["rest"] = p;
+			ctx["retty"] = retty.c_type;
 			ctx["first"] =first_p;
 			return r.renderString(tmpl, ctx);
 		}
@@ -62,13 +63,16 @@ template FilterByName(string name, T...) {
 }
 
 alias builtins = TypeTuple!(
-	Builtin!("vec", "((struct vec2){{{first}}, })", Type!(float, 2), Type!float, Type!float),
+	Builtin!("vec", "{{=<% %>=}}((struct vec2){<%first%><%#rest%>,<%param%><%/rest%>})", Type!(float, 2), Type!float, Type!float),
 );
 
 class BuiltinFn(B) : Callable {
 override :
 	string c_call(string[] pcode, const(TypeBase)[] ty, out TypeBase oty) const {
 		return B.c_call(pcode, ty, oty);
+	}
+	string str() const {
+		return "builtinFn "~B.stringof;
 	}
 	string symbol() const { return B.symbol; }
 	string c_code(const(Symbols) s, bool prototype_only) const { return ""; }

@@ -5,11 +5,15 @@ import std.conv,
        std.typecons,
        std.traits,
        std.format,
-       std.exception;
+       std.algorithm;
 import utils;
+import error;
+import std.exception : assumeWontThrow;
+alias enforce = enforceEx!CompileError;
 interface Expr {
-	@safe nothrow {
-		pure @property string str() const;
+	@safe {
+		//Can't use pure because format to float is not pure
+		nothrow pure string str() const;
 		string c_code(const(Symbols) s, out TypeBase ty) const;
 	}
 }
@@ -382,16 +386,14 @@ override :
 
 class Vec(int dim) : Expr if (dim >= 2) {
 	Expr[dim] elem;
-	const(string) _header;
 	@safe this(Expr[] xelem) {
-		_header = "Vec"~to!string(dim)~"(";
 		assert(xelem.length >= dim);
 		foreach(i; Iota!(0, dim))
 			elem[i] = xelem[i];
 	}
 override :
 	string str() const {
-		auto res = _header.dup;
+		auto res = "Vec"~to!string(dim)~"(";
 		foreach(i; Iota!(0, dim-1))
 			res ~= elem[i].str ~ ", ";
 		res ~= elem[dim-1].str ~ ")";
@@ -408,6 +410,32 @@ override :
 		}
 		res ~= "})";
 		return res;
+	}
+}
+
+class Call : Expr {
+	string name;
+	Expr[] param;
+	@safe this(string a, Expr[] b) {
+		name = a;
+		param = b;
+	}
+override :
+	string str() const {
+		auto res = "Call(";
+		res ~= param.map!(a => a.str).join(",");
+		return res;
+	}
+	string c_code(const(Symbols) s, out TypeBase ty) const {
+		TypeBase[] pty;
+		pty.length = param.length;
+		string[] pcode = [];
+		pcode = reduce!((a, b) => a~b)(pcode, param.enumerate.map!(a => a[1].c_code(s, pty[a[0]])));
+		string sname = name~to!string(param.length);
+
+		auto fn = cast(const(Callable))s.lookup_checked(sname);
+		enforce(fn !is null, "Calling non function "~name);
+		return fn.c_call(pcode, pty, ty);
 	}
 }
 
@@ -434,7 +462,7 @@ string op_to_name(string op) {
 	}
 }
 
-pure nothrow @safe
+pure @safe
 string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 	if (op == "~") {
 		auto rngty = cast(const(RangeBase))ty[1];

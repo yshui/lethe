@@ -26,29 +26,29 @@ particle Wall {
 }
 particle WallN << Wall{
 	>(float w) {
-		start <- vec2(0, 10);
-		end <- vec2(w, 10);
+		start <- vec(0, 10);
+		end <- vec(w, 10);
 		`Update;
 	}
 }
 particle WallS << Wall{
 	>(float w, float h) {
-		start <- vec2(0, h-10.0);
-		end <- vec2(w, h-10.0);
+		start <- vec(0, h-10.0);
+		end <- vec(w, h-10.0);
 		`Update;
 	}
 }
 particle WallW << Wall{
 	>(float h) {
-		start <- vec2(10, 0);
-		end <- vec2(10, h);
+		start <- vec(10, 0);
+		end <- vec(10, h);
 		`Update;
 	}
 }
 particle WallE << Wall{
 	>(float w, float h) {
-		start <- vec2(w-10.0, 0);
-		end <- vec2(w-10.0, h);
+		start <- vec(w-10.0, 0);
+		end <- vec(w-10.0, h);
 		`Update;
 	}
 }
@@ -59,7 +59,7 @@ particle Spark {
 	float alpha;
 	>(center) {
 		r <- 5.0;
-		velocity <- $(vec2(-1, -1)..vec2(1, 1))*2;
+		velocity <- $(vec(-1, -1)..vec(1, 1))*2;
 		alpha<- 1.0;
 		`Decay;
 	}
@@ -67,10 +67,10 @@ particle Spark {
 		center <- center+velocity;
 		r <- r*0.9;
 		alpha <- alpha*0.9;
-		render << `ballv(vec2(-1, 1)*r, center, vec2(-1, 1), 0, alpha),
-			  `ballv(vec2(-1, -1)*r, center, vec2(-1, -1), 0, alpha),
-			  `ballv(vec2(1, -1)*r, center, vec2(1, -1), 0, alpha),
-			  `ballv(vec2(1, 1)*r, center, vec2(1, 1), 0, alpha);
+		render << `ballv(vec(-1, 1)*r, center, vec(-1, 1), 0, alpha),
+			  `ballv(vec(-1, -1)*r, center, vec(-1, -1), 0, alpha),
+			  `ballv(vec(1, -1)*r, center, vec(1, -1), 0, alpha),
+			  `ballv(vec(1, 1)*r, center, vec(1, 1), 0, alpha);
 		render << -4, -3, -2, -4, -2, -1;
 		if (r < 1e-6)
 			=> Deleted;
@@ -82,10 +82,10 @@ particle Ball {
 	float r;
 	state Update @ nextFrame {
 		center <- center+velocity;
-		render << `ballv(vec2(-1, 1)*r, center, vec2(-1, 1), 0,1),
-			  `ballv(vec2(-1, -1)*r, center, vec2(-1, -1), 0,1),
-			  `ballv(vec2(1, -1)*r, center, vec2(1, -1), 0,1),
-			  `ballv(vec2(1, 1)*r, center, vec2(1, 1), 0,1);
+		render << `ballv(vec(-1, 1)*r, center, vec(-1, 1), 0,1),
+			  `ballv(vec(-1, -1)*r, center, vec(-1, -1), 0,1),
+			  `ballv(vec(1, -1)*r, center, vec(1, -1), 0,1),
+			  `ballv(vec(1, 1)*r, center, vec(1, 1), 0,1);
 		render << -4, -3, -2, -4, -2, -1;
 		hitboxes << `hitball(r, center);
 	};
@@ -104,20 +104,20 @@ particle Ball {
 	},
 	@ Collide(WallN(x)) {
 		if (velocity.y < 0.0)
-			velocity <- vec2(velocity.x, -velocity.y);
+			velocity <- vec(velocity.x, -velocity.y);
 	},
 	@ Collide(WallS(x)) {
 		if (velocity.y > 0.0)
-			velocity <- vec2(velocity.x, -velocity.y);
+			velocity <- vec(velocity.x, -velocity.y);
 	},
 	@ Collide(WallW(x)) {
 		if (velocity.x < 0.0)
-			velocity <- vec2(-velocity.x, velocity.y);
+			velocity <- vec(-velocity.x, velocity.y);
 		nextState = Move;
 	},
 	@ Collide(WallE(x)) {
 		if (velocity.x > 0.0)
-			velocity <- vec2(-velocity.x, velocity.y);
+			velocity <- vec(-velocity.x, velocity.y);
 	};
 	>(center, velocity, r) {
 		`Update;
@@ -127,8 +127,8 @@ particle Ball {
 particle Bootstrap {
 	>(float w, float h) {
 		loop(i~0..150)
-			`Ball($(vec2(10, 10)..vec2(w, h)),
-			      $(vec2(-1, -1)..vec2(1, 1)),
+			`Ball($(vec(10, 10)..vec(w, h)),
+			      $(vec(-1, -1)..vec(1, 1)),
 			      $(2..5));
 		`WallN(w);
 		`WallW(h);

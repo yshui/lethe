@@ -1,7 +1,7 @@
 import std.stdio, std.file;
 import std.process : environment, execute;
 import parser;
-import ast.symbols, ast.decl, ast.aggregator, ast.type;
+import ast.symbols, ast.decl, ast.aggregator, ast.type, ast.builtin;
 import sdpc;
 import std.getopt;
 import error;
@@ -121,11 +121,11 @@ private alias enforce = enforceEx!CompileError;
 			auto nfn = cast(const(Func))p;
 			enforce(nfn !is null, "Duplicated symbol "~p.symbol);
 			if (fn !is null) {
-				auto no = new Overloaded;
-				no.fn = [fn, nfn];
+				auto no = new Overloaded(fn.symbol, [fn, nfn]);
 				global.replace(no);
 			} else if (o !is null) {
-				o.fn ~= nfn;
+				auto no = new Overloaded(fn.symbol, o.fn~[nfn]);
+				global.replace(no);
 			} else
 				enforce(false, "Duplicate symbol "~p.symbol);
 		} else

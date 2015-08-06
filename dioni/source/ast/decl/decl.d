@@ -50,7 +50,8 @@ class Callable : Decl {
 class Overloaded : Callable {
 	string name;
 	const(Callable)[] fn;
-	this(string x) { name = x; }
+@safe :
+	this(string x, const(Callable)[] xfn = []) { name = x; fn = xfn; }
 	void insert(const(Callable) nfn) {
 		assert(nfn.symbol == name);
 		fn = fn~[nfn];
@@ -60,17 +61,24 @@ override :
 		//Find the right function to call
 		TypeBase rty;
 		string res = "";
+		bool matched = false;
+		import std.stdio : writeln;
+		writeln(fn);
 		foreach(f; fn) {
 			string tmp;
 			try {
+				writeln("Trying "~f.str);
 				tmp = f.c_call(pcode, ty, rty);
-			} catch (Error) {
+			} catch (CompileError ce) {
+				writeln(ce.msg);
 				continue;
 			}
-			enforce(res == "", "Call to "~name~" has multiple matches");
+			enforce(!matched, "Call to "~name~" has multiple matches");
+			matched = true;
 			res = tmp;
 		}
-		assert(false);
+		enforce(matched, "No matched call found for "~name);
+		return res;
 	}
 	string symbol() const { return name; }
 	string str() const {

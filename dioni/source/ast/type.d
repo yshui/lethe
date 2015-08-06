@@ -4,8 +4,17 @@ import utils;
 import std.string : format;
 import std.conv : to;
 import error;
+import std.exception : enforce;
 
-alias enforce = enforceEx!CompileError;
+alias ce_on = enforceEx!CompileError;
+
+class CastError : CompileError {
+	@safe pure nothrow this(const(TypeBase) src, const(TypeBase) tgt,
+		   string file = __FILE__, size_t line = __LINE__) {
+		string msg = "Can't cast from "~src.str~" to "~tgt.str;
+		super(msg, file, line);
+	}
+}
 
 nothrow pure @safe @nogc bool type_match(T, U)(U a) {
 	static if (is(U == const(V), V))
@@ -50,33 +59,33 @@ nothrow pure @safe TypeBase type_calc(T...)(const(TypeBase)[] ity) {
 }
 
 class TypeBase {
-	nothrow pure @safe {
-		@nogc int dimension() const {
-			return 0;
-		}
-		TypeBase element_type() {
-			return null;
-		}
-		string str() const { return "void"; }
-		TypeBase arr_of() const { assert(false); }
-		string c_type() const { assert(false); }
-		string d_type() const { assert(false); }
-		TypeBase dup() const { assert(false); }
-		bool opEquals(const(TypeBase) tb) const { return false; }
-		string c_copy(string src, string dst) const {
-			return dst~" = "~src;
-		}
-		string c_cast(const(TypeBase) target, string code) const {
-			enforce(typeid_equals(typeid(target), typeid(this)), "Can't cast"~
-			       " from "~typeid(this).toString~" to "~
-			       typeid(target).toString);
-			return code;
+	pure @safe {
+		nothrow {
+			@nogc int dimension() const {
+				return 0;
+			}
+			TypeBase element_type() {
+				return null;
+			}
+			string str() const { return "void"; }
+			TypeBase arr_of() const { assert(false); }
+			string c_type() const { assert(false); }
+			string d_type() const { assert(false); }
+			TypeBase dup() const { assert(false); }
+			bool opEquals(const(TypeBase) tb) const { return false; }
+			string c_copy(string src, string dst) const {
+				return dst~" = "~src;
+			}
+			string mangle() const {
+				assert(false);
+			}
 		}
 		string c_field(string lcode, string rhs, out TypeBase ty) const {
 			assert(false);
 		}
-		string mangle() const {
-			assert(false);
+		string c_cast(const(TypeBase) target, string code) const {
+			enforce(typeid_equals(typeid(target), typeid(this)), new CastError(this, target));
+			return code;
 		}
 	}
 }
@@ -93,7 +102,7 @@ override :
 		return o.type_match!ParticleHandle;
 	}
 	string c_cast(const(TypeBase) target, string code) const {
-		enforce(target.type_match!ParticleHandle, "Can't cast ")
+		enforce(target.type_match!ParticleHandle, new CastError(this, target));
 		return code;
 	}
 	string mangle() const {

@@ -119,31 +119,15 @@ auto parse_unop(Stream i) {
 
 auto parse_call(Stream i) {
 	auto r = seq!(
-		token_ws!"vec",
-		choice!(token!"2", token!"3", token!"4"),
-		token_ws!"(",
-		parse_expr,
-		token_ws!",",
-		parse_expr,
-		token_ws!")"
+		id_ws,
+		between!(token_ws!"(",
+			chain!(parse_expr, arr_append!Expr, discard!(token_ws!",")),
+		token_ws!")")
 	)(i);
-	auto re = r.r;
-	re.name = "vec";
+	r.r.name = "call";
 	if (!r.ok)
-		return err_result!Expr(re);
-	Expr a = null;
-	int d = to!int(r.result!1);
-Ld:     switch(d) {
-		foreach(di; Iota!(2, 5)) {
-			case di:
-				a = new Vec!di([r.result!3, r.result!5]);
-				break Ld;
-		}
-		default:
-			assert(0);
-	}
-	import std.stdio: writeln;
-	return ok_result!Expr(a, r.consumed, re);
+		return err_result!Expr(r.r);
+	return ok_result!Expr(new Call(r.result!0, r.result!1), r.consumed, r.r);
 }
 
 auto parse_field(Stream i) {

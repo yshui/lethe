@@ -2,23 +2,21 @@ module ast.aggregator;
 import ast.type, ast.expr, ast.symbols, ast.stmt, ast.decl;
 
 abstract class Aggregator {
-	nothrow @safe {
+	@safe {
 		string c_aggregate(const(Decl) v, const(Expr) e,
 				const(Symbols) s) const {
 			assert(false);
 		}
-		pure {
-			string c_assign(const(Decl) v, const(Expr) e,
-					const(Symbols) s, bool delayed) const {
-				assert(false);
-			}
-			string c_clear(const(Decl) v, const(Symbols) s) const {
-				assert(false);
-			}
-			string c_foreach(const(Decl) v, const(Var) loop,
-					const(Stmt)[] bdy, const(Symbols) s) const {
-				assert(false);
-			}
+		string c_assign(const(Decl) v, const(Expr) e,
+				const(Symbols) s, bool delayed) const {
+			assert(false);
+		}
+		string c_clear(const(Decl) v, const(Symbols) s) const {
+			assert(false);
+		}
+		string c_foreach(const(Decl) v, const(Var) loop,
+				const(Stmt)[] bdy, const(Symbols) s) const {
+			assert(false);
 		}
 	}
 }
