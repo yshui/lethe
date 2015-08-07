@@ -1,0 +1,2 @@
+ball2.png
+star2.png

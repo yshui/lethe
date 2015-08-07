@@ -1,5 +1,6 @@
-use Packer;
+use packer::Packer;
 use rect::Rect;
+use std::iter::Iterator;
 pub struct Guillotine {
 	free_areas: Vec<Rect>,
 }
@@ -11,7 +12,7 @@ impl Guillotine {
 		let mut min_area = None;
 		let mut rect = Rect::new(0, 0, 0, 0);
 
-		for (i, ref area) in self.free_areas.enumerate {
+		for (i, ref area) in (&self.free_areas).into_iter().enumerate() {
 			let a = area.area();
 
 			if w <= area.w && h <= area.h {
@@ -89,9 +90,9 @@ impl Packer for Guillotine {
 		}
 	}
 
-	fn alloc(&mut self, r: &Rect) -> Option<Rect> {
-		match self.find_free_area(r.w, r.h) {
-			Some((i, mut rect)) => {
+	fn alloc(&mut self, w: u32, h: u32) -> Option<Rect> {
+		match self.find_free_area(w, h) {
+			Some((i, rect)) => {
 				self.split(i, &rect);
 
 				Some(rect)
