@@ -32,18 +32,30 @@ impl<P: Packer, U: Pixel> TexturePacker<P, U>
 		let (w, h) = (t.width()+self.margin*2, t.height()+self.margin*2);
 		match self.packer.alloc(w, h) {
 			Some(r) => {
+				let inner_rect = Rect {
+					x: r.x+self.margin,
+					y: r.y+self.margin,
+					w: t.width(),
+					h: t.height(),
+				};
 				let mut sub = self.texture.sub_image(r.x, r.y, r.w, r.h);
 				sub.copy_from(t, self.margin, self.margin);
 
-				Some(SubTexture::R0(r))
+				Some(SubTexture::R0(inner_rect))
 			},
 			_ => match self.packer.alloc(h, w) {
 				Some(r) => {
+					let inner_rect = Rect {
+						x: r.x+self.margin,
+						y: r.y+self.margin,
+						w: t.height(),
+						h: t.width(),
+					};
 					let mut sub = self.texture.sub_image(r.x, r.y, r.w, r.h);
 					let rotated = rotate90(t);
 					sub.copy_from(&rotated, self.margin, self.margin);
 
-					Some(SubTexture::R90(r))
+					Some(SubTexture::R90(inner_rect))
 				},
 				_ => None
 			}
