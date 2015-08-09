@@ -1,2 +1,2 @@
-ball2.png
-star2.png
+Ball:ball2.png
+Star:star2.png

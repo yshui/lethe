@@ -15,12 +15,13 @@ static USAGE: &'static str = "
 Naval Fate.
 
 Usage:
-	xu -b BASE <w> <h> INPUT OUTPUT
+	xu -b BASE -i INDEX <w> <h> INPUT OUTPUT
 	xu --help
 
 Options:
 	-h --help   Show this screen.
 	-b BASE     Directory to search for textures
+	-i INDEX    Path to the output index file
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -29,6 +30,7 @@ struct Args {
 	flag_b: String,
 	arg_INPUT: String,
 	arg_OUTPUT: String,
+	arg_INDEX: String,
 	arg_w: u32,
 	arg_h: u32,
 }
@@ -46,13 +48,14 @@ fn main() {
 	for (i, _name) in reader.lines().enumerate() {
 		//Try to open texture
 		let name = _name.unwrap();
-		match image::open(base.join(&name)) {
+		let n : Vec<&str> = name.split(":").collect();
+		match image::open(base.join(n[1])) {
 			Ok(img) => {
 				let res = pak.insert(&img);
 				if let Some(r) = res {
-					println!("{:?}", r);
+					println!("{}, {}: {:?}", i, n[0], r);
 				} else {
-					println!("Failed to allocate for {}", name);
+					println!("Failed to allocate for {}", n[1]);
 				}
 			},
 			Err(e) => println!("Failed to load image {:?}", e)
