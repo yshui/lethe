@@ -6,3 +6,4 @@ authors = ["Yuxuan Shui <yshuiv7@gmail.com>"]
 image = "*"
 docopt = "*"
 rustc-serialize = "*"
+byteorder = "*"

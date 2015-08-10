@@ -2,10 +2,12 @@
 extern crate image;
 extern crate docopt;
 extern crate rustc_serialize;
+extern crate byteorder;
+use byteorder::{ LittleEndian, WriteBytesExt };
 use docopt::Docopt;
 use std::fs::File;
 use std::path::Path;
-use std::io::{ BufReader, BufRead };
+use std::io::{ BufReader, BufRead, BufWriter };
 use texture_packer::TexturePacker;
 use packer::guillotine::Guillotine;
 mod packer;
@@ -40,9 +42,14 @@ fn main() {
 	                        .and_then(|d| d.decode())
 	                        .unwrap_or_else(|e| e.exit());
 	let f = File::open(&args.arg_INPUT).unwrap();
+	let idxf = File::create(&args.arg_INDEX).unwrap();
 	let reader = BufReader::new(f);
+	let mut iw = BufWriter::new(idxf);
 	let mut pak = TexturePacker::<Guillotine, image::Rgba<u8>>::new(args.arg_w, args.arg_h, 5);
 	let base = Path::new(&args.flag_b);
+
+	iw.write_u32::<LittleEndian>(args.arg_w).unwrap();
+	iw.write_u32::<LittleEndian>(args.arg_h).unwrap();
 
 	//Read from input
 	for (i, _name) in reader.lines().enumerate() {
