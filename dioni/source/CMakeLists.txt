@@ -3,7 +3,7 @@ add_d_conditions(VERSION Have_dioni Have_dioni_sdpc Have_tested ${D_CONDITIONS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../sdpc/source/)
 include_directories(${CMAKE_SOURCE_DIR}/tested/source/)
-include_directories(${CMAKE_SOURCE_DIR}/docopt.d/source/)
+include_directories(${CMAKE_SOURCE_DIR}/pack/source/)
 add_executable(dioni
     ast/aggregator.d
     ast/decl/decl.d
@@ -29,9 +29,10 @@ add_executable(dioni
     parser/package.d
     parser/stmt.d
     parser/utils.d
+    resource/texture.d
     utils.d
     mustache.d
     error.d
 )
-target_link_libraries(dioni sdpc)
+target_link_libraries(dioni sdpc pack-d)
 set_target_properties(dioni PROPERTIES TEXT_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../template")

@@ -19,3 +19,6 @@
 [submodule "docopt.d"]
 	path = docopt.d
 	url = git@github.com:docopt/docopt.d.git
+[submodule "pack"]
+	path = pack
+	url = git@github.com:robik/pack-d.git
