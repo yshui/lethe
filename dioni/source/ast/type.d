@@ -59,6 +59,7 @@ nothrow pure @safe TypeBase type_calc(T...)(const(TypeBase)[] ity) {
 }
 
 class TypeBase {
+	bool is_constant;
 	pure @safe {
 		nothrow {
 			@nogc int dimension() const {
@@ -107,6 +108,62 @@ override :
 	}
 	string mangle() const {
 		return "P";
+	}
+}
+
+class TextureType : TypeBase {
+	const TexturePack parent;
+	string subname;
+	this(const(TexturePack) p, string n) {
+		parent = p;
+		subname = n;
+	}
+	this() {
+		parent = null;
+		subname = null;
+	}
+override :
+	string c_field(string lcode, string rhs, out TypeBase ty) const {
+		if (parent !is null) {
+			auto r = parent.byname[subname];
+			switch(rhs) {
+			case 
+			}
+		}
+	}
+}
+
+class Type(T: TexturePack) : TypeBase {
+	const TexturePack instance;
+	this(const(TexturePack) i) {
+		instance = i;
+	}
+	this() {
+		instance = null;
+	}
+override :
+	string c_cast(const(TypeBase) target, string code) const {
+		auto x = cast(typeof(this))target;
+		if (x !is null)
+			return code;
+		assert(false);
+	}
+	string str() const {
+		return "TexturePack";
+	}
+	TypeBase dup() const {
+		return new Type!TexturePack(null);
+	}
+	string c_type() const { return "int"; }
+	string mangle() const {
+		return "TP";
+	}
+	string c_field(string lcode, string rhs, out TypeBase ty) const {
+		if (instance !is null)
+			ty = new TextureType(instance);
+		else
+			ty = new TextureType;
+		return "get_sub_texture_by_name("~lcode~",\""~rhs~"\")";
 	}
 }
 
@@ -233,6 +290,7 @@ override :
 
 class Type(T) : TypeBase
     if (isPOD!T) {
+	T constant_result;
 override :
 	string c_cast(const(TypeBase) target, string code) const {
 		static if (!is(T == bool))
@@ -269,6 +327,7 @@ override :
 
 class Type(T, int dim) : TypeBase
     if (is(T == float) && dim > 1) {
+	T[dim] constant_result;
 	static int field_name_to_index(char n) {
 		switch(n) {
 		case 'x':

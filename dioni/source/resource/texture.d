@@ -10,11 +10,12 @@ struct rect {
 	ubyte dir;
 }
 
-class TexturePack : Decl {
-	string name;
+class TexturePack : Storage {
+	string name, fname;
 	rect[string] byname;
 	rect[] byid;
-	this(string filename) {
+	int texture_id;
+	this(string filename, string x,int id) {
 		auto idxf = File(filename, "r");
 		auto r = bufreader(idxf.byChunk(4096));
 		auto reader = binaryReader(r, ByteOrder.LittleEndian);
@@ -48,8 +49,17 @@ class TexturePack : Decl {
 
 			byname[name] = byid[i];
 		}
+		name = x;
+		fname = filename;
+		texture_id = id;
 	}
 
 override :
+	string c_access(AccessType at, out TypeBase ty) const {
+		assert(at != AccessType.Write);
+		ty = new TextureType;
+		return "("~to!string(texture_id)~")";
+	}
 	string symbol() const { return name; }
+	string str() const { return "Texture "~name; }
 }

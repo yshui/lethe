@@ -47,6 +47,15 @@ class Callable : Decl {
 	}
 }
 
+enum AccessType {
+	Read,
+	Write
+}
+
+class Storage : Decl {
+	@safe string c_access(AccessType at, out TypeBase ty) const { assert(false); }
+}
+
 class Overloaded : Callable {
 	string name;
 	const(Callable)[] fn;
@@ -396,7 +405,7 @@ enum Protection {
 	ReadWrite,
 }
 
-class Var : Decl {
+class Var : Storage {
 	const(TypeBase) ty;
 	const(Aggregator) agg;
 	string name;
@@ -404,19 +413,6 @@ class Var : Decl {
 	Protection prot;
 	Particle _parent;
 pure nothrow @safe :
-	string c_access(bool next=false) const {
-		import std.exception : assumeWontThrow;
-		assert(sc != StorageClass.Void);
-		auto src = next ? "next" : "current";
-		final switch(sc) {
-		case StorageClass.Particle:
-			return assumeWontThrow(format("(__%s->%s)", src, name));
-		case StorageClass.Local:
-			return assumeWontThrow(format("(%s)", name));
-		case StorageClass.Void:
-			assert(false, name~" can't be read");
-		}
-	}
 	this(const(TypeBase) xty, const(Aggregator) xa,
 	     string xname, Protection xprot=Protection.ReadWrite,
 	     StorageClass xsc=StorageClass.Local) {
@@ -427,6 +423,21 @@ pure nothrow @safe :
 		agg = xa;
 	}
 override :
+	string c_access(AccessType at, out TypeBase ty) const {
+		import std.exception : assumeWontThrow;
+		assert(sc != StorageClass.Void);
+		enforce(prot != Protection.Const || at != AccessType.Write, "Can't write to const variable");
+		auto src = (at == AccessType.Write) ? "next" : "current";
+		ty = ty.dup;
+		final switch(sc) {
+		case StorageClass.Particle:
+			return assumeWontThrow(format("(__%s->%s)", src, name));
+		case StorageClass.Local:
+			return assumeWontThrow(format("(%s)", name));
+		case StorageClass.Void:
+			assert(false, name~" can't be read");
+		}
+	}
 	void parent(Decl p) {
 		_parent = cast(Particle)p;
 		assert(_parent !is null);
