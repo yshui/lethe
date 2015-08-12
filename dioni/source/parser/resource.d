@@ -6,8 +6,10 @@ auto parse_import(Stream i) {
 	auto r = seq!(
 		discard!(token_ws!"import"),
 		parse_string,
-		discard!(token_ws!"as"),
-		identifier,
+		optional!(
+			discard!(token_ws!"as"),
+			identifier,
+		),
 		discard!(token_ws!";")
 	)(i);
 
