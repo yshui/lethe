@@ -12,5 +12,5 @@ auto parse_import(Stream i) {
 		),
 		discard!(token_ws!";")
 	)(i);
-
+	return load_resource(r.result!0, r.result!1);
 }
