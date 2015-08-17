@@ -173,8 +173,8 @@ struct ParseResult(T...) {
 	}
 
 	///Cast single element to array
-	ParseResult!T cast_result(T, alias func)(Stream i)
-	    if (is(T == U[], U) && is(ElemType!(ReturnType!func): U)) {
+	ParseResult!T cast_result(T: U[], alias func, U)(Stream i)
+	    if (is(ElemType!(ReturnType!func): U)) {
 		auto r = func(i);
 		if (!r.ok)
 			return err_result!T(r.r);

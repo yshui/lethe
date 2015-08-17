@@ -15,12 +15,12 @@ class TexturePack : Storage {
 	rect[string] byname;
 	rect[] byid;
 	int texture_id;
-	this(string filename, string x,int id) {
+	float w, h;
+	this(string filename, string x) {
 		auto idxf = File(filename, "r");
 		auto r = bufreader(idxf.byChunk(4096));
 		auto reader = binaryReader(r, ByteOrder.LittleEndian);
 		uint _w, _h, count;
-		float w, h;
 		reader.read!uint(_w);
 		reader.read!uint(_h);
 		reader.read!uint(count);
@@ -51,13 +51,13 @@ class TexturePack : Storage {
 		}
 		name = x;
 		fname = filename;
-		texture_id = id;
 	}
 
 override :
 	string c_access(AccessType at, out TypeBase ty) const {
 		assert(at != AccessType.Write);
-		ty = new TextureType;
+		auto r = rect(0, 0, w, h, 0);
+		ty = new TextureType(r);
 		return "("~to!string(texture_id)~")";
 	}
 	string symbol() const { return name; }

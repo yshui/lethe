@@ -113,13 +113,17 @@ override :
 
 class TextureType : TypeBase {
 	rect subtex;
+@safe :
 	this(const(TexturePack) p, string n) {
 		assert((n in p.byname) !is null);
 		subtex = p.byname[n];
 	}
+	this(ref rect st) {
+		subtex = st;
+	}
 override :
 	string c_field(string lcode, string rhs, out TypeBase ty) const {
-		switch(rhs) {
+		final switch(rhs) {
 			//Better names??
 			//Upper left
 			case "ul": return "";
@@ -135,6 +139,7 @@ override :
 
 class Type(T: TexturePack) : TypeBase {
 	const TexturePack instance;
+@safe :
 	this(const(TexturePack) i) {
 		instance = i;
 	}

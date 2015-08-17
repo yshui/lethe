@@ -2,6 +2,7 @@ module parser.decl.particle;
 import ast.decl;
 import parser.decl, parser.utils;
 import sdpc;
+import std.algorithm;
 @safe :
 auto parse_tagarr(Stream i) {
 	auto r = seq!(
@@ -34,6 +35,7 @@ auto parse_particle(Stream i) {
 	if (!r.ok)
 		return err_result!Particle(r.r);
 
-	auto ret = new Particle(r.result!1, r.result!2, r.result!3, r.result!4);
+	auto decls = reduce!((a,b)=>a~b)(r.result!4);
+	auto ret = new Particle(r.result!1, r.result!2, r.result!3, decls);
 	return ok_result(ret, r.consumed, r.r);
 }

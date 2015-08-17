@@ -1,7 +1,8 @@
 module parser.decl.decl;
 import ast.decl,
        ast.type,
-       ast.stmt;
+       ast.stmt,
+       std.algorithm;
 import sdpc;
 import parser.utils, parser.stmt, parser.decl;
 @safe :
@@ -140,4 +141,9 @@ auto parse_top_single(Stream i) {
 		return err_result!(Decl[])(r.r);
 	return ok_result(r.result, r.consumed, r.r);
 }
-alias parse_top = many!(parse_top_single, true);
+auto parse_top(Stream i) {
+	auto r = many!(parse_top_single, true)(i);
+	if (!r.ok || !i.eof)
+		throw new Exception("Compile failed:\n"~r.r.explain);
+	return reduce!((a,b)=>a~b)(r.result);
+}

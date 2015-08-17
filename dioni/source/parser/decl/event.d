@@ -32,7 +32,7 @@ auto parse_event(Stream i) {
 	)(i);
 	r.r.name = "event definition";
 	if (!r.ok)
-		return err_result!Decl(r.r);
-	return ok_result!Decl(new Event(r.result!0, r.result!1), r.consumed, r.r);
+		return err_result!(Decl[])(r.r);
+	return ok_result!(Decl[])([new Event(r.result!0, r.result!1)], r.consumed, r.r);
 }
 

@@ -88,7 +88,7 @@ auto parse_state_decl(Stream i) {
 		token_ws!";"
 	)(i);
 	if (!r.ok)
-		return err_result!Decl(r.r);
+		return err_result!(Decl[])(r.r);
 
-	return ok_result!Decl(new State(r.result!1, r.result!2, r.result!3), r.consumed, r.r);
+	return ok_result!(Decl[])([new State(r.result!1, r.result!2, r.result!3)], r.consumed, r.r);
 }

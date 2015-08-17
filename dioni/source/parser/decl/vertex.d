@@ -14,6 +14,6 @@ auto parse_vertex(Stream i) {
 		discard!(token_ws!";")
 	)(i);
 	if (!r.ok)
-		return err_result!Decl(r.r);
-	return ok_result!Decl(new Vertex(r.result!0, r.result!1), r.consumed, r.r);
+		return err_result!(Decl[])(r.r);
+	return ok_result!(Decl[])([new Vertex(r.result!0, r.result!1)], r.consumed, r.r);
 }

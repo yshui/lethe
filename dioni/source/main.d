@@ -103,8 +103,6 @@ private alias enforce = enforceEx!CompileError;
 	auto file_content = readText(input_file);
 	auto i = new BufStream(file_content);
 	auto r = parse_top(i);
-	if (!i.eof)
-		throw new Exception(r.r.explain);
 
 	Symbols global = new Symbols(null);
 	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
@@ -112,8 +110,6 @@ private alias enforce = enforceEx!CompileError;
 	global.insert(gevent);
 	initBuiltin(global);
 
-	if (r is null)
-		throw new Exception("Compile failed");
 	writeln(r);
 
 	foreach(p; r) {

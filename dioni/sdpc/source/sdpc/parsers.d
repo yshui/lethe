@@ -6,7 +6,7 @@ import std.traits,
        std.conv;
 @safe :
 ///Match a single character, return func(indexOf, character)
-auto ch(alias accept, alias func)(Stream i) {
+auto ch(string accept, alias func)(Stream i) {
 	alias ElemTy = ReturnType!func;
 	alias RetTy = ParseResult!ElemTy;
 	auto re = Reason(i, "char");
@@ -22,6 +22,21 @@ auto ch(alias accept, alias func)(Stream i) {
 	}
 	i.advance(1);
 	return RetTy(Result.OK, 1, re, func(digi, n));
+}
+
+auto not_ch(string reject)(Stream i) {
+	auto r = Reason(i, "not char");
+	if (i.eof) {
+		r.msg = "EOF";
+		return err_result!char(r);
+	}
+	char n = i.head[0];
+	if (reject.indexOf(n) >= 0) {
+		r.msg = "Reject "~n;
+		return err_result!char(r);
+	}
+	i.advance(1);
+	return ok_result!char(n, 1, r);
 }
 
 template digit(alias _digits = digits) {
@@ -68,6 +83,55 @@ auto identifier(Stream i) {
 	if (ret2.s == Result.OK)
 		str ~= ret2;
 	return RetTy(Result.OK, ret.consumed+ret2.consumed, re, str);
+}
+
+auto parse_escape1(Stream i) {
+	auto r = seq!(
+		discard!(token!"\\"),
+		choice!(
+			token!"n",
+			token!"b",
+			token!"r",
+			token!"\"",
+			token!"\\"
+		)
+	)(i);
+	r.r.name = "Escape sequence";
+	if (!r.ok)
+		return err_result!char(r.r);
+	char res;
+	final switch(r.result) {
+	case "n":
+		res = '\n';
+		break;
+	case "b":
+		res = '\b';
+		break;
+	case "r":
+		res = '\r';
+		break;
+	case "\'":
+		res = '\'';
+		break;
+	case "\\":
+		res = '\\';
+		break;
+	}
+	return ok_result(res, r.consumed, r.r);
+}
+
+auto parse_string(Stream i) {
+	//Parse a string containing escape sequence
+	auto r = between!(token!"\"",
+		many!(choice!(
+			parse_escape1,
+			not_ch!"\""
+		)),
+	token!"\"")(i);
+	r.r.name = "string";
+	if (!r.ok)
+		return err_result!string(r.r);
+	return ok_result(r.result.idup, r.consumed, r.r);
 }
 
 alias skip_whitespace = skip!(choice!(token!" ", token!"\n", token!"\t"));

@@ -412,7 +412,8 @@ class Var : Storage {
 	StorageClass sc;
 	Protection prot;
 	Particle _parent;
-pure nothrow @safe :
+@safe :
+	pure nothrow
 	this(const(TypeBase) xty, const(Aggregator) xa,
 	     string xname, Protection xprot=Protection.ReadWrite,
 	     StorageClass xsc=StorageClass.Local) {
@@ -518,8 +519,11 @@ override :
 		res ~= ") {\n";
 		foreach(p; param_def) {
 			if (p.sc == StorageClass.Particle) {
-				res ~= p.c_access(false)~" = "~p.name~";\n";
-				res ~= p.c_access(true)~" = "~p.name~";\n";
+				TypeBase _;
+				//XXX this is hacky, we are writing to a 'read' variable
+				//But there's no other choice
+				res ~= p.c_access(AccessType.Read, _)~" = "~p.name~";\n";
+				res ~= p.c_access(AccessType.Write, _)~" = "~p.name~";\n";
 			} else
 				ns.insert(new Var(p.ty, null, p.name));
 		}

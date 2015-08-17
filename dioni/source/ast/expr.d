@@ -222,8 +222,7 @@ override :
 		     td = cast(const(Tag))d;
 
 		if (vd !is null) {
-			ty = vd.ty.dup;
-			return vd.c_access;
+			return vd.c_access(AccessType.Read, ty);
 		} else if (sd !is null) {
 			ty = new Type!State;
 			return sd.c_access;
@@ -270,7 +269,8 @@ override :
 		       name~"'");
 		if (vd.sc == StorageClass.Particle)
 			assert(delayed, "Assignment to particle member should use <- ");
-		return vd.c_access(true)~" = "~rcode~";\n";
+		TypeBase _;
+		return vd.c_access(AccessType.Write, _)~" = "~rcode~";\n";
 	}
 	string c_aggregate(const(Expr) rhs, const(Symbols) s) const {
 		auto d = s.lookup_checked(name);

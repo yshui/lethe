@@ -44,11 +44,15 @@ override :
 				res ~= "__new_event->target = TAG_"~td.name~";\n";
 			} else if (vd !is null) {
 				res ~= "__new_event->tgtt = PARTICLE;\n";
-				if (vd.ty.type_match!ParticleHandle)
-					res ~= "__new_event->target = "~vd.c_access~";\n";
-				else
+				TypeBase ty;
+				auto code = vd.c_access(AccessType.Read, ty);
+				if (ty.type_match!ParticleHandle)
+					res ~= "__new_event->target = "~code~";\n";
+				else if (ty.type_match!(NamedType!Particle))
 					//Real particle
-					res ~= "__new_event->target = (size_t)"~vd.c_access~"->__p;\n";
+					res ~= "__new_event->target = (size_t)"~code~"->__p;\n";
+				else
+					assert(false);
 			} else if (pd !is null) {
 				res ~= "__new_event->tgtt = PARTICLE_TYPE;\n";
 				res ~= "__new_event->target = PARTICLE_"~pd.name~";\n";
