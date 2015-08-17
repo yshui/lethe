@@ -171,6 +171,15 @@ struct ParseResult(T...) {
 			return err_result!T(r.r);
 		return ok_result(cast(T)r.result, r.consumed, r.r);
 	}
+
+	///Cast single element to array
+	ParseResult!T cast_result(T, alias func)(Stream i)
+	    if (is(T == U[], U) && is(ElemType!(ReturnType!func): U)) {
+		auto r = func(i);
+		if (!r.ok)
+			return err_result!T(r.r);
+		return ok_result([cast(U)r.result], r.consumed, r.r);
+	}
 }
 
 interface Stream {

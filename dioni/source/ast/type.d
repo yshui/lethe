@@ -1,5 +1,5 @@
 module ast.type;
-import ast.symbols, ast.decl;
+import ast.symbols, ast.decl, resource;
 import utils;
 import std.string : format;
 import std.conv : to;
@@ -112,23 +112,23 @@ override :
 }
 
 class TextureType : TypeBase {
-	const TexturePack parent;
-	string subname;
+	rect subtex;
 	this(const(TexturePack) p, string n) {
-		parent = p;
-		subname = n;
-	}
-	this() {
-		parent = null;
-		subname = null;
+		assert((n in p.byname) !is null);
+		subtex = p.byname[n];
 	}
 override :
 	string c_field(string lcode, string rhs, out TypeBase ty) const {
-		if (parent !is null) {
-			auto r = parent.byname[subname];
-			switch(rhs) {
-			case 
-			}
+		switch(rhs) {
+			//Better names??
+			//Upper left
+			case "ul": return "";
+			//Upper right
+			case "ur": return "";
+			//Bottom left
+			case "bl": return "";
+			//Bottom right
+			case "br": return "";
 		}
 	}
 }

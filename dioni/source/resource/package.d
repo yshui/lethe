@@ -1,5 +1,7 @@
 module resource;
 import std.path;
+import ast.decl;
+public import resource.texture;
 
 Decl[] load_resource(string filename, string name) {
 	final switch(filename.extension) {

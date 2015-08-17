@@ -103,6 +103,9 @@ private alias enforce = enforceEx!CompileError;
 	auto file_content = readText(input_file);
 	auto i = new BufStream(file_content);
 	auto r = parse_top(i);
+	if (!i.eof)
+		throw new Exception(r.r.explain);
+
 	Symbols global = new Symbols(null);
 	auto gevent = new Var(new TypeBase, new EventAggregator, "global",
 				  Protection.Const, StorageClass.Void);

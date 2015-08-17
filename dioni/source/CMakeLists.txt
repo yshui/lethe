@@ -29,7 +29,9 @@ add_executable(dioni
     parser/package.d
     parser/stmt.d
     parser/utils.d
+    parser/resource.d
     resource/texture.d
+    resource/package.d
     utils.d
     mustache.d
     error.d

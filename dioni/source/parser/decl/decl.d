@@ -66,7 +66,7 @@ auto parse_var_decl(Stream i) {
 	return ok_result(ret, r.consumed, r.r);
 }
 
-alias parse_var_decl_decl = cast_result!(Decl, parse_var_decl);
+alias parse_var_decl_decl = cast_result!(Decl[], parse_var_decl);
 
 auto parse_untyped_var_decl(Stream i) {
 	auto r = id_ws(i);
@@ -77,7 +77,7 @@ auto parse_untyped_var_decl(Stream i) {
 	return ok_result!Var(ret, r.consumed, r.r);
 }
 
-alias parse_untyped_var_decl_decl = cast_result!(Decl, parse_untyped_var_decl);
+alias parse_untyped_var_decl_decl = cast_result!(Decl[], parse_untyped_var_decl);
 
 auto parse_ctor(Stream i) {
 	auto r = seq!(
@@ -92,9 +92,9 @@ auto parse_ctor(Stream i) {
 	)(i);
 	r.r.name = "ctor";
 	if (!r.ok)
-		return err_result!Decl(r.r);
+		return err_result!(Decl[])(r.r);
 	auto c = new Ctor(r.result!0, r.result!1);
-	return ok_result!Decl(c, r.consumed, r.r);
+	return ok_result!(Decl[])([c], r.consumed, r.r);
 }
 
 auto parse_decl(Stream i) {
@@ -105,7 +105,7 @@ auto parse_decl(Stream i) {
 	)(i);
 	r.r.name = "declaration";
 	if (!r.ok)
-		return err_result!Decl(r.r);
+		return err_result!(Decl[])(r.r);
 	return ok_result(r.result, r.consumed, r.r);
 }
 auto parse_fn(Stream i) {
@@ -120,38 +120,24 @@ auto parse_fn(Stream i) {
 	)(i);
 	r.r.name = "function";
 	if (!r.ok)
-		return err_result!Decl(r.r);
-	return ok_result!Decl(new Func(r.result!0, r.result!1, r.result!2, r.result!3),
+		return err_result!(Decl[])(r.r);
+	return ok_result!(Decl[])([new Func(r.result!0, r.result!1, r.result!2, r.result!3)],
 	    r.consumed, r.r
 	);
 }
-alias parse_particle_decl = cast_result!(Decl, parse_particle);
-auto parse_top(Stream i) {
+alias parse_particle_decl = cast_result!(Decl[], parse_particle);
+auto parse_top_single(Stream i) {
 	Decl[] result = [];
-	Reason re = Reason(i, "top level declaration");
-	while(true) {
-		auto r1 = parse_tag_decl(i);
-		if (r1.ok) {
-			result ~= r1.result;
-			continue;
-		}
-		re = Reason(i, "top level declaration");
-		re.dep ~= r1.r;
-		auto r = choice!(
-			parse_particle_decl,
-			parse_event,
-			parse_vertex,
-			parse_fn
-		)(i);
-		re.dep ~= r.r.dep;
-		if (!r.ok)
-			break;
-		result ~= r.result;
-	}
-	if (!i.eof) {
-		import std.stdio : writeln;
-		writeln(re.explain);
-		return null;
-	}
-	return result;
+	auto r = choice!(
+		parse_particle_decl,
+		parse_event,
+		parse_vertex,
+		parse_fn,
+		parse_tag_decl
+	)(i);
+	r.r.name = "top level decl";
+	if (!r.ok)
+		return err_result!(Decl[])(r.r);
+	return ok_result(r.result, r.consumed, r.r);
 }
+alias parse_top = many!(parse_top_single, true);

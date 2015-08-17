@@ -1,5 +1,5 @@
 module resource.texture;
-import ast.decl;
+import ast.decl, ast.type;
 import std.stdio, std.string;
 import binary.reader: binaryReader;
 import binary.common: ByteOrder;
