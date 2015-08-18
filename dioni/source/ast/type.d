@@ -81,13 +81,13 @@ class TypeBase {
 				assert(false);
 			}
 		}
-		string c_field(string lcode, string rhs, out TypeBase ty) const {
-			assert(false);
-		}
 		string c_cast(const(TypeBase) target, string code) const {
 			enforce(typeid_equals(typeid(target), typeid(this)), new CastError(this, target));
 			return code;
 		}
+	}
+	@safe string c_field(string lcode, string rhs, out TypeBase ty) const {
+		assert(false);
 	}
 }
 
@@ -110,33 +110,40 @@ override :
 		return "P";
 	}
 }
-
+immutable int[4] dx = [0, 1, 0, 1];
+immutable int[4] dy = [0, 0, 1, 1];
 class TextureType : TypeBase {
 	rect subtex;
-@trusted pure :
-	this(const(TexturePack) p, string n) {
+	@trusted pure this(const(TexturePack) p, string n) {
 		assert((n in p.byname) !is null, p.byname.keys.join(","));
 		subtex = p.byname[n];
 	}
-	this(ref rect st) {
+	@safe pure this(ref rect st) {
 		subtex = st;
 	}
 override :
 	string c_field(string lcode, string rhs, out TypeBase ty) const {
+		int id;
 		ty = new Type!(float, 2);
 		switch(rhs) {
 			//Better names??
 			//Upper left
-			case "ul": return "";
+			case "ul": id = 0; break;
 			//Upper right
-			case "ur": return "";
+			case "ur": id = 1; break;
 			//Bottom left
-			case "bl": return "";
+			case "bl": id = 2; break;
 			//Bottom right
-			case "br": return "";
+			case "br": id = 3; break;
 			default:
 				assert(false, rhs);
 		}
+		assert(subtex.dir <= 1);
+		if (subtex.dir == 1)
+			id = (id+3)%4;
+		float x = subtex.x+subtex.w*cast(float)dx[id],
+		      y = subtex.y+subtex.h*cast(float)dy[id];
+		return "((struct vec2){"~to!string(x)~","~to!string(y)~"})";
 	}
 }
 

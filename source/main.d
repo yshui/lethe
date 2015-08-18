@@ -25,7 +25,7 @@ class EngineM : Engine!(np*4, np*6, uni) {
 	this(Logger logger, int w, int h) {
 		super(logger, w, h);
 		//new_particle_Bootstrap();
-		u.tex = new_texture2d("ball.png");
+		u.tex = new_texture2d("o.png");
 		u.tex.setMinFilter(GL_LINEAR_MIPMAP_NEAREST);
 		u.tex.setMagFilter(GL_LINEAR);
 		u.w = w;

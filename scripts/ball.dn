@@ -23,7 +23,6 @@ particle Wall {
 	vec2 end;
 	state Update @ nextFrame {
 		hitboxes << `hittri(start, end, (start+end)/2.0);
-		a = T.Star.ul;
 	};
 }
 particle WallN << Wall{
@@ -71,10 +70,10 @@ particle Spark {
 		center <- center+velocity;
 		r <- r*0.9;
 		alpha <- alpha*0.9;
-		render << `ballv(vec(-1, 1)*r, center, vec(-1, 1), 0, alpha),
-			  `ballv(vec(-1, -1)*r, center, vec(-1, -1), 0, alpha),
-			  `ballv(vec(1, -1)*r, center, vec(1, -1), 0, alpha),
-			  `ballv(vec(1, 1)*r, center, vec(1, 1), 0, alpha);
+		render << `ballv(vec(-1, 1)*r, center, T.Star.bl, 0, alpha),
+			  `ballv(vec(-1, -1)*r, center, T.Star.ul, 0, alpha),
+			  `ballv(vec(1, -1)*r, center, T.Star.ur, 0, alpha),
+			  `ballv(vec(1, 1)*r, center, T.Star.br, 0, alpha);
 		render << -4, -3, -2, -4, -2, -1;
 		if (r < 1e-6)
 			=> Deleted;
@@ -86,10 +85,10 @@ particle Ball {
 	float r;
 	state Update @ nextFrame {
 		center <- center+velocity;
-		render << `ballv(vec(-1, 1)*r, center, vec(-1, 1), 0,1),
-			  `ballv(vec(-1, -1)*r, center, vec(-1, -1), 0,1),
-			  `ballv(vec(1, -1)*r, center, vec(1, -1), 0,1),
-			  `ballv(vec(1, 1)*r, center, vec(1, 1), 0,1);
+		render << `ballv(vec(-1, 1)*r, center, T.Ball.bl, 0,1),
+			  `ballv(vec(-1, -1)*r, center, T.Ball.ul, 0,1),
+			  `ballv(vec(1, -1)*r, center, T.Ball.ur, 0,1),
+			  `ballv(vec(1, 1)*r, center, T.Star.br, 0,1);
 		render << -4, -3, -2, -4, -2, -1;
 		hitboxes << `hitball(r, center);
 	};

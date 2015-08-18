@@ -25,6 +25,6 @@ void main() {
 	pos4.y = pos4.y/h*2.0-1.0;
 	gl_Position = pos4;
 	//gl_Position = vec4(0.0, 0.0, 0.0, 0.0);
-	v_tex = (texture_coord+vec2(1.0, 1.0))/2.0;
+	v_tex = texture_coord;
 	a = alpha;
 }

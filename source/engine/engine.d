@@ -196,8 +196,8 @@ if (is(Uniforms == struct) || is(Uniforms == class)) {
 	GLTexture2D new_texture2d() {
 		return new GLTexture2D(gl);
 	}
-	GLTexture2D new_texture2d(const(string) file) {
-		auto image = sdl2img.load("ball.png");//.convert(&fmt);
+	GLTexture2D new_texture2d(string file) {
+		auto image = sdl2img.load(file);
 		auto texture = new_texture2d();
 		image.lock();
 		texture.setImage(0, GL_RGBA8, image.width, image.height, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels());
