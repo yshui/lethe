@@ -217,7 +217,7 @@ override :
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto d = s.lookup(name);
 		assert(d !is null, "Undefined symbol "~name);
-		auto vd = cast(const(Var))d,
+		auto vd = cast(const(Storage))d,
 		     sd = cast(const(State))d,
 		     td = cast(const(Tag))d;
 

@@ -11,27 +11,32 @@ template Iota(int S, int T) {
 }
 
 auto bufreader(R)(R i) if (isInputRange!R && is(ElementType!R == ubyte[])) {
-	struct BufferedReader {
+	class BufferedReader {
 		ubyte[] now;
 		R i;
+		this(R xi) {
+			i = xi;
+			if (!i.empty) {
+				now = i.front();
+				i.popFront();
+			} else
+				now = [];
+		}
 		bool empty() {
-			return now.length != 0;
+			return now.length == 0;
 		}
 		ubyte front() {
 			return now[0];
 		}
 		void popFront() {
+			import std.stdio;
 			now = now[1..$];
+			writeln("Pop ", now.length);
 			if (now.length == 0 && !i.empty) {
 				now = i.front();
 				i.popFront();
 			}
 		}
 	}
-	if (i.empty)
-		return BufferedReader([], i);
-
-	auto tmp = i.front();
-	i.popFront();
-	return BufferedReader(tmp, i);
+	return new BufferedReader(i);
 }

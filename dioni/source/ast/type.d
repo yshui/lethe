@@ -113,9 +113,9 @@ override :
 
 class TextureType : TypeBase {
 	rect subtex;
-@safe :
+@trusted pure :
 	this(const(TexturePack) p, string n) {
-		assert((n in p.byname) !is null);
+		assert((n in p.byname) !is null, p.byname.keys.join(","));
 		subtex = p.byname[n];
 	}
 	this(ref rect st) {
@@ -123,7 +123,8 @@ class TextureType : TypeBase {
 	}
 override :
 	string c_field(string lcode, string rhs, out TypeBase ty) const {
-		final switch(rhs) {
+		ty = new Type!(float, 2);
+		switch(rhs) {
 			//Better names??
 			//Upper left
 			case "ul": return "";
@@ -133,6 +134,8 @@ override :
 			case "bl": return "";
 			//Bottom right
 			case "br": return "";
+			default:
+				assert(false, rhs);
 		}
 	}
 }
@@ -165,9 +168,9 @@ override :
 	}
 	string c_field(string lcode, string rhs, out TypeBase ty) const {
 		if (instance !is null)
-			ty = new TextureType(instance);
+			ty = new TextureType(instance, rhs);
 		else
-			ty = new TextureType;
+			assert(false);
 		return "get_sub_texture_by_name("~lcode~",\""~rhs~"\")";
 	}
 }

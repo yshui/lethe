@@ -28,6 +28,8 @@ class TexturePack : Storage {
 		reader.read!uint(_w);
 		reader.read!uint(_h);
 		reader.read!uint(count);
+		writeln("W: ", _w);
+		writeln("H: ", _h);
 		byid.length = count;
 		w = cast(float)_w;
 		h = cast(float)_h;
@@ -42,6 +44,7 @@ class TexturePack : Storage {
 			reader.readArray!ubyte(nameb, nlen);
 
 			name = nameb.assumeUTF;
+			writeln("Name: ", name);
 			reader.read!ubyte(byid[i].dir);
 
 			uint[4] tmp;
@@ -59,8 +62,8 @@ override :
 	string c_access(AccessType at, out TypeBase ty) const {
 		assert(at != AccessType.Write);
 		auto r = rect(0, 0, w, h, 0);
-		ty = new TextureType(r);
-		return "("~to!string(texture_id)~")";
+		ty = new Type!TexturePack(this);
+		return "";
 	}
 	string symbol() const { return name; }
 	string str() const { return "Texture "~name; }

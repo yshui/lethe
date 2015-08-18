@@ -42,7 +42,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/script.o
 )
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ddioni.d
-		   COMMAND dioni --donly -o${CMAKE_CURRENT_BINARY_DIR}/ddioni.d -D ddioni ${CMAKE_SOURCE_DIR}/scripts/ball.dn
+		   COMMAND dioni --donly -o${CMAKE_CURRENT_BINARY_DIR}/ddioni.d -D ddioni -t ${CMAKE_SOURCE_DIR}/texture ${CMAKE_SOURCE_DIR}/scripts/ball.dn
 		   DEPENDS dioni scripts/ball.dn
 )
 

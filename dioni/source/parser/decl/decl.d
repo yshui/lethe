@@ -4,7 +4,7 @@ import ast.decl,
        ast.stmt,
        std.algorithm;
 import sdpc;
-import parser.utils, parser.stmt, parser.decl;
+import parser.utils, parser.stmt, parser.decl, parser.resource;
 @safe :
 auto parse_type(Stream i) {
 	auto r = choice!(
@@ -134,7 +134,8 @@ auto parse_top_single(Stream i) {
 		parse_event,
 		parse_vertex,
 		parse_fn,
-		parse_tag_decl
+		parse_tag_decl,
+		parse_import
 	)(i);
 	r.r.name = "top level decl";
 	if (!r.ok)

@@ -1,4 +1,4 @@
-import "o.idx";
+import "o.idx" as T;
 vertex ballv(
 	vec2 position,
 	vec2 translate,
@@ -23,6 +23,7 @@ particle Wall {
 	vec2 end;
 	state Update @ nextFrame {
 		hitboxes << `hittri(start, end, (start+end)/2.0);
+		a = T.Star.ul;
 	};
 }
 particle WallN << Wall{

@@ -429,7 +429,7 @@ override :
 		assert(sc != StorageClass.Void);
 		enforce(prot != Protection.Const || at != AccessType.Write, "Can't write to const variable");
 		auto src = (at == AccessType.Write) ? "next" : "current";
-		ty = ty.dup;
+		ty = this.ty.dup;
 		final switch(sc) {
 		case StorageClass.Particle:
 			return assumeWontThrow(format("(__%s->%s)", src, name));

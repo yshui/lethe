@@ -2,7 +2,7 @@ module resource;
 import std.path, std.string;
 import ast.decl;
 public import resource.texture;
-
+@safe :
 Decl[] load_resource(string filename, string name) {
 	final switch(filename.extension) {
 		case ".idx":
