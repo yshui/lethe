@@ -2,6 +2,7 @@ import std.stdio, std.file;
 import std.process : environment, execute;
 import parser;
 import ast.symbols, ast.decl, ast.aggregator, ast.type, ast.builtin;
+import resource;
 import sdpc;
 import std.getopt;
 import error;
@@ -78,7 +79,8 @@ private alias enforce = enforceEx!CompileError;
 	       result_dir = "gen-dioni",
 	       input_file = "",
 	       dmodule_name = "dioni",
-	       output_file = "script.o";
+	       output_file = "script.o",
+	       tbase = "texture";
 	bool gen_dmodule = false, optimize = false;
 	() @trusted {
 		auto options = getopt(argv,
@@ -87,7 +89,8 @@ private alias enforce = enforceEx!CompileError;
 			"dmodule|D", &dmodule_name,
 			"output|o", &output_file,
 			"donly", &gen_dmodule,
-			"release|O", &optimize
+			"release|O", &optimize,
+			"texture|t", &tbase
 		);
 		if (options.helpWanted)
 			defaultGetoptPrinter("Usage:", options.options);
@@ -137,12 +140,14 @@ private alias enforce = enforceEx!CompileError;
 	global.insert(renderer);
 
 	foreach(pd; r) {
-		auto p = cast(Particle)pd;
-		if (p is null)
-			continue;
-		if (p.visited)
-			continue;
-		p.resolve(global);
+		auto p = cast(Particle)pd,
+		     t = cast(TexturePack)pd;
+		if (p !is null) {
+			if (p.visited)
+				continue;
+			p.resolve(global);
+		} else if (t !is null)
+			t.load(tbase);
 	}
 	int pcnt = 0, ecnt = 0, tcnt = 0;
 	if (gen_dmodule) {

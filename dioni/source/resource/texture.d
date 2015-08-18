@@ -1,6 +1,6 @@
 module resource.texture;
 import ast.decl, ast.type;
-import std.stdio, std.string;
+import std.stdio, std.string, std.path, std.array;
 import binary.reader: binaryReader;
 import binary.common: ByteOrder;
 import utils;
@@ -16,8 +16,12 @@ class TexturePack : Storage {
 	rect[] byid;
 	int texture_id;
 	float w, h;
-	this(string filename, string x) {
-		auto idxf = File(filename, "r");
+	@safe this(string filename, string x) {
+		fname = filename;
+		name = x;
+	}
+	@trusted void load(string base) {
+		auto idxf = File(base.chainPath(fname).array, "r");
 		auto r = bufreader(idxf.byChunk(4096));
 		auto reader = binaryReader(r, ByteOrder.LittleEndian);
 		uint _w, _h, count;
@@ -49,8 +53,6 @@ class TexturePack : Storage {
 
 			byname[name] = byid[i];
 		}
-		name = x;
-		fname = filename;
 	}
 
 override :

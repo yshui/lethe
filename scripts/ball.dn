@@ -1,3 +1,4 @@
+import "o.idx";
 vertex ballv(
 	vec2 position,
 	vec2 translate,
