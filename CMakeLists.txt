@@ -37,7 +37,7 @@ add_subdirectory(dioni)
 #get_property(dioni_binary TARGET dioni PROPERTY LOCATION)
 #message(${dioni_binary})
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/script.o
-		   COMMAND dioni -r ${CMAKE_SOURCE_DIR}/dioni/runtime -g ${CMAKE_CURRENT_BINARY_DIR}/gen-dioni ${CMAKE_SOURCE_DIR}/scripts/ball.dn -t ${CMAKE_SOURCE_DIR}/texture -o ${CMAKE_CURRENT_BINARY_DIR}/script.o ${DIONI_FLAGS}
+		   COMMAND dioni -r ${CMAKE_SOURCE_DIR}/dioni/runtime -g ${CMAKE_CURRENT_BINARY_DIR}/gen-dioni -t ${CMAKE_SOURCE_DIR}/texture -o ${CMAKE_CURRENT_BINARY_DIR}/script.o ${DIONI_FLAGS} ${CMAKE_SOURCE_DIR}/scripts/ball.dn
 		   DEPENDS dioni scripts/ball.dn ${DIONI_RUNTIME_SRC}
 )
 
