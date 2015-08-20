@@ -1,1 +1,2 @@
 - [ ] Use glBufferData instead of glBufferMap, for performance
+- [ ] Embed text into texture index, generate text texture during load
