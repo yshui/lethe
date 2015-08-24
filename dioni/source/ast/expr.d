@@ -9,7 +9,8 @@ import std.conv,
 import utils;
 import error;
 import std.exception : assumeWontThrow;
-alias enforce = enforceEx!CompileError;
+alias op_type = venforce!OpTypeError;
+alias ce = enforceEx!CompileError;
 interface Expr {
 	@safe {
 		//Can't use pure because format to float is not pure
@@ -39,7 +40,7 @@ class Range : Expr {
 		string c_code(const(Symbols) s, out TypeBase ty) const {
 			TypeBase at, ot;
 			auto ac = a.c_code(s, at), oc = o.c_code(s, ot);
-			assert(at.dimension == ot.dimension);
+			op_type(at.dimension == ot.dimension, "..", at, ot);
 			if (at.dimension > 1) {
 				ty = new_rng_type!float(at.dimension);
 				return "((struct range"~to!string(at.dimension)~
@@ -64,7 +65,7 @@ class BinOP : Expr {
 		rhs = xrhs;
 		op = xop;
 	}
-	static pure @safe nothrow TypeBase
+	static pure @safe TypeBase
 	gen_type(const(TypeBase) lty, const(TypeBase) rty, string op) {
 		auto ld = lty.dimension, rd = rty.dimension;
 		if (ld > 1 || rd > 1) {
@@ -72,19 +73,19 @@ class BinOP : Expr {
 			switch(op) {
 				case "+":
 				case "-":
-					assert(ld == rd);
+					op_type(ld == rd, op, lty, rty);
 					resd = ld;
 					break;
 				case "*":
-					assert(ld == rd || ld == 1 || rd == 1);
+					op_type(ld == rd || ld == 1 || rd == 1, op, lty, rty);
 					resd = (ld == 1) ? rd : ld;
 					break;
 				case "/":
-					assert(ld == rd || rd == 1);
+					op_type(ld == rd || rd == 1, op, lty, rty);
 					resd = ld;
 					break;
 				case "*:": case "*.":
-					assert(ld == rd);
+					op_type(ld == rd, op, lty, rty);
 					resd = 1;
 					break;
 				default:
@@ -176,8 +177,8 @@ override :
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		TypeBase lt, rt;
 		auto lc = lhs.c_code(s, lt), rc = rhs.c_code(s, rt);
-		assert(lt.type_match!(Type!bool));
-		assert(rt.type_match!(Type!bool));
+		op_type(lt.type_match!(Type!bool), op, lt, rt);
+		op_type(rt.type_match!(Type!bool), op, lt, rt);
 		ty = new Type!bool;
 		return "("~lc~op~rc~")";
 	}
@@ -200,7 +201,7 @@ override :
 	string c_code(const(Symbols) s, out TypeBase ty) const {
 		auto ocode = opr.c_code(s, ty);
 		if (ty.dimension != 1) {
-			assert(op == "-", "Unsupported '"~op~"' on vector");
+			op_type(op == "-", op, ty);
 			return assumeWontThrow(format("vec%s_neg(%s)", ty.dimension, ocode));
 		}
 		return assumeWontThrow(format("(%s%s)", op, ocode));
@@ -215,8 +216,7 @@ override :
 		return "VarVal(" ~ name ~ ")";
 	}
 	string c_code(const(Symbols) s, out TypeBase ty) const {
-		auto d = s.lookup(name);
-		assert(d !is null, "Undefined symbol "~name);
+		auto d = s.lookup_checked(name);
 		auto vd = cast(const(Storage))d,
 		     sd = cast(const(State))d,
 		     td = cast(const(Tag))d;
@@ -230,7 +230,8 @@ override :
 			ty = new Type!Tag;
 			return td.c_access;
 		} else
-			assert(false, name~" is not a variable or state name");
+			ce(false, name~" is not a variable or state name");
+		assert(0);
 	}
 	string c_assign(const(Expr) rhs, Symbols s, bool delayed) const {
 		import std.typecons : Rebindable;
@@ -239,12 +240,12 @@ override :
 		auto rcode = rhs.c_code(s, rty);
 		Rebindable!(const(Var)) vd;
 		if (d is null) {
-			assert(rty.dimension > 1 ||
-			       rty.type_match!(Type!int) ||
-			       rty.type_match!(Type!float) ||
-			       rty.type_match!ParticleHandle ||
-			       rty.type_match!(Type!State) ||
-			       rty.type_match!AnyType, typeid(rty).toString);
+			ce(rty.dimension > 1 ||
+			   rty.type_match!(Type!int) ||
+			   rty.type_match!(Type!float) ||
+			   rty.type_match!ParticleHandle ||
+			   rty.type_match!(Type!State) ||
+			   rty.type_match!AnyType, "Can't create variable with type: ", rty.str);
 			auto newv = new Var(rty, null, name);
 			s.insert(newv);
 			vd = newv;
@@ -254,7 +255,7 @@ override :
 			if (d.aggregator !is null)
 				return d.aggregator.c_assign(vd, rhs, s, delayed);
 			vd = cast(const(Var))d;
-			assert(vd !is null, name~" is not a variable");
+			ce(vd !is null, name~" is not a variable");
 		}
 
 		if (vd.ty.type_match!AnyType) {
@@ -265,10 +266,9 @@ override :
 			vd = nvd;
 		} else
 			rcode = rty.c_cast(vd.ty, rcode);
-		assert(vd.prot != Protection.Const, "Writing to const variable '"~
-		       name~"'");
+		venforce!AccessError(vd.prot != Protection.Const, vd.name, AccessType.Write);
 		if (vd.sc == StorageClass.Particle)
-			assert(delayed, "Assignment to particle member should use <- ");
+			ce(delayed, "Assignment to particle member should use <- ");
 		TypeBase _;
 		return vd.c_access(AccessType.Write, _)~" = "~rcode~";\n";
 	}
@@ -380,7 +380,7 @@ override :
 		string sname = name~to!string(param.length);
 
 		auto fn = cast(const(Callable))s.lookup_checked(sname);
-		enforce(fn !is null, "Calling non function "~name);
+		ce(fn !is null, "Calling non function "~name);
 		return fn.c_call(pcode, pty, ty);
 	}
 }
@@ -414,7 +414,7 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 		auto rngty = cast(const(RangeBase))ty[1];
 		auto tagty = cast(const(Type!Tag))ty[1];
 		if(rngty !is null) {
-			assert(ty[0].dimension == ty[1].dimension);
+			op_type(ty[0].dimension == ty[1].dimension, op, ty[0], ty[1]);
 			if (ty[1].dimension > 1)
 				return "vector_in_range"~to!string(ty[1].dimension)~
 				       "("~code[0]~", "~code[1]~")";
@@ -431,13 +431,13 @@ string c_match(string[2] code, const(TypeBase)[2] ty, string op) {
 				return "has_tag("~code[0]~"->__tags, "~code[1]~")";
 			else {
 				auto anyp = cast(const(ParticleHandle))ty[0];
-				assert(anyp !is null);
+				ce(anyp !is null, "~ must match against a particle handle");
 				return "has_tag(&((struct particle *)"~code[0]~")->t, "~code[1]~")";
 			}
 		}
 	}
 	if (ty[0].dimension > 1) {
-		assert(ty[0].dimension == ty[1].dimension);
+		op_type(ty[0].dimension == ty[1].dimension, op, ty[0], ty[1]);
 		return "vec"~to!string(ty[1].dimension)~"_"~op_to_name(op)~"("~code[0]~", "~code[1]~")";
 	}
 	auto c = ty[0].c_cast(ty[1], code[0]);
@@ -486,7 +486,7 @@ override :
 			auto ctor = pd.ctor;
 			ty = new ParticleHandle;
 			if (ctor is null) {
-				assert(param.length == 0, "ctor of "~name~" doesn't take any parameter");
+				ce(param.length == 0, "ctor of "~name~" doesn't take any parameter");
 				return "(new_particle_"~name~"())";
 			} else {
 				auto res = "(new_particle_"~name~"(";
@@ -504,9 +504,8 @@ override :
 			ty = new TypeBase;
 			return "create_actor(__current->__p, PARTICLE_"~sd.parent.name~"_STATE_"~sd.name~")";
 		} else if (ed !is null) {
-			assert(param.length == ed.member.length,
-			       "Event "~ed.name~" has "~to!string(ed.member.length)~
-			       "members, but "~to!string(param.length)~" are given");
+			venforce!ParamLenError(param.length == ed.member.length,
+			    ed.name, ed.member.length, param.length);
 			auto res = "((struct event_"~ed.name~"){";
 			foreach(i, p; param) {
 				if (i != 0)
@@ -519,7 +518,8 @@ override :
 			ty = new NamedType!Event(ed.name, s);
 			return res;
 		} else if (vd !is null) {
-			assert(param.length == vd.member.length);
+			venforce!ParamLenError(param.length == vd.member.length,
+			    vd.name, vd.member.length, param.length);
 			auto res = "((struct vertex_"~vd.name~"){";
 			foreach(i, p; param) {
 				if (i != 0)
@@ -538,8 +538,8 @@ override :
 		changed = false;
 		TypeBase ty;
 		auto code = c_code(s, ty);
-		assert(ty.type_match!ParticleHandle || ty.type_match!TypeBase,
-		       "Creating "~name~" without assigning it makes no sense.");
+		ce(ty.type_match!ParticleHandle || ty.type_match!TypeBase,
+		   "Creating "~name~" without assigning it makes no sense.");
 		return code~";\n";
 	}
 }

@@ -58,10 +58,9 @@ particle Spark {
 	float r;
 	vec2 velocity;
 	float alpha;
-	>(center) {
+	>(center, float v) {
 		r <- 20.0;
 		angle = rand(0..6.28);
-		v = rand(1..4);
 		velocity <- vec(v*cos(angle), v*sin(angle));
 		alpha<- 1.0;
 		`Decay;
@@ -69,6 +68,7 @@ particle Spark {
 	state Decay @ nextFrame {
 		center <- center+velocity;
 		r <- r*0.9;
+		velocity <- velocity*0.94;
 		alpha <- alpha*0.9;
 		render << `ballv(vec(-1, 1)*r, center, T.Star.bl, 0, alpha),
 			  `ballv(vec(-1, -1)*r, center, T.Star.ul, 0, alpha),
@@ -102,7 +102,7 @@ particle Ball {
 			velocity <- tmpv+vo*line/dist;
 			poc = center+line/2.0;
 			loop(0..5)
-				`Spark(poc);
+				`Spark(poc,(vm-vo)*2.0);
 		}
 	},
 	@ Collide(WallN(x)) {

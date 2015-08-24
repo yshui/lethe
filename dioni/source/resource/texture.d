@@ -4,6 +4,7 @@ import std.stdio, std.string, std.path, std.array;
 import binary.reader: binaryReader;
 import binary.common: ByteOrder;
 import utils;
+import error;
 
 struct rect {
 	float x, y, w, h;
@@ -60,7 +61,7 @@ class TexturePack : Storage {
 
 override :
 	string c_access(AccessType at, out TypeBase ty) const {
-		assert(at != AccessType.Write);
+		venforce!AccessError(at != AccessType.Write, name, at);
 		auto r = rect(0, 0, w, h, 0);
 		ty = new Type!TexturePack(this);
 		return "";

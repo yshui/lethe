@@ -48,8 +48,8 @@ class Callable : Decl {
 }
 
 enum AccessType {
-	Read,
-	Write
+	Read = 0,
+	Write = 1
 }
 
 class Storage : Decl {

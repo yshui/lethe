@@ -31,7 +31,6 @@ auto bufreader(R)(R i) if (isInputRange!R && is(ElementType!R == ubyte[])) {
 		void popFront() {
 			import std.stdio;
 			now = now[1..$];
-			writeln("Pop ", now.length);
 			if (now.length == 0 && !i.empty) {
 				now = i.front();
 				i.popFront();
@@ -39,4 +38,12 @@ auto bufreader(R)(R i) if (isInputRange!R && is(ElementType!R == ubyte[])) {
 		}
 	}
 	return new BufferedReader(i);
+}
+
+template venforce(E) {
+	pure @safe T venforce(T, Args...)(T value, Args args) if (is(typeof(new E(args)))) {
+		if (!value)
+			throw new E(args);
+		return value;
+	}
 }
